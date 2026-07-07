@@ -126,8 +126,8 @@ worldbench validate path/to/world.json
 # Score a world (weighted composite out of 100)
 worldbench score path/to/world.json
 
-# Render reports (Markdown / JSON / HTML) from a run's outputs
-worldbench report --model mock --task WC001_complete_floating_world
+# Render a report (Markdown / JSON / HTML) for a world.json
+worldbench report path/to/world.json --format html --out report.html
 
 # Aggregate every run into a leaderboard
 worldbench leaderboard

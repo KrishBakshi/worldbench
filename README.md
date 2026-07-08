@@ -1,15 +1,27 @@
+<p align="center">
+  <img src="public/world.png" alt="WorldBench — a generated floating natural world" width="612">
+</p>
+
 # WorldBench
 
 **A benchmark for evaluating Large Language Models on the generation of
 structured, living natural worlds.**
 
-WorldBench does **not** evaluate images. It asks a model to emit a single
-structured **JSON world** and then validates that world **deterministically** —
-with rule-based validators and an ecological knowledge graph — producing a
-weighted score out of 100. There is **no reference world** to match against;
-WorldBench measures whether a model can generate a world that is internally
-coherent, ecologically plausible, hydrologically sound, topologically
-consistent, diverse, and complete.
+WorldBench asks a model to emit a single structured **JSON world** and then
+validates that world **deterministically** — with rule-based validators and an
+ecological knowledge graph — producing a weighted score out of 100. There is
+**no reference world** to match against; WorldBench measures whether a model
+can generate a world that is internally coherent, ecologically plausible,
+hydrologically sound, topologically consistent, diverse, and complete.
+
+WorldBench is a **two-artifact** benchmark. The JSON above is scored on its
+own as described here. There's an optional second artifact — a self-contained
+Three.js **`world.html`** built *from* that exact JSON — graded by its own,
+separate fidelity score (never blended into the JSON's `overall_score`). This
+still isn't image evaluation: fidelity is checked by deterministic text
+analysis (does the HTML embed and actually use the source JSON's data), never
+by rendering, screenshotting, or an LLM judging what it looks like. See
+[Two-stage generation](#two-stage-generation-json-then-html) below.
 
 ---
 
@@ -87,10 +99,28 @@ lexicon and fails any world that smuggles in civilization.
                         ┌──────────────────────────────────────────────┐
                         │  Reports: Markdown · JSON · HTML · Leaderboard│
                         └──────────────────────────────────────────────┘
+
+  ── optional second artifact, graded separately ──────────────────────────
+
+   world.json  ──►  stage-2 prompt  ──►  ModelAdapter  ──►  world.html
+                    (JSON embedded                          (self-contained
+                     verbatim)                                Three.js)
+                                                                   │
+                                                                   ▼
+                                              ┌──────────────────────────────┐
+                                              │  html_fidelity validator +   │
+                                              │  metric — deterministic text │
+                                              │  analysis, no rendering      │
+                                              └──────────────┬───────────────┘
+                                                              ▼
+                                                 HTML fidelity score /100
+                                                 (separate from overall_score)
 ```
 
 Everything downstream of the `World` is deterministic: the same world always
 produces the same validation report, the same metrics, and the same score.
+The HTML branch is deterministic too — text/structure analysis only, never a
+render or a screenshot.
 
 ---
 
@@ -131,10 +161,46 @@ worldbench report path/to/world.json --format html --out report.html
 
 # Aggregate every run into a leaderboard
 worldbench leaderboard
+
+# Check whether a world.html was actually built from a given world.json
+worldbench score-html path/to/world.html --world path/to/world.json
+
+# Score a model's whole output directory (world.json + world.html) at once
+worldbench evaluate path/to/model_dir
 ```
 
 The `mock` adapter needs no API keys and always returns a valid world, so the
 full pipeline runs offline out of the box.
+
+---
+
+## Two-stage generation (JSON then HTML)
+
+Every task is stage 1: generate `world.json`. An optional stage 2 turns that
+exact JSON into a self-contained Three.js `world.html`. Both stages can run
+either through a live adapter (`worldbench run`) or entirely by hand, pasting
+prompts into any LLM chat website — no API key required:
+
+```
+prompts/01_json_generation_prompt_template.md   stage 1 recipe (per-task prompt, no single shared file)
+prompts/02_html_generation_prompt_template.md   stage 2 template (task-agnostic, shared by every task)
+prompts/<category>/<TASKID>/01_generate_json_prompt.md   a task's ready-to-paste stage-1 prompt
+prompts/<category>/<TASKID>/02_generate_html_prompt.md   a task's ready-to-paste stage-2 prompt
+```
+
+Save results as `manual_generation/output/<model_name>/{world.json, world.html}`
+and grade both with `worldbench evaluate manual_generation/output/<model_name>`.
+See [`manual_generation/README.md`](manual_generation/README.md) for the full
+walkthrough, and [`prompts/overview.md`](prompts/overview.md) for how the two
+stages fit together.
+
+HTML fidelity is graded by the `html_fidelity` validator + metric
+(`benchmark/validators/html_fidelity.py`, `benchmark/metrics/html_fidelity.py`):
+the HTML must embed the exact source JSON verbatim
+(`<script type="application/json" id="world-data">`), the embedded id must
+match, and the code must demonstrably parse and use that data rather than
+leaving it inert next to a generic scene. It's excluded from `weights.yaml` and
+never blended into the JSON's `overall_score` — it's its own number.
 
 ---
 
@@ -188,6 +254,12 @@ Weights are declared in
 to retune. See [docs/validators.md](docs/validators.md) for what each validator
 enforces.
 
+A 10th metric, `html_fidelity`, scores the optional `world.html` companion
+against its source JSON. It's deliberately **not** in `weights.yaml` and never
+folds into `overall_score` — scoring an HTML artifact against a JSON reference
+is a different question than judging the JSON alone, so it's reported as its
+own separate number (`worldbench score-html` / `worldbench evaluate`).
+
 ---
 
 ## Model providers
@@ -214,19 +286,27 @@ worldbench/
 │   ├── models/               # Pydantic v2 schema: World + 12 sections + graph
 │   ├── schemas/              # versioned JSON Schema export
 │   ├── knowledge/            # rule-based ecological ontology (YAML) + graph loader
-│   ├── validators/           # 11 validators + composite validate_world
-│   ├── metrics/              # 9 metrics + weighted overall (score_world)
+│   ├── validators/           # 11 world validators + composite validate_world,
+│   │                         #   plus html_fidelity.py (graded separately)
+│   ├── metrics/              # 9 weighted metrics (score_world) + the standalone
+│   │                         #   html_fidelity metric
 │   ├── runner/               # task loader, orchestration, provider adapters
 │   ├── reports/              # Markdown / JSON / HTML / leaderboard renderers
 │   └── cli.py                # Typer CLI (worldbench …)
 ├── prompts/                  # benchmark tasks, grouped into 10 categories
 │   ├── 01_world_layout/  …  10_stress_tests/
-│   └── <PREFIX###_slug>/     # one task folder: prompt, yaml configs, examples
-├── outputs/                  # generated run artifacts (per model / per task)
-├── reports/                  # generated report artifacts
-├── viewer/                   # optional R3F viewer — placeholder in v1
-├── docs/                     # architecture, schema, validators, guides
-└── tests/                    # pytest suite for every layer
+│   ├── <PREFIX###_slug>/     # one task folder: prompt, yaml configs, examples,
+│   │                         #   plus 01_generate_json_prompt.md / 02_generate_html_prompt.md
+│   ├── 01_json_generation_prompt_template.md   # stage-1 recipe (top level)
+│   ├── 02_html_generation_prompt_template.md   # stage-2 shared template (top level)
+│   └── overview.md           # two-stage pipeline explained + original world brief
+├── manual_generation/         # no-API workflow: results in output/<model>/{world.json, world.html}
+├── outputs/                   # generated run artifacts (per model / per task)
+├── reports/                   # generated report artifacts
+├── viewer/                    # optional R3F viewer — placeholder in v1
+├── references/                # gitignored, local-only archive of prior experiments
+├── docs/                      # architecture, schema, validators, guides
+└── tests/                     # pytest suite for every layer
 ```
 
 ---

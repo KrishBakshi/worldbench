@@ -48,9 +48,9 @@ fidelity score; it is never blended into the JSON's `overall_score`.
   task-agnostic template every task's `02_generate_html_prompt.md` is built
   from. See `prompts/overview.md` for the two-stage pipeline explained at the
   top level.
-- `manual_generation/` — **results only** for the manual (no-API) workflow;
+- `data/manual_generation/` — **results only** for the manual (no-API) workflow;
   the prompts themselves live in `prompts/` (see above), not here. Results land
-  in `manual_generation/output/<model_name>/{world.json, world.html}`; see its
+  in `data/manual_generation/output/<model_name>/{world.json, world.html}`; see its
   `README.md`. Distinct from the repo-root
   `outputs/<adapter>__<model>/<task_id>/` bundle format `worldbench leaderboard`
   scans — the former is raw hand-generated artifacts, the latter is scored,
@@ -75,7 +75,7 @@ fidelity score; it is never blended into the JSON's `overall_score`.
   artifacts for one model in a single shot with
   `worldbench evaluate <model_dir>` (expects `<model_dir>/world.json` and,
   optionally, `<model_dir>/world.html` — exactly the layout
-  `manual_generation/output/<model_name>/` produces).
+  `data/manual_generation/output/<model_name>/` produces).
 
 ## Conventions
 - Python 3.12+; local dev venv at `.venv/` (built on 3.14). Use `.venv/bin/python`

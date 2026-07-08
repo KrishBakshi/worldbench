@@ -20,7 +20,7 @@ WorldBench generates two artifacts per world, in two stages:
 Stage 1's output is graded on its own (`worldbench validate`/`score`); stage
 2's output is graded separately, against stage 1's JSON as ground truth
 (`worldbench score-html`, or both at once via `worldbench evaluate`). See
-`manual_generation/README.md` for the full walkthrough of running both stages
+`data/manual_generation/README.md` for the full walkthrough of running both stages
 by hand.
 
 ------------------------------------------------------------------------

@@ -216,7 +216,7 @@ def evaluate(
     """Score everything in one model's output directory in a single shot.
 
     Expects ``<model_dir>/world.json`` and, optionally, ``<model_dir>/world.html``
-    — the layout ``manual_generation/output/<model_name>/`` produces. Prints the
+    — the layout ``data/manual_generation/output/<model_name>/`` produces. Prints the
     JSON's validation + metric score, and — if the HTML is present — its
     fidelity score against that same JSON. This is the one command to run
     after saving both files from a manual (no-API) generation.

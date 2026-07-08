@@ -75,7 +75,7 @@ THE WORLD (paste the target world.json below, verbatim)
 - This does **not** replace stage 1's own JSON scoring (`worldbench validate` /
   `score`) — the HTML gets its own separate fidelity score
   (`worldbench score-html`), it is not blended into the JSON's `/100`.
-- Save the response as `manual_generation/output/<your_model_name>/world.html`,
+- Save the response as `data/manual_generation/output/<your_model_name>/world.html`,
   right next to the `world.json` you pasted in — same folder, same model name.
-  Then run `worldbench evaluate manual_generation/output/<your_model_name>` to
+  Then run `worldbench evaluate data/manual_generation/output/<your_model_name>` to
   score both files together in one shot.

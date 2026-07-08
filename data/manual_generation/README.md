@@ -1,4 +1,4 @@
-# manual_generation — evaluate any LLM without an API key
+# data/manual_generation — evaluate any LLM without an API key
 
 Generate a WorldBench world by hand (paste prompts into any chat website),
 then score it locally. No adapters, no API keys, no live `worldbench run` — the
@@ -16,7 +16,7 @@ prompts/08_world_composition/WC001_complete_floating_world/
 ├── 01_generate_json_prompt.md                     stage 1: paste this, get world.json back
 └── 02_generate_html_prompt.md                     stage 2: paste your JSON into this, get world.html back
 
-manual_generation/
+data/manual_generation/
 ├── README.md                                     this file
 └── output/                                       one directory per model/run you test
     ├── claude_opus_4_8/
@@ -40,12 +40,12 @@ Full walkthrough lives in
    `output/<your_model_name>/world.html`.
 3. Score both at once:
    ```bash
-   .venv/bin/worldbench evaluate manual_generation/output/<your_model_name>
+   .venv/bin/worldbench evaluate data/manual_generation/output/<your_model_name>
    ```
 
 ## Why `output/` isn't the same as the repo's `outputs/`
 
-- `manual_generation/output/<model>/` — the **raw artifacts** you produced by
+- `data/manual_generation/output/<model>/` — the **raw artifacts** you produced by
   hand (`world.json`, `world.html`). This is what you create and what
   `worldbench evaluate` reads.
 - `outputs/<adapter>__<model>/<task_id>/` (repo root) — the **scored bundle

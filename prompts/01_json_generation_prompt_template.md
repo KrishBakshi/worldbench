@@ -19,7 +19,7 @@ order:
    field names/types/enums it has no other way of knowing.
 
 Ask the model to output ONLY the JSON object — no prose, no code fences —
-then save the reply as `manual_generation/output/<model_name>/world.json`.
+then save the reply as `data/manual_generation/output/<model_name>/world.json`.
 
 ## Ready-made example
 
@@ -44,5 +44,5 @@ that order, following the exact format in the WC001 example above.
 
 Once you have a `world.json`, move on to
 `prompts/02_html_generation_prompt_template.md` to generate the companion
-`world.html`. See `manual_generation/README.md` for the full walkthrough of
+`world.html`. See `data/manual_generation/README.md` for the full walkthrough of
 both stages, and `worldbench evaluate <model_dir>` to score both files at once.

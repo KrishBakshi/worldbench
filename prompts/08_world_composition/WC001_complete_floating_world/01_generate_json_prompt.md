@@ -1740,9 +1740,9 @@ reference existing flora, fauna, or biome ids as appropriate to the type.",
 ## Notes for you (not part of the prompt)
 
 - Ask the model to output ONLY the JSON object — no prose, no code fences.
-- Save its response as `manual_generation/output/<your_model_name>/world.json`
+- Save its response as `data/manual_generation/output/<your_model_name>/world.json`
   (strip any ```` ```json ``` ```` fences first — WorldBench expects raw JSON).
 - `<your_model_name>` is a folder you choose, e.g. `claude_opus_4_8` — one per
   model/run you want to compare.
 - Then move on to `02_generate_html_prompt.md` for stage 2, or jump straight to
-  scoring with `worldbench evaluate manual_generation/output/<your_model_name>`.
+  scoring with `worldbench evaluate data/manual_generation/output/<your_model_name>`.

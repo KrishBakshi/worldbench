@@ -188,9 +188,9 @@ prompts/<category>/<TASKID>/01_generate_json_prompt.md   a task's ready-to-paste
 prompts/<category>/<TASKID>/02_generate_html_prompt.md   a task's ready-to-paste stage-2 prompt
 ```
 
-Save results as `manual_generation/output/<model_name>/{world.json, world.html}`
-and grade both with `worldbench evaluate manual_generation/output/<model_name>`.
-See [`manual_generation/README.md`](manual_generation/README.md) for the full
+Save results as `data/manual_generation/output/<model_name>/{world.json, world.html}`
+and grade both with `worldbench evaluate data/manual_generation/output/<model_name>`.
+See [`data/manual_generation/README.md`](data/manual_generation/README.md) for the full
 walkthrough, and [`prompts/overview.md`](prompts/overview.md) for how the two
 stages fit together.
 
@@ -300,7 +300,7 @@ worldbench/
 │   ├── 01_json_generation_prompt_template.md   # stage-1 recipe (top level)
 │   ├── 02_html_generation_prompt_template.md   # stage-2 shared template (top level)
 │   └── overview.md           # two-stage pipeline explained + original world brief
-├── manual_generation/         # no-API workflow: results in output/<model>/{world.json, world.html}
+├── data/manual_generation/         # no-API workflow: results in output/<model>/{world.json, world.html}
 ├── outputs/                   # generated run artifacts (per model / per task)
 ├── reports/                   # generated report artifacts
 ├── viewer/                    # optional R3F viewer — placeholder in v1

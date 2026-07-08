@@ -28,16 +28,16 @@ task's world by hand in any LLM chat website instead of via a live adapter:
 
 - `01_generate_json_prompt.md` — stage 1. Bundles the system message,
   `prompt.md`, `constraints.yaml`, and the full JSON Schema into one paste.
-  Save the reply as `manual_generation/output/<model_name>/world.json`.
+  Save the reply as `data/manual_generation/output/<model_name>/world.json`.
 - `02_generate_html_prompt.md` — stage 2. Paste your stage-1 JSON into it, get
   back a self-contained Three.js `world.html`. Save it next to the JSON, same
   model folder.
 
 Then score both together in one shot:
 ```bash
-worldbench evaluate manual_generation/output/<model_name>
+worldbench evaluate data/manual_generation/output/<model_name>
 ```
-See `manual_generation/README.md` at the repo root for the full walkthrough.
+See `data/manual_generation/README.md` at the repo root for the full walkthrough.
 
 ## Examples
 

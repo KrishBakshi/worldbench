@@ -1,4 +1,36 @@
+# prompts/ — two-stage generation pipeline
+
+WorldBench generates two artifacts per world, in two stages:
+
+- **Stage 1 — JSON.** Task-specific, one per task. Each
+  `prompts/NN_category/<TASKID>/` folder is stage 1 in full: `prompt.md` +
+  `task.yaml`'s system prompt describe the world to generate as JSON. Tasks
+  that support manual (no-API) generation also bundle a ready-to-paste
+  `01_generate_json_prompt.md` right in that same folder. There is no single
+  prompt that works for every task (the world asked for differs per task), so
+  instead of a shared prompt, `prompts/01_json_generation_prompt_template.md`
+  documents the assembly recipe every task's stage-1 prompt follows, plus a
+  pointer to a ready-made example.
+- **Stage 2 — HTML.** Task-agnostic, one shared file:
+  `prompts/02_html_generation_prompt_template.md`. It takes whatever JSON
+  stage 1 produced and turns it into a self-contained Three.js `world.html`.
+  Every task's own `02_generate_html_prompt.md` is that same template with a
+  `<PASTE world.json HERE>` slot.
+
+Stage 1's output is graded on its own (`worldbench validate`/`score`); stage
+2's output is graded separately, against stage 1's JSON as ground truth
+(`worldbench score-html`, or both at once via `worldbench evaluate`). See
+`manual_generation/README.md` for the full walkthrough of running both stages
+by hand.
+
+------------------------------------------------------------------------
+
 # Floating Biome Island with Ocean --- World Description
+
+The section below is the original creative brief the benchmark's canonical
+sample world and several tasks' prompts were derived from — kept as reference
+for anyone writing new task prompts, not itself one of the two pipeline
+stages above.
 
 ## Overview
 

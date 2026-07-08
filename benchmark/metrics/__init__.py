@@ -12,6 +12,7 @@ from .biodiversity import score as score_biodiversity
 from .completeness import score as score_completeness
 from .creativity import score as score_creativity
 from .ecological_correctness import score as score_ecological_correctness
+from .html_fidelity import score_html_fidelity
 from .hydrology_correctness import score as score_hydrology_correctness
 from .interaction_richness import score as score_interaction_richness
 from .overall import METRICS, load_weights, score_world
@@ -34,4 +35,5 @@ __all__ = [
     "score_spatial_coherence",
     "score_biodiversity",
     "score_creativity",
+    "score_html_fidelity",
 ]

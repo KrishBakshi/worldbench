@@ -162,6 +162,107 @@ def score(
     console.print(f"[bold]Overall: {scores.overall:.1f}/100[/bold]")
 
 
+@app.command("score-html")
+def score_html(
+    html_path: Path = typer.Argument(..., help="Path to a self-contained world.html to check."),
+    world_path: Path = typer.Option(
+        ..., "--world", "-w", help="Path to the world.json this HTML should be built from."
+    ),
+) -> None:
+    """Check whether a world.html was actually built from the given world.json.
+
+    Unlike ``validate``/``score``, this takes two files: the HTML is graded
+    against the JSON as ground truth, not in isolation. Purely deterministic
+    text analysis — no rendering, no screenshots, no LLM judging.
+    """
+    from .metrics import score_html_fidelity
+    from .validators import validate_html
+
+    world = _load_world_or_exit(world_path)
+    if not html_path.exists():
+        console.print(f"[red]No such file:[/red] {html_path}")
+        raise typer.Exit(code=2)
+    html = html_path.read_text(encoding="utf-8")
+
+    result = validate_html(html, world)
+    metric = score_html_fidelity(html, world)
+
+    table = Table(title=f"HTML Fidelity — {html_path.name} vs {world_path.name}")
+    table.add_column("Check", style="cyan")
+    table.add_column("Passed")
+    table.add_column("Detail")
+    for finding in result.findings:
+        table.add_row(
+            finding.code,
+            "[red]no[/red]" if finding.severity.value == "error" else "[yellow]warn[/yellow]",
+            finding.message,
+        )
+    if not result.findings:
+        table.add_row("-", "[green]yes[/green]", "all checks passed")
+    console.print(table)
+    console.print(f"Structural checks: {'[green]PASSED[/green]' if result.passed else '[red]FAILED[/red]'} "
+                  f"({len(result.errors)} errors, {len(result.warnings)} warnings)")
+    console.print(f"[bold]Fidelity score: {metric.score:.1f}/100[/bold]  ({metric.detail})")
+    if not result.passed:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def evaluate(
+    model_dir: Path = typer.Argument(
+        ..., help="Directory containing world.json (and optionally world.html)."
+    ),
+) -> None:
+    """Score everything in one model's output directory in a single shot.
+
+    Expects ``<model_dir>/world.json`` and, optionally, ``<model_dir>/world.html``
+    — the layout ``manual_generation/output/<model_name>/`` produces. Prints the
+    JSON's validation + metric score, and — if the HTML is present — its
+    fidelity score against that same JSON. This is the one command to run
+    after saving both files from a manual (no-API) generation.
+    """
+    from .metrics import score_html_fidelity, score_world
+    from .validators import validate_html, validate_world
+
+    if not model_dir.is_dir():
+        console.print(f"[red]Not a directory:[/red] {model_dir}")
+        raise typer.Exit(code=2)
+
+    world_path = model_dir / "world.json"
+    if not world_path.exists():
+        console.print(f"[red]Missing:[/red] {world_path}")
+        raise typer.Exit(code=2)
+
+    world = _load_world_or_exit(world_path)
+    report_ = validate_world(world)
+    scores = score_world(world, report_)
+
+    console.print(f"[bold]{model_dir.name}[/bold]")
+    table = Table(title="world.json")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Score", justify="right")
+    table.add_column("Weight", justify="right")
+    for m in scores.metrics:
+        table.add_row(m.name, f"{m.score:.1f}", f"{m.weight:.2f}")
+    console.print(table)
+    console.print(f"  validation: {'PASS' if report_.passed else 'FAIL'} "
+                  f"({report_.error_count()}E/{report_.warning_count()}W)")
+    console.print(f"  [bold]JSON score: {scores.overall:.1f}/100[/bold]")
+
+    html_path = model_dir / "world.html"
+    console.print()
+    if not html_path.exists():
+        console.print("  [yellow]no world.html found — HTML fidelity not scored[/yellow]")
+        return
+
+    html = html_path.read_text(encoding="utf-8")
+    html_result = validate_html(html, world)
+    html_metric = score_html_fidelity(html, world)
+    console.print(f"  html validation: {'PASS' if html_result.passed else 'FAIL'} "
+                  f"({len(html_result.errors)}E/{len(html_result.warnings)}W)")
+    console.print(f"  [bold]HTML fidelity: {html_metric.score:.1f}/100[/bold]  ({html_metric.detail})")
+
+
 @app.command()
 def report(
     world_path: Path = typer.Argument(..., help="Path to a world.json to report on."),

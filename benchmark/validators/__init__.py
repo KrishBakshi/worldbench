@@ -15,6 +15,7 @@ from . import (
     ecology,
     fauna,
     flora,
+    html_fidelity,
     hydrology,
     interaction,
     schema_validator,
@@ -23,11 +24,13 @@ from . import (
     weather,
 )
 from .composite import VALIDATORS, validate_world
+from .html_fidelity import validate as validate_html
 from .schema_validator import validate_dict
 
 __all__ = [
     "validate_world",
     "validate_dict",
+    "validate_html",
     "VALIDATORS",
     "ValidationReport",
     "ValidationResult",
@@ -44,4 +47,5 @@ __all__ = [
     "weather",
     "simulation",
     "constraint",
+    "html_fidelity",
 ]

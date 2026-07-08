@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/world.png" alt="WorldBench — a generated floating natural world" width="612">
+  <img src="public/world.png" alt="WorldBench: a generated floating natural world" width="612">
 </p>
 
 # WorldBench
@@ -8,15 +8,15 @@
 structured, living natural worlds.**
 
 WorldBench asks a model to emit a single structured **JSON world** and then
-validates that world **deterministically** — with rule-based validators and an
-ecological knowledge graph — producing a weighted score out of 100. There is
+validates that world **deterministically**, with rule-based validators and an
+ecological knowledge graph, producing a weighted score out of 100. There is
 **no reference world** to match against; WorldBench measures whether a model
 can generate a world that is internally coherent, ecologically plausible,
 hydrologically sound, topologically consistent, diverse, and complete.
 
 WorldBench is a **two-artifact** benchmark. The JSON above is scored on its
-own as described here. There's an optional second artifact — a self-contained
-Three.js **`world.html`** built *from* that exact JSON — graded by its own,
+own as described here. There's an optional second artifact: a self-contained
+Three.js **`world.html`** built *from* that exact JSON, graded by its own,
 separate fidelity score (never blended into the JSON's `overall_score`). This
 still isn't image evaluation: fidelity is checked by deterministic text
 analysis (does the HTML embed and actually use the source JSON's data), never
@@ -76,7 +76,7 @@ lexicon and fails any world that smuggles in civilization.
                                                 │  raw JSON
                                                 ▼
                         ┌──────────────────────────────────────────────┐
-                        │  World (Pydantic v2)  — 12 typed sections     │
+                        │  World (Pydantic v2), 12 typed sections       │
                         │  parsed & structurally validated              │
                         └───────────────────────┬──────────────────────┘
                                                 │
@@ -109,7 +109,7 @@ lexicon and fails any world that smuggles in civilization.
                                                                    ▼
                                               ┌──────────────────────────────┐
                                               │  html_fidelity validator +   │
-                                              │  metric — deterministic text │
+                                              │  metric: deterministic text  │
                                               │  analysis, no rendering      │
                                               └──────────────┬───────────────┘
                                                               ▼
@@ -119,7 +119,7 @@ lexicon and fails any world that smuggles in civilization.
 
 Everything downstream of the `World` is deterministic: the same world always
 produces the same validation report, the same metrics, and the same score.
-The HTML branch is deterministic too — text/structure analysis only, never a
+The HTML branch is deterministic too: text/structure analysis only, never a
 render or a screenshot.
 
 ---
@@ -179,7 +179,7 @@ full pipeline runs offline out of the box.
 Every task is stage 1: generate `world.json`. An optional stage 2 turns that
 exact JSON into a self-contained Three.js `world.html`. Both stages can run
 either through a live adapter (`worldbench run`) or entirely by hand, pasting
-prompts into any LLM chat website — no API key required:
+prompts into any LLM chat website, no API key required:
 
 ```
 prompts/01_json_generation_prompt_template.md   stage 1 recipe (per-task prompt, no single shared file)
@@ -200,7 +200,7 @@ the HTML must embed the exact source JSON verbatim
 (`<script type="application/json" id="world-data">`), the embedded id must
 match, and the code must demonstrably parse and use that data rather than
 leaving it inert next to a generic scene. It's excluded from `weights.yaml` and
-never blended into the JSON's `overall_score` — it's its own number.
+never blended into the JSON's `overall_score`; it's its own number.
 
 ---
 
@@ -256,7 +256,7 @@ enforces.
 
 A 10th metric, `html_fidelity`, scores the optional `world.html` companion
 against its source JSON. It's deliberately **not** in `weights.yaml` and never
-folds into `overall_score` — scoring an HTML artifact against a JSON reference
+folds into `overall_score`; scoring an HTML artifact against a JSON reference
 is a different question than judging the JSON alone, so it's reported as its
 own separate number (`worldbench score-html` / `worldbench evaluate`).
 
@@ -274,7 +274,7 @@ credentials/endpoints from environment variables:
 | `gemini`    | `GEMINI_API_KEY`                                     |
 | `ollama`    | `OLLAMA_HOST` (defaults to `http://localhost:11434`) |
 | `vllm`      | `VLLM_BASE_URL` (OpenAI-compatible server)           |
-| `mock`      | none — deterministic offline adapter                 |
+| `mock`      | none, deterministic offline adapter                  |
 
 ---
 
@@ -327,15 +327,15 @@ See `docker-compose.yml` for an optional local `ollama` service.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — components and data flow
-- [Developer Guide](docs/developer_guide.md) — setup, tests, extending WorldBench
-- [Schema Reference](docs/schema.md) — every section and field
-- [Validator Reference](docs/validators.md) — what each validator checks
-- [Task Authoring Guide](docs/task_authoring_guide.md) — writing new benchmark tasks
-- [Contributing](docs/contributing.md) — workflow and standards
+- [Architecture](docs/architecture.md): components and data flow
+- [Developer Guide](docs/developer_guide.md): setup, tests, extending WorldBench
+- [Schema Reference](docs/schema.md): every section and field
+- [Validator Reference](docs/validators.md): what each validator checks
+- [Task Authoring Guide](docs/task_authoring_guide.md): writing new benchmark tasks
+- [Contributing](docs/contributing.md): workflow and standards
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

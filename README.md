@@ -303,7 +303,6 @@ worldbench/
 ├── data/manual_generation/         # no-API workflow: results in output/<model>/{world.json, world.html}
 ├── outputs/                   # generated run artifacts (per model / per task)
 ├── reports/                   # generated report artifacts
-├── viewer/                    # optional R3F viewer — placeholder in v1
 ├── references/                # gitignored, local-only archive of prior experiments
 ├── docs/                      # architecture, schema, validators, guides
 └── tests/                     # pytest suite for every layer

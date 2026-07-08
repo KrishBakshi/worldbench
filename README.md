@@ -4,7 +4,7 @@
 
 # WorldBench
 
-**A benchmark for evaluating Large Language Models on the generation of
+**A Open Source benchmark for evaluating Large Language Models on the generation of
 structured, living natural worlds.**
 
 WorldBench asks a model to emit a single structured **JSON world** and then

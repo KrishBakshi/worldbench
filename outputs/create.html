@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Floating Biome Island</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; }
+  #legend {
+    position: fixed; left: 14px; bottom: 14px; z-index: 10;
+    font: 12px/1.5 -apple-system, system-ui, sans-serif; color: #e8f2ff;
+    background: rgba(8, 14, 22, 0.72); border: 1px solid rgba(140, 190, 255, 0.18);
+    border-radius: 10px; padding: 10px 12px; backdrop-filter: blur(6px);
+    user-select: none; max-width: 260px;
+  }
+  #legend h3 {
+    margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    color: #9fd0ff; text-transform: uppercase;
+  }
+  #legend .row {
+    display: flex; align-items: center; gap: 8px; padding: 2px 4px;
+    border-radius: 5px; cursor: pointer;
+  }
+  #legend .row:hover { background: rgba(120, 180, 255, 0.14); }
+  #legend .sw {
+    width: 11px; height: 11px; border-radius: 3px; flex: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset;
+  }
+  #legend .wx { margin-left: auto; opacity: 0.65; font-size: 11px; }
+  #legend .foot {
+    margin-top: 7px; padding-top: 6px; border-top: 1px solid rgba(140,190,255,0.14);
+    opacity: 0.55; font-size: 11px;
+  }
+  #season {
+    position: fixed; top: 14px; right: 14px; z-index: 10;
+    font: 12px/1.4 -apple-system, system-ui, sans-serif; color: #e8f2ff;
+    background: rgba(8, 14, 22, 0.72); border: 1px solid rgba(140, 190, 255, 0.18);
+    border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px);
+    min-width: 140px;
+  }
+  #season .label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #9fd0ff; }
+  #season .name { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #000; color: #9fd0ff; font: 13px -apple-system, system-ui, sans-serif;
+    z-index: 20; letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+<div id="loading">GROWING WORLD…</div>
+<div id="season"><div class="label">Season</div><div class="name" id="seasonName">Spring</div></div>
+<div id="legend"><h3>Biomes — click to fly</h3></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+/* ================================================================== *
+ *  BIOME GRAPH — ecological adjacencies drive layout.
+ *  Far-north mountains (blizzard) → snow forest → highlands on the right
+ *  (empty plain behind pink grove) → jungle / grassland plateau.
+ *  Old western highland slot filled by extended jungle + swamp.
+ * ================================================================== */
+
+const BIOME = {
+  MOUNTAIN: "mountain", HIGHLAND: "highland", JUNGLE: "jungle", SWAMP: "swamp",
+  GRASSLAND: "grassland", GROVE: "grove", DESERT: "desert",
+  VOLCANIC: "volcanic", CONIFER: "conifer", COAST: "coast",
+};
+
+const BIOME_EDGES = [
+  [BIOME.MOUNTAIN,  BIOME.CONIFER,   "final peaks drop into snow forest"],
+  [BIOME.CONIFER,   BIOME.HIGHLAND,  "snow forest opens onto highland plain"],
+  [BIOME.MOUNTAIN,  BIOME.HIGHLAND,  "east mountain flank meets highland shelf"],
+  [BIOME.HIGHLAND,  BIOME.GROVE,     "highland slopes down into pink forest"],
+  [BIOME.JUNGLE,    BIOME.SWAMP,     "canopy drains into backwater marsh"],
+  [BIOME.JUNGLE,    BIOME.GRASSLAND, "wet forest drains into open plain"],
+  [BIOME.GRASSLAND, BIOME.GROVE,     "moist meadow seeds flowering grove"],
+  [BIOME.GRASSLAND, BIOME.DESERT,    "rain shadow — moisture collapses"],
+  [BIOME.DESERT,    BIOME.VOLCANIC,  "arid basin meets basalt (dry contact)"],
+  [BIOME.VOLCANIC,  BIOME.GRASSLAND, "basalt skirts meet the open plain"],
+  [BIOME.GRASSLAND, BIOME.COAST,     "main stem + delta reach the sea"],
+  [BIOME.JUNGLE,    BIOME.COAST,     "jungle outlets feed coastal lagoons"],
+  [BIOME.MOUNTAIN,  BIOME.COAST,     "west melt spills to western sea"],
+];
+
+/* Layout:
+ *   Mountains at the north end; snow forest in front.
+ *   Highlands relocated to the empty plain right of the snow forest,
+ *   between the mountains and the back side of the pink grove.
+ *   Western vacated area absorbed by larger jungle + swamp.
+ */
+const BIOMES = [
+  // Final mountains — far end of the island (behind the snow forest)
+  { id: BIOME.MOUNTAIN,  name: "Snow Mountains",  wx: "blizzard",  cx: -780, cz: -1100, radius: 440,
+    base: 760, amp: 400, snow: true,  low: 0x6d7a86, high: 0xf4f8ff, tree: null,      rock: 0x8b95a1, density: 0 },
+  // Elevated snow forest in front of those peaks
+  { id: BIOME.CONIFER,   name: "Snowy Conifers",  wx: "snowfall",  cx: -480, cz: -620, radius: 420,
+    base: 320, amp: 70,  snow: true,  low: 0x35513f, high: 0xdfeaf2, tree: "pine",    rock: 0x7c8a86, density: 1.4 },
+  // Highlands — right of snow forest, between mountains & back of pink grove
+  { id: BIOME.HIGHLAND,  name: "Highlands",       wx: "rain",      cx: 220,  cz: -520, radius: 340,
+    base: 440, amp: 75,  snow: false, low: 0x8a8f6a, high: 0xb9c08e, tree: "shrub",   rock: 0x8d8672, density: 0.85 },
+  // Expanded jungle — absorbs old western highland area
+  { id: BIOME.JUNGLE,    name: "Dense Jungle",    wx: "rain",      cx: -280, cz: 20,   radius: 720,
+    base: 155, amp: 85,  snow: false, low: 0x1a5230, high: 0x2a7540, tree: "broadleaf", rock: 0x5b5a4e, density: 2.05 },
+  // Expanded swamp — fills more of the vacated west
+  { id: BIOME.SWAMP,     name: "Backwater Swamp", wx: "mist",      cx: -700, cz: 100,  radius: 380,
+    base: 38,  amp: 18,  snow: false, low: 0x2a3a28, high: 0x4a5e3a, tree: "mangrove", rock: 0x4a4538, density: 1.35, flat: true },
+  // Open grassland plateau
+  { id: BIOME.GRASSLAND, name: "Grasslands",      wx: "rain",      cx: 160,  cz: 380,  radius: 580,
+    base: 72,  amp: 6,   snow: false, low: 0x4a7c28, high: 0x8fb84a, tree: "copse",   rock: 0x8f7c5c, density: 0.5, flat: true },
+  { id: BIOME.GROVE,     name: "Flowering Grove", wx: "rain",      cx: 500,  cz: -40,  radius: 360,
+    base: 95,  amp: 42,  snow: false, low: 0x6a9450, high: 0xc8e08a, tree: "blossom", rock: 0x93835f, density: 1.15 },
+  { id: BIOME.DESERT,    name: "Desert",          wx: "sandstorm", cx: 480,  cz: 1040, radius: 460,
+    base: 75,  amp: 16,  snow: false, low: 0xd2a45a, high: 0xedcf8a, tree: "cactus",  rock: 0xc49a5e, density: 0.9, flat: true },
+  { id: BIOME.VOLCANIC,  name: "Volcano",         wx: "eruption",  cx: 1220, cz: 480,  radius: 340,
+    base: 220, amp: 90,  snow: false, low: 0x241a18, high: 0x45302a, tree: null,      rock: 0x171010, density: 0, lava: true },
+];
+const byId = id => BIOMES.find(b => b.id === id);
+
+function hash2(x, y) {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+  return s - Math.floor(s);
+}
+function valueNoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, o = 4) {
+  let s = 0, a = 0.5, f = 1;
+  for (let i = 0; i < o; i++) { s += a * (valueNoise(x * f, y * f) * 2 - 1); a *= 0.5; f *= 2.05; }
+  return s;
+}
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const clamp01 = x => Math.min(1, Math.max(0, x));
+
+/* ------------------------------------------------------------------ *
+ *  seasons + square sun (cyclic day / year)
+ * ------------------------------------------------------------------ */
+const YEAR = 48;          // seconds per full seasonal cycle
+const DAY = 16;           // seconds per day/night within seasons
+const SEASONS = [
+  { name: "Spring", tint: 0xfff6e0, soft: 0.15, rain: 1.1, snow: 0.35, leaf: 0x7cbc4a },
+  { name: "Summer", tint: 0xfff1c2, soft: 0.0,  rain: 0.85, snow: 0.1,  leaf: 0x5aa034 },
+  { name: "Autumn", tint: 0xffd9a8, soft: 0.25, rain: 0.7,  snow: 0.2,  leaf: 0xc47a2e },
+  { name: "Winter", tint: 0xd8e8ff, soft: 0.55, rain: 0.35, snow: 1.0,  leaf: 0x8a9a6a },
+];
+function seasonState(t) {
+  const u = ((t % YEAR) + YEAR) % YEAR / YEAR;
+  const idx = Math.floor(u * 4) % 4;
+  const next = (idx + 1) % 4;
+  const blend = (u * 4) % 1;
+  // smoothstep blend so seasons feel reliable, not flickery
+  const k = blend * blend * (3 - 2 * blend);
+  const A = SEASONS[idx], B = SEASONS[next];
+  return {
+    name: k < 0.5 ? A.name : B.name,
+    idx, k,
+    soft: A.soft + (B.soft - A.soft) * k,
+    rain: A.rain + (B.rain - A.rain) * k,
+    snow: A.snow + (B.snow - A.snow) * k,
+    tint: new THREE.Color(A.tint).lerp(new THREE.Color(B.tint), k),
+    leaf: new THREE.Color(A.leaf).lerp(new THREE.Color(B.leaf), k),
+  };
+}
+function dayFactor(t) {
+  // 0 night → 1 noon, cyclic
+  return 0.55 + 0.45 * Math.sin((t / DAY) * Math.PI * 2);
+}
+
+const BOUNDS = 2000, SEA = 0, CELL = 24, STEP = 12;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 50000);
+const HOME = { pos: new THREE.Vector3(1900, 2600, 2300), tgt: new THREE.Vector3(60, 70, 80) };
+camera.position.copy(HOME.pos);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME.tgt);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 180;
+controls.maxDistance = 11000;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.update();
+
+const sunLight = new THREE.DirectionalLight(0xfff3d8, 2.5);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -2400; sunLight.shadow.camera.right = 2400;
+sunLight.shadow.camera.top = 2400; sunLight.shadow.camera.bottom = -2400;
+sunLight.shadow.camera.near = 100; sunLight.shadow.camera.far = 8000;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+const hemi = new THREE.HemisphereLight(0xbfe0ff, 0x35281d, 0.75);
+scene.add(hemi);
+const amb = new THREE.AmbientLight(0xffffff, 0.22);
+scene.add(amb);
+
+// Visible square sun — orbits with the day cycle
+const sunMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(140, 140, 140),
+  new THREE.MeshBasicMaterial({ color: 0xffe08a })
+);
+scene.add(sunMesh);
+const sunHalo = new THREE.Mesh(
+  new THREE.BoxGeometry(200, 200, 40),
+  new THREE.MeshBasicMaterial({ color: 0xffc45a, transparent: true, opacity: 0.35 })
+);
+scene.add(sunHalo);
+
+function islandRadius(theta) {
+  return 1880 + fbm(Math.cos(theta) * 2 + 10, Math.sin(theta) * 2 + 10, 3) * 120;
+}
+function coastFactor(x, z) {
+  const south = sstep(1200, 1800, z);
+  const west = 1 - sstep(-1550, -320, x);
+  return clamp01(Math.max(south, west));
+}
+
+const volcanic = byId(BIOME.VOLCANIC);
+const mountain = byId(BIOME.MOUNTAIN);
+const highland = byId(BIOME.HIGHLAND);
+const jungle   = byId(BIOME.JUNGLE);
+const swamp    = byId(BIOME.SWAMP);
+const grass    = byId(BIOME.GRASSLAND);
+const grove    = byId(BIOME.GROVE);
+const desert   = byId(BIOME.DESERT);
+const conifer  = byId(BIOME.CONIFER);
+
+// Proper stratovolcano cone (tall mountain, not a plateau puddle)
+function volcanoShape(x, z) {
+  const d = Math.hypot(x - volcanic.cx, z - volcanic.cz);
+  const cone = 720 * Math.pow(sstep(320, 20, d), 1.15);
+  const crater = -220 * sstep(70, 14, d);
+  const ridge = 40 * fbm(x * 0.01, z * 0.01, 2) * sstep(300, 80, d) * (1 - sstep(70, 20, d));
+  return cone + crater + ridge;
+}
+const craterTop = () => volcanic.base + volcanoShape(volcanic.cx + 20, volcanic.cz + 20);
+
+// Desert mountains — sandstone peaks on the vast flat floor (not the volcano)
+const DESERT_PEAKS = [
+  [desert.cx - 240, desert.cz - 120, 230, 130],
+  [desert.cx + 220, desert.cz + 80,  210, 120],
+  [desert.cx + 60,  desert.cz - 220, 190, 110],
+  [desert.cx - 90,  desert.cz + 200, 170, 100],
+];
+function desertMountains(x, z) {
+  let h = 0;
+  for (const [px, pz, peak, rad] of DESERT_PEAKS) {
+    const d = Math.hypot(x - px, z - pz);
+    h += peak * Math.pow(sstep(rad, 8, d), 1.2);
+  }
+  return h;
+}
+
+// Final mountains at the far north end of the island
+const SNOW_PEAKS = [
+  [-1100, -1180, 520, 210],
+  [-860,  -1220, 580, 230],
+  [-640,  -1140, 500, 200],
+  [-460,  -1080, 400, 170],
+];
+// Blizzard on the behind mountain — 4× original width along the rear face
+const BLIZZARD_TAPE = [
+  [-1270, -1320],
+  [-980,  -1360],
+  [-700,  -1380],
+  [-420,  -1340],
+  [-140,  -1280],
+  [250,   -1220],
+];
+function blizzardTapePoint(t, lateral = 0) {
+  const n = BLIZZARD_TAPE.length - 1;
+  const u = clamp01(t) * n;
+  const i = Math.min(n - 1, Math.floor(u));
+  const f = u - i;
+  const ax = BLIZZARD_TAPE[i][0], az = BLIZZARD_TAPE[i][1];
+  const bx = BLIZZARD_TAPE[i + 1][0], bz = BLIZZARD_TAPE[i + 1][1];
+  const x = ax + (bx - ax) * f;
+  const z = az + (bz - az) * f;
+  const dx = bx - ax, dz = bz - az;
+  const len = Math.hypot(dx, dz) || 1;
+  const px = -dz / len, pz = dx / len;
+  const side = (pz < 0 ? 1 : -1);
+  return [x + px * lateral * side, z + pz * lateral * side];
+}
+function snowRangeHeight(x, z) {
+  let h = 0;
+  for (const [px, pz, peak, rad] of SNOW_PEAKS) {
+    const d = Math.hypot(x - px, z - pz);
+    h += peak * Math.pow(sstep(rad, 10, d), 1.15);
+  }
+  return h;
+}
+function nearSnowRange(x, z, scale = 1.05) {
+  for (const [px, pz, , rad] of SNOW_PEAKS) {
+    if (Math.hypot(x - px, z - pz) < rad * scale) return true;
+  }
+  return false;
+}
+/** Snow forest shelf in front of the final peaks (extends east toward highlands) */
+function inFoothillForest(x, z) {
+  if (x < -980 || x > 40 || z < -820 || z > -400) return false;
+  if (nearSnowRange(x, z, 0.7)) return false;
+  let nearFlank = false;
+  for (const [px, pz, , rad] of SNOW_PEAKS) {
+    const dx = x - px, dz = z - pz;
+    const d = Math.hypot(dx, dz);
+    if (dz > 60 && d > rad * 0.55 && d < rad * 2.1) nearFlank = true;
+  }
+  const along = x > -900 && x < 20 && z > -760 && z < -460;
+  return nearFlank || along;
+}
+
+/* -- Ecological hydrology ---------------------------------------------
+   Wet corridor: mountain melt → snow forest → jungle → grassland → ocean.
+   Highlands (east of snow forest) drain gently into the pink grove.
+   Backwater swamp sits behind the jungle. Desert stays dry.
+   ------------------------------------------------------------------ */
+function jig(pts, amt = 48) {
+  return pts.map((p, i) => i === 0 || i === pts.length - 1 ? p
+    : [p[0] + (hash2(i, p[1]) - 0.5) * amt, p[1] + (hash2(p[0], i) - 0.5) * amt]);
+}
+function seg(a, b, n) {
+  const out = [];
+  for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]);
+  return jig(out);
+}
+function zigzag(pts, nPer = 4) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) out.push(...seg(pts[i], pts[i + 1], nPer).slice(0, -1));
+  out.push(pts[pts.length - 1]);
+  return jig(out, 36);
+}
+
+const JC = [jungle.cx, jungle.cz];
+const J_OUT = [jungle.cx + 180, jungle.cz + 260];
+const G_IN = [grass.cx - 100, grass.cz - 60];
+const G_MID = [grass.cx - 40, grass.cz + 140];
+const PD = [grass.cx - 140, grass.cz + 380];
+// Western delta mouths → southern/western ocean (wet corridor)
+const OCEAN_W  = [PD[0] - 320, 1480];
+const OCEAN_M  = [PD[0] - 40,  1580];
+const OCEAN_SW = [PD[0] - 480, 1320];
+const OCEAN_SE = [PD[0] - 80,  1520];
+
+// Standing backwater pools in the swamp (stagnant, not desert-bound)
+const SWAMP_POOLS = [
+  [swamp.cx + 20,  swamp.cz - 10,  130],
+  [swamp.cx - 140, swamp.cz + 90,  95],
+  [swamp.cx + 130, swamp.cz + 70,  85],
+  [swamp.cx - 40,  swamp.cz - 140, 75],
+];
+const SWAMP_CH = zigzag([
+  [jungle.cx - 300, jungle.cz + 40],
+  [swamp.cx + 100, swamp.cz - 40],
+  [swamp.cx - 40, swamp.cz + 30],
+  [swamp.cx - 140, swamp.cz - 60],
+], 3);
+const LAVA_POOL = [volcanic.cx - 25, volcanic.cz + 260];
+const LAVA_POOL2 = [volcanic.cx + 200, volcanic.cz + 150];
+const LAVA_POOL3 = [volcanic.cx - 80, volcanic.cz - 220];
+const LAVA_CH = seg([volcanic.cx + 8, volcanic.cz + 55], LAVA_POOL, 8);
+const LAVA_CH2 = seg([volcanic.cx + 55, volcanic.cz + 30], LAVA_POOL2, 7);
+const LAVA_CH3 = seg([volcanic.cx - 22, volcanic.cz - 50], LAVA_POOL3, 6);
+const LAVA_POOL_R = 110, LAVA_POOL2_R = 90, LAVA_POOL3_R = 80;
+
+const RIVERS = [
+  // meltwater from final mountains → snow-forest fringe → jungle west edge
+  { pts: seg([mountain.cx + 40, mountain.cz + 160], [conifer.cx - 40, conifer.cz - 40], 5), w: 1.05 },
+  { pts: seg([mountain.cx - 120, mountain.cz + 200], [conifer.cx - 160, conifer.cz + 40], 5), w: 0.95 },
+  { pts: zigzag([
+      [conifer.cx - 80, conifer.cz + 80],
+      [conifer.cx + 40, conifer.cz + 200],
+      [JC[0] - 160, JC[1] - 180],
+    ], 4), w: 1.45 },
+  { pts: zigzag([
+      [conifer.cx + 100, conifer.cz + 60],
+      [JC[0] - 40, JC[1] - 160],
+      [JC[0] + 20, JC[1] - 80],
+    ], 4), w: 1.25 },
+
+  // highland shelf → gentle drain into pink grove
+  { pts: zigzag([
+      [highland.cx - 60, highland.cz - 40],
+      [highland.cx + 40, highland.cz + 60],
+      [grove.cx - 80, grove.cz - 40],
+      [grove.cx - 20, grove.cz + 20],
+    ], 4), w: 1.15 },
+  { pts: seg([highland.cx + 80, highland.cz + 20], [grove.cx + 40, grove.cz - 60], 4), w: 0.9 },
+
+  // weave the large jungle → plains outlet
+  { pts: zigzag([[JC[0] - 140, JC[1] - 160], [JC[0] - 260, JC[1] - 40], [JC[0] - 100, JC[1] + 140], J_OUT], 4), w: 1.75 },
+  { pts: zigzag([[JC[0] - 200, JC[1] - 40], [JC[0] - 300, JC[1] + 100], [JC[0] - 80, JC[1] + 220], J_OUT], 4), w: 1.35 },
+  { pts: zigzag([[JC[0] + 40, JC[1] - 140], [JC[0] + 200, JC[1] - 20], [JC[0] + 140, JC[1] + 160], J_OUT], 4), w: 1.4 },
+  { pts: zigzag([[JC[0] + 220, JC[1] + 60], [JC[0] + 100, JC[1] + 220], J_OUT], 3), w: 1.15 },
+  { pts: zigzag([[JC[0] - 320, JC[1] + 60], [JC[0] - 140, JC[1] + 240], J_OUT], 3), w: 1.05 },
+
+  // flat grassland trunk + plain feeders → western delta → ocean
+  { pts: seg(J_OUT, G_IN, 5), w: 2.1 },
+  { pts: seg(G_IN, G_MID, 4), w: 2.3 },
+  { pts: seg([grass.cx - 240, grass.cz + 40], G_MID, 5), w: 1.15 },
+  { pts: seg([grass.cx + 200, grass.cz + 60], G_MID, 5), w: 1.1 },
+  { pts: seg([grass.cx - 40, grass.cz - 120], G_MID, 4), w: 0.95 },
+  { pts: seg(G_MID, PD, 6), w: 2.6 },
+  { pts: seg(PD, OCEAN_W, 8), w: 1.7 },
+  { pts: seg(PD, OCEAN_M, 8), w: 1.95 },
+  { pts: seg(PD, OCEAN_SW, 7), w: 1.45 },
+  { pts: seg(PD, OCEAN_SE, 8), w: 1.7 },
+
+  // jungle → backwater (stagnant swamp channel, stays in wet canopy/swamp)
+  { pts: SWAMP_CH, w: 1.55, swampOnly: true },
+
+  // grove / plateau feeders
+  { pts: zigzag([[grass.cx + 140, grass.cz - 80], [grove.cx - 90, grove.cz + 130], [grove.cx - 20, grove.cz + 20], [grove.cx + 50, grove.cz - 40]], 4), w: 1.0 },
+  { pts: seg([grove.cx + 60, grove.cz - 20], [grove.cx + 20, grove.cz + 100], 3), w: 0.75 },
+
+  // western ocean melt from the final mountains
+  { pts: zigzag([
+      [mountain.cx - 80, mountain.cz + 120],
+      [mountain.cx - 280, mountain.cz + 280],
+      [mountain.cx - 560, mountain.cz + 400],
+      [mountain.cx - 820, mountain.cz + 480],
+    ], 4), w: 1.25 },
+  { pts: seg([mountain.cx - 200, mountain.cz + 60], [mountain.cx - 700, mountain.cz + 340], 5), w: 1.1 },
+];
+
+function distToPolyline(x, z, pts) {
+  let best = 1e9;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const ax = pts[i][0], az = pts[i][1], bx = pts[i + 1][0], bz = pts[i + 1][1];
+    const dx = bx - ax, dz = bz - az;
+    const t = clamp01(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1));
+    best = Math.min(best, Math.hypot(x - (ax + dx * t), z - (az + dz * t)));
+  }
+  return best;
+}
+
+const N = Math.floor((BOUNDS * 2) / CELL);
+const grid = [];
+const landCols = [], waterCols = [], lavaCols = [], obsidianCols = [];
+const tmpC = new THREE.Color();
+
+for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+  const x = -BOUNDS + i * CELL, z = -BOUNDS + j * CELL;
+  const dist = Math.hypot(x, z), theta = Math.atan2(z, x);
+  const rim = islandRadius(theta);
+  if (dist > rim + CELL) { grid.push(null); continue; }
+  const island = sstep(rim + 10, rim - 160, dist);
+  const coast = coastFactor(x, z);
+
+  let wSum = 0, elev = 0, dom = BIOMES[0], domW = -1;
+  const dVolc = Math.hypot(x - volcanic.cx, z - volcanic.cz);
+  const dDes = Math.hypot(x - desert.cx, z - desert.cz);
+  const dGrass = Math.hypot(x - grass.cx, z - grass.cz);
+  const dSwamp = Math.hypot(x - swamp.cx, z - swamp.cz);
+  const dMtn = Math.hypot(x - mountain.cx, z - mountain.cz);
+  const dCon = Math.hypot(x - conifer.cx, z - conifer.cz);
+  const dHigh = Math.hypot(x - highland.cx, z - highland.cz);
+
+  // Hard ecological cores — final peaks, snow forest, highland, plains
+  if (dVolc < volcanic.radius * 0.88) dom = volcanic;
+  else if (dDes < desert.radius * 0.88) dom = desert;
+  else if (nearSnowRange(x, z, 0.72) || dMtn < mountain.radius * 0.58) dom = mountain;
+  else if (inFoothillForest(x, z) || dCon < conifer.radius * 0.8) dom = conifer;
+  else if (dHigh < highland.radius * 0.82) dom = highland;
+  else if (dSwamp < swamp.radius * 0.86) dom = swamp;
+  else if (dGrass < grass.radius * 0.82) dom = grass;
+  else {
+    for (const b of BIOMES) {
+      const d = Math.hypot(x - b.cx, z - b.cz);
+      const fall = b.id === BIOME.DESERT || b.lava ? 70 : (b.id === BIOME.GRASSLAND || b.id === BIOME.SWAMP || b.id === BIOME.HIGHLAND ? 100 : 150);
+      const w = d < b.radius ? 1 : Math.exp(-Math.pow((d - b.radius) / fall, 2));
+      wSum += w;
+      if (w > domW) { domW = w; dom = b; }
+    }
+  }
+  wSum = 0;
+  for (const b of BIOMES) {
+    const d = Math.hypot(x - b.cx, z - b.cz);
+    const fall = b.id === BIOME.DESERT || b.lava ? 70 : (b.id === BIOME.GRASSLAND || b.id === BIOME.SWAMP || b.id === BIOME.HIGHLAND ? 100 : 150);
+    wSum += d < b.radius ? 1 : Math.exp(-Math.pow((d - b.radius) / fall, 2));
+  }
+  for (const b of BIOMES) {
+    const d = Math.hypot(x - b.cx, z - b.cz);
+    const fall = b.id === BIOME.DESERT || b.lava ? 70 : (b.id === BIOME.GRASSLAND || b.id === BIOME.SWAMP || b.id === BIOME.HIGHLAND ? 100 : 150);
+    const w = (d < b.radius ? 1 : Math.exp(-Math.pow((d - b.radius) / fall, 2))) / wSum;
+    const relief = b.flat
+      ? b.base + fbm(x * 0.0015, z * 0.0015, 2) * b.amp
+      : b.base + fbm(x * 0.003, z * 0.003, 4) * b.amp;
+    elev += w * relief;
+  }
+  // Force a true flat plane across grassland ownership (the open plateau)
+  if (dom.id === BIOME.GRASSLAND) {
+    elev = grass.base + fbm(x * 0.0012, z * 0.0012, 2) * grass.amp;
+  }
+  // Soggy backwater basin — slightly depressed, soft hummocks
+  if (dom.id === BIOME.SWAMP) {
+    elev = swamp.base + fbm(x * 0.002, z * 0.002, 3) * swamp.amp - 8;
+  }
+  // Elevated snow forest shelf
+  if (dom.id === BIOME.CONIFER) {
+    elev = conifer.base + fbm(x * 0.002, z * 0.002, 3) * conifer.amp + 55;
+  }
+  // Highlands — empty plain east of snow forest; gentle slope down to pink grove
+  if (dom.id === BIOME.HIGHLAND) {
+    const gx = grove.cx - highland.cx, gz = grove.cz - highland.cz;
+    const glen = Math.hypot(gx, gz) || 1;
+    const proj = ((x - highland.cx) * gx + (z - highland.cz) * gz) / glen;
+    const downslope = sstep(-highland.radius * 0.2, highland.radius * 0.98, proj);
+    elev = highland.base + fbm(x * 0.0018, z * 0.0018, 3) * highland.amp - downslope * 300;
+  }
+  // Final mountain peaks + blizzard slope face (down toward the forest)
+  if (dom.id === BIOME.MOUNTAIN || nearSnowRange(x, z, 1.05)) {
+    elev += snowRangeHeight(x, z) * (dom.id === BIOME.MOUNTAIN ? 1 : 0.3);
+    if (dom.id === BIOME.MOUNTAIN) {
+      const face = sstep(mountain.cz - 80, mountain.cz + mountain.radius * 0.9, z);
+      elev -= face * 90; // general blizzard slope toward the snow forest
+    }
+  }
+  // Volcano cone only on / near volcanic land — never lifts desert or plains
+  if (dVolc < volcanic.radius * 1.15) elev += volcanoShape(x, z);
+  if (dom.id === BIOME.DESERT || dDes < desert.radius * 1.02) {
+    elev += desertMountains(x, z) * (dom.id === BIOME.DESERT ? 1 : 0.2);
+  }
+  // Desert + grassland plains resist coastal flattening
+  const coastCut = (dom.id === BIOME.DESERT || dom.id === BIOME.GRASSLAND) ? coast * 0.22 : coast * 0.96;
+  elev *= (1 - coastCut);
+  elev = elev * island - (1 - island) * 90;
+
+  let kind = "land";
+  let rd = 1e9, rw = 0, swampOnly = false;
+  for (const r of RIVERS) {
+    const d = distToPolyline(x, z, r.pts);
+    if (d - r.w * CELL < rd - rw * CELL) { rd = d; rw = r.w; swampOnly = !!r.swampOnly; }
+  }
+  // No rivers in desert. Swamp channel only carves jungle/swamp.
+  const allowRiver = swampOnly
+    ? (dom.id === BIOME.SWAMP || dom.id === BIOME.JUNGLE)
+    : (dom.id !== BIOME.DESERT);
+  if (allowRiver && rd < rw * CELL && elev > SEA - 55) {
+    kind = "water";
+    elev = Math.max(SEA - 8, elev - (dom.id === BIOME.GRASSLAND ? 22 : (dom.id === BIOME.SWAMP ? 16 : 28)));
+  }
+  // Standing backwater pools
+  if (dom.id === BIOME.SWAMP || dSwamp < swamp.radius * 0.95) {
+    for (const [px, pz, pr] of SWAMP_POOLS) {
+      const pd = Math.hypot(x - px, z - pz);
+      if (pd < pr) {
+        kind = "water";
+        elev = Math.min(elev, SEA + 4 - (1 - pd / pr) * 14);
+        break;
+      }
+    }
+  }
+
+  const ld = Math.min(
+    distToPolyline(x, z, LAVA_CH),
+    distToPolyline(x, z, LAVA_CH2),
+    distToPolyline(x, z, LAVA_CH3)
+  );
+  const pd1 = Math.hypot(x - LAVA_POOL[0], z - LAVA_POOL[1]);
+  const pd2 = Math.hypot(x - LAVA_POOL2[0], z - LAVA_POOL2[1]);
+  const pd3 = Math.hypot(x - LAVA_POOL3[0], z - LAVA_POOL3[1]);
+  const vDist = Math.hypot(x - volcanic.cx, z - volcanic.cz);
+  const inCrater = vDist < 55;
+  const inPool = pd1 < LAVA_POOL_R || pd2 < LAVA_POOL2_R || pd3 < LAVA_POOL3_R;
+  // Lava on cone, channels, and clear foot-of-mountain pools
+  if (inCrater || inPool || (vDist < volcanic.radius * 1.08 && ld < CELL * 1.35)) {
+    kind = "lava";
+    if (inPool) {
+      const pr = Math.min(pd1 / LAVA_POOL_R, pd2 / LAVA_POOL2_R, pd3 / LAVA_POOL3_R);
+      elev = volcanic.base + 35 - (1 - Math.min(1, pr)) * 32;
+    } else if (inCrater) elev -= 18;
+    else elev -= 10;
+  }
+
+  if (elev < SEA - 8 && kind === "land") kind = "sea";
+  const top = Math.round(elev / STEP) * STEP;
+
+  grid.push({ x, z, top, biome: dom, kind, island, coast, i, j });
+}
+
+// Water + lava contact → obsidian (ecological/physics rule)
+function neighborsOf(rec) {
+  const out = [];
+  for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+    const ni = rec.i + di, nj = rec.j + dj;
+    if (ni < 0 || nj < 0 || ni > N || nj > N) continue;
+    const n = grid[nj * (N + 1) + ni];
+    if (n) out.push(n);
+  }
+  return out;
+}
+for (const rec of grid) {
+  if (!rec || (rec.kind !== "water" && rec.kind !== "lava")) continue;
+  const want = rec.kind === "water" ? "lava" : "water";
+  if (neighborsOf(rec).some(n => n.kind === want)) rec.kind = "obsidian";
+}
+
+for (const rec of grid) {
+  if (!rec) continue;
+  if (rec.kind === "lava") lavaCols.push(rec);
+  else if (rec.kind === "water") waterCols.push(rec);
+  else if (rec.kind === "obsidian") obsidianCols.push(rec);
+  else if (rec.kind === "land" || rec.kind === "sea") landCols.push(rec);
+}
+function cellAt(x, z) {
+  const i = Math.round((x + BOUNDS) / CELL), j = Math.round((z + BOUNDS) / CELL);
+  if (i < 0 || j < 0 || i > N || j > N) return null;
+  return grid[j * (N + 1) + i];
+}
+
+{
+  const boxGeo = new THREE.BoxGeometry(CELL, 1, CELL);
+  const mat = new THREE.MeshLambertMaterial();
+  const mesh = new THREE.InstancedMesh(boxGeo, mat, landCols.length);
+  mesh.castShadow = mesh.receiveShadow = true;
+  const m = new THREE.Matrix4();
+  landCols.forEach((c, k) => {
+    const rimDepth = 120 + (1 - c.island) * 780;
+    const bottom = c.top - rimDepth;
+    m.makeScale(1, Math.max(1, c.top - bottom), 1);
+    m.setPosition(c.x, (c.top + bottom) / 2, c.z);
+    mesh.setMatrixAt(k, m);
+
+    const b = c.biome;
+    const t = clamp01((c.top - b.base + b.amp) / (b.amp * 2 + 1));
+    tmpC.set(b.low).lerp(new THREE.Color(b.high), t);
+    if (b.id === BIOME.GROVE) tmpC.lerp(new THREE.Color(0xe8b7c8), 0.18); // pink meadow tint
+    if (b.id === BIOME.GRASSLAND) tmpC.lerp(new THREE.Color(0x6a9a3a), 0.12);
+    if (b.id === BIOME.SWAMP) tmpC.lerp(new THREE.Color(0x3a4a2e), 0.22); // murky marsh tint
+    // Snow mountains: rock on the massif, white only on the summit
+    if (b.id === BIOME.MOUNTAIN) {
+      tmpC.set(0x6a7580).lerp(new THREE.Color(0x9aa3ab), clamp01((c.top - 420) / 380));
+      const snowline = sstep(b.base + b.amp * 0.42, b.base + b.amp * 0.88, c.top);
+      tmpC.lerp(new THREE.Color(0xf7fbff), snowline * 0.98);
+    } else if (b.snow && c.top > b.base + b.amp * 0.15) {
+      tmpC.lerp(new THREE.Color(0xf8fbff), sstep(b.base + b.amp * 0.15, b.base + b.amp * 0.65, c.top) * 0.95);
+    }
+    if (b.lava) tmpC.lerp(new THREE.Color(0x3a201a), sstep(420, 100, Math.hypot(c.x - volcanic.cx, c.z - volcanic.cz)) * 0.55);
+    if (b.id === BIOME.DESERT && desertMountains(c.x, c.z) > 40)
+      tmpC.lerp(new THREE.Color(0xa87840), 0.45); // sandstone peaks
+    if (c.coast > 0.15 && c.top > SEA - 6 && c.top <= SEA + 28)
+      tmpC.lerp(new THREE.Color(0xead9a8), 0.85 * sstep(0.12, 0.5, c.coast));
+    if (c.top < SEA) tmpC.lerp(new THREE.Color(0x1a5b70), sstep(SEA, SEA - 80, c.top) * 0.75);
+    if (c.island < 0.55) tmpC.lerp(new THREE.Color(0x241d16), (1 - c.island) * 0.9);
+    tmpC.multiplyScalar(0.94 + 0.09 * hash2(c.x, c.z));
+    mesh.setColorAt(k, tmpC);
+  });
+  scene.add(mesh);
+}
+{
+  const geoW = new THREE.BoxGeometry(CELL, 10, CELL);
+  const matW = new THREE.MeshLambertMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.88, emissive: 0x0c4457, emissiveIntensity: 0.35,
+  });
+  const mesh = new THREE.InstancedMesh(geoW, matW, waterCols.length);
+  const m = new THREE.Matrix4();
+  const wc = new THREE.Color();
+  waterCols.forEach((c, k) => {
+    m.makeTranslation(c.x, Math.max(c.top, SEA) + 5, c.z);
+    mesh.setMatrixAt(k, m);
+    if (c.biome.id === BIOME.SWAMP) wc.set(0x3a6a4a); // murky backwater
+    else wc.set(0x49c6e8);
+    mesh.setColorAt(k, wc);
+  });
+  scene.add(mesh);
+  const bed = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 120, CELL), new THREE.MeshLambertMaterial({ color: 0x5c5648 }), waterCols.length);
+  waterCols.forEach((c, k) => { m.makeTranslation(c.x, Math.max(c.top, SEA) - 62, c.z); bed.setMatrixAt(k, m); });
+  scene.add(bed);
+}
+{
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 12, CELL), new THREE.MeshBasicMaterial({ color: 0xff5a1a }), Math.max(1, lavaCols.length));
+  const m = new THREE.Matrix4();
+  lavaCols.forEach((c, k) => { m.makeTranslation(c.x, c.top + 6, c.z); mesh.setMatrixAt(k, m); });
+  scene.add(mesh);
+  const bed = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 160, CELL), new THREE.MeshLambertMaterial({ color: 0x1a1210 }), Math.max(1, lavaCols.length));
+  lavaCols.forEach((c, k) => { m.makeTranslation(c.x, c.top - 80, c.z); bed.setMatrixAt(k, m); });
+  scene.add(bed);
+  // pool glow lights so lava lakes read clearly
+  for (const [px, pz, r] of [[LAVA_POOL[0], LAVA_POOL[1], LAVA_POOL_R], [LAVA_POOL2[0], LAVA_POOL2[1], LAVA_POOL2_R], [LAVA_POOL3[0], LAVA_POOL3[1], LAVA_POOL3_R]]) {
+    const pl = new THREE.PointLight(0xff5510, 1.8, r * 4, 1.4);
+    pl.position.set(px, (cellAt(px, pz)?.top || volcanic.base) + 40, pz);
+    scene.add(pl);
+  }
+  const glow = new THREE.PointLight(0xff4a10, 2.6, 1100, 1.6);
+  glow.position.set(volcanic.cx, craterTop() + 80, volcanic.cz);
+  glow.name = "volcanoGlow";
+  scene.add(glow);
+}
+// Obsidian — water + lava contact quenched to dark glass
+{
+  const mesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(CELL, 14, CELL),
+    new THREE.MeshLambertMaterial({ color: 0x0a0a12, emissive: 0x1a1030, emissiveIntensity: 0.25 }),
+    Math.max(1, obsidianCols.length)
+  );
+  const m = new THREE.Matrix4();
+  obsidianCols.forEach((c, k) => { m.makeTranslation(c.x, c.top + 7, c.z); mesh.setMatrixAt(k, m); });
+  scene.add(mesh);
+  const bed = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 140, CELL), new THREE.MeshLambertMaterial({ color: 0x050508 }), Math.max(1, obsidianCols.length));
+  obsidianCols.forEach((c, k) => { m.makeTranslation(c.x, c.top - 70, c.z); bed.setMatrixAt(k, m); });
+  scene.add(bed);
+}
+
+const oceanMat = new THREE.MeshLambertMaterial({ color: 0x0f7f9e, transparent: true, opacity: 0.85 });
+const ocean = new THREE.Mesh(new THREE.CylinderGeometry(1980, 1980, 14, 64), oceanMat);
+ocean.position.y = SEA - 7;
+scene.add(ocean);
+
+const waterfallGroup = new THREE.Group();
+scene.add(waterfallGroup);
+for (let a = 0; a < 14; a++) {
+  const theta = Math.PI * 0.1 + a * (Math.PI * 0.85 / 13);
+  const r = islandRadius(theta) - 6;
+  const w = 40 + hash2(a, 1) * 55, h = 560;
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, 10),
+    new THREE.MeshLambertMaterial({ color: 0xbfeeff, transparent: true, opacity: 0.55, emissive: 0x2ea9c9, emissiveIntensity: 0.35 })
+  );
+  m.position.set(Math.cos(theta) * r, -h / 2 + 8, Math.sin(theta) * r);
+  m.lookAt(0, m.position.y, 0);
+  waterfallGroup.add(m);
+}
+
+{
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x2b241f }), 26);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  for (let i = 0; i < 26; i++) {
+    const th = hash2(i, 3.1) * Math.PI * 2, r = 180 + hash2(i, 8.2) * 980;
+    const sc = 18 + hash2(i, 4.4) * 36;
+    q.setFromEuler(new THREE.Euler(hash2(i, 5), hash2(i, 6) * 6, hash2(i, 7)));
+    s.set(sc, sc * 0.8, sc);
+    m.compose(new THREE.Vector3(Math.cos(th) * r, -450 - hash2(i, 1.7) * 720, Math.sin(th) * r), q, s);
+    mesh.setMatrixAt(i, m);
+  }
+  scene.add(mesh);
+}
+
+/* ================================================================== *
+ *  FLORA & FAUNA
+ * ================================================================== */
+function scatter(biome, count, filter) {
+  const pts = [];
+  let tries = 0;
+  const isDesert = biome.id === BIOME.DESERT;
+  while (pts.length < count && tries < count * (isDesert ? 28 : 16)) {
+    tries++;
+    const a = Math.random() * Math.PI * 2;
+    // uniform disk — desert uses full vast radius so cacti aren't clustered
+    const r = Math.sqrt(Math.random()) * biome.radius * (isDesert ? 0.92 : 0.98);
+    const x = biome.cx + Math.cos(a) * r, z = biome.cz + Math.sin(a) * r;
+    const c = cellAt(x, z);
+    if (!c || c.kind !== "land") continue;
+    // Desert: accept any cell still inside the desert basin (ownership can fringe)
+    if (isDesert) {
+      if (Math.hypot(c.x - biome.cx, c.z - biome.cz) > biome.radius * 0.95) continue;
+      if (c.biome.id !== BIOME.DESERT && c.biome.id !== BIOME.GRASSLAND) continue;
+      if (desertMountains(c.x, c.z) > 50) continue; // flats only, not peak tops
+      if (c.top < SEA + STEP) continue;
+    } else {
+      if (c.biome.id !== biome.id) continue;
+      if (c.island < 0.85 || c.coast > 0.25 || c.top < SEA + STEP) continue;
+    }
+    if (filter && !filter(c)) continue;
+    pts.push([c.x, c.top, c.z]);
+  }
+  return pts;
+}
+function place(parts, pts, s0 = 0.9, s1 = 1.5) {
+  const g = new THREE.Group();
+  for (const { geo, color } of parts) {
+    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color }), pts.length || 1);
+    mesh.castShadow = mesh.receiveShadow = true;
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+    pts.forEach(([x, y, z], i) => {
+      const sc = s0 + hash2(x, z) * (s1 - s0);
+      q.setFromEuler(new THREE.Euler(0, Math.floor(hash2(z, x) * 4) * Math.PI / 2, 0));
+      s.set(sc, sc, sc);
+      m.compose(new THREE.Vector3(x, y, z), q, s);
+      mesh.setMatrixAt(i, m);
+    });
+    if (pts.length) g.add(mesh);
+  }
+  scene.add(g);
+  return g;
+}
+const box = (w, h, d, x, y, z) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(x, y, z); return g; };
+
+const TREES = {
+  broadleaf: [{ geo: box(7, 26, 7, 0, 13, 0), color: 0x4a3325 }, { geo: box(34, 26, 34, 0, 36, 0), color: 0x2c7a3c }],
+  // snowy pine — green tiers + white snow caps on canopy
+  pine: [
+    { geo: box(6, 18, 6, 0, 9, 0), color: 0x3c2c22 },
+    { geo: box(26, 18, 26, 0, 26, 0), color: 0x2c4a37 },
+    { geo: box(28, 6, 28, 0, 34, 0), color: 0xf2f7ff },
+    { geo: box(16, 14, 16, 0, 42, 0), color: 0x39604a },
+    { geo: box(18, 5, 18, 0, 48, 0), color: 0xffffff },
+  ],
+  blossom: [{ geo: box(6, 18, 6, 0, 9, 0), color: 0x5a4030 }, { geo: box(28, 20, 28, 0, 30, 0), color: 0xe98fb8 }],
+  cactus:  [{ geo: box(9, 30, 9, 0, 15, 0), color: 0x3f7a4a }, { geo: box(9, 9, 9, 9, 20, 0), color: 0x3f7a4a }],
+  shrub:   [{ geo: box(16, 12, 16, 0, 6, 0), color: 0x9aa66a }],
+  copse:   [{ geo: box(6, 20, 6, 0, 10, 0), color: 0x4a3325 }, { geo: box(26, 18, 26, 0, 30, 0), color: 0x6b9a3d }],
+  // mangrove — prop roots + low canopy for the backwater swamp
+  mangrove: [
+    { geo: box(5, 18, 5, 0, 16, 0), color: 0x3a2a1c },
+    { geo: box(3, 14, 3, -7, 7, 2), color: 0x3a2a1c },
+    { geo: box(3, 14, 3, 7, 7, -3), color: 0x3a2a1c },
+    { geo: box(3, 12, 3, 2, 6, 8), color: 0x3a2a1c },
+    { geo: box(24, 16, 24, 0, 30, 0), color: 0x2a5a36 },
+  ],
+};
+
+for (const b of BIOMES) {
+  if (!b.tree) continue;
+  const n = Math.round(b.density * (
+    b.id === BIOME.JUNGLE ? 420 :
+    b.id === BIOME.GRASSLAND ? 180 :
+    b.id === BIOME.DESERT ? 320 : 260
+  ));
+  place(TREES[b.tree], scatter(b, n), 0.75, 1.45);
+}
+// sparse pines on the mountain slopes behind the snow forest
+place(TREES.pine, scatter(mountain, 70, c => c.top < mountain.base + 160 && c.top > mountain.base - 60), 0.85, 1.35);
+
+// dense foothill snow forest — packed along the southern flank
+place(TREES.pine, scatter(conifer, Math.round(conifer.density * 380)), 0.8, 1.45);
+place(TREES.pine, scatter(conifer, 220, c => c.top > conifer.base - 20 && c.top < conifer.base + 140), 0.7, 1.25);
+place([{ geo: box(14, 10, 14, 0, 5, 0), color: 0x3a5545 }], scatter(conifer, 160), 0.65, 1.15);
+
+// dense jungle understory — packed canopy feel
+place(TREES.shrub, scatter(jungle, 420), 0.65, 1.15);
+place([{ geo: box(20, 14, 20, 0, 7, 0), color: 0x1e6b34 }], scatter(jungle, 360), 0.7, 1.35);
+place(TREES.broadleaf, scatter(jungle, 280), 0.55, 1.15);
+place([{ geo: box(12, 10, 12, 0, 5, 0), color: 0x245a32 }], scatter(jungle, 300), 0.6, 1.1);
+
+// swamp understory — reeds, cypress knees, low brush on hummocks
+place([{ geo: box(3, 22, 3, 0, 11, 0), color: 0x6a8a3a }], scatter(swamp, 280), 0.7, 1.4);
+place([{ geo: box(4, 10, 4, 0, 5, 0), color: 0x4a3a28 }], scatter(swamp, 120), 0.8, 1.3);
+place(TREES.shrub, scatter(swamp, 140), 0.65, 1.1);
+
+for (const [b, n, s] of [
+  [highland, 90, 1.4], [mountain, 90, 2.4],
+  [desert, 40, 1.8], // fewer ground rocks — peaks carry the mountain look
+  [volcanic, 100, 2.0], [conifer, 75, 1.35],
+]) place([{ geo: box(14, 12, 14, 0, 6, 0), color: b.rock }], scatter(b, n), 0.7, s);
+
+// desert mountain rock spires near peaks
+{
+  const pts = [];
+  for (const [px, pz, peak] of DESERT_PEAKS) {
+    for (let k = 0; k < 18; k++) {
+      const a = Math.random() * Math.PI * 2, r = 20 + Math.random() * 70;
+      const c = cellAt(px + Math.cos(a) * r, pz + Math.sin(a) * r);
+      if (c && c.biome.id === BIOME.DESERT && c.kind === "land") pts.push([c.x, c.top, c.z]);
+    }
+  }
+  place([{ geo: box(18, 28, 18, 0, 14, 0), color: 0xb8894a }], pts, 0.9, 2.2);
+}
+
+// grove = dense pink blossoms + mixed petals; grassland = open yellow wildflowers
+{
+  const petals = [0xffb6c9, 0xff9ec8, 0xffffff, 0xffd6ea];
+  petals.forEach((c, ci) =>
+    place([{ geo: box(5, 6, 5, 0, 3, 0), color: c }], scatter(grove, 160).filter((_, i) => i % 2 === ci % 2), 0.8, 1.3));
+  place([{ geo: box(5, 6, 5, 0, 3, 0), color: 0xf3f79a }], scatter(grass, 200), 0.8, 1.2);
+  place([{ geo: box(5, 6, 5, 0, 3, 0), color: 0xffffff }], scatter(grass, 60), 0.7, 1.1);
+}
+
+{
+  const pts = [];
+  for (let a = 0; a < 340 && pts.length < 80; a++) {
+    const th = Math.random() * Math.PI * 2, r = islandRadius(th) - (40 + Math.random() * 200);
+    const c = cellAt(Math.cos(th) * r, Math.sin(th) * r);
+    if (c && c.kind === "land" && c.coast > 0.25 && c.top > SEA + 4 && c.top < SEA + 40) pts.push([c.x, c.top, c.z]);
+  }
+  place([{ geo: box(5, 30, 5, 0, 15, 0), color: 0x6b4a2e }, { geo: box(24, 6, 24, 0, 32, 0), color: 0x3f9d4e }], pts, 0.8, 1.2);
+}
+
+const goat = [{ geo: box(14, 9, 8, 0, 9, 0), color: 0xd8d2c0 }, { geo: box(6, 6, 6, 9, 13, 0), color: 0xc9c2ad }];
+const deer = [{ geo: box(16, 9, 7, 0, 10, 0), color: 0x8a5a34 }, { geo: box(5, 6, 5, 10, 15, 0), color: 0x7a4d2b }];
+const fox  = [{ geo: box(12, 7, 6, 0, 6, 0), color: 0xd8963f }, { geo: box(5, 5, 5, 8, 9, 0), color: 0xe8b06a }];
+place(goat, scatter(highland, 18), 0.9, 1.3);
+place(goat, scatter(mountain, 8, c => c.top < mountain.base + 100), 0.9, 1.2);
+place(deer, [...scatter(jungle, 14), ...scatter(grass, 20), ...scatter(grove, 10)], 0.9, 1.3);
+place(fox, scatter(desert, 14), 0.9, 1.2);
+place(deer, scatter(conifer, 14), 0.9, 1.2);
+place(fox, scatter(swamp, 10), 0.85, 1.15);
+place(deer, scatter(swamp, 8), 0.85, 1.2);
+
+/* ================================================================== *
+ *  CLIMATE — weather arrives in natural bursts: appears, holds, fades,
+ *  then clears before the next cycle. Systems are staggered so the
+ *  island is never locked in one continuous storm.
+ * ================================================================== */
+const particleSystems = [];
+function particles({ count, size, color, opacity, emissive, update }) {
+  const g = new THREE.BoxGeometry(size, size, size);
+  const mat = emissive
+    ? new THREE.MeshBasicMaterial({ color, transparent: true, opacity })
+    : new THREE.MeshLambertMaterial({ color, transparent: true, opacity });
+  const mesh = new THREE.InstancedMesh(g, mat, count);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false;
+  const seeds = Array.from({ length: count }, (_, i) => ({
+    a: hash2(i, 1.3), b: hash2(i, 7.7), c: hash2(i, 13.1), d: hash2(i, 23.7),
+  }));
+  scene.add(mesh);
+  particleSystems.push({ mesh, seeds, update });
+  return mesh;
+}
+const M = new THREE.Matrix4();
+const setP = (mesh, i, x, y, z, sx = 1, sy = 1, sz = 1) => {
+  M.makeScale(sx, sy, sz); M.setPosition(x, y, z); mesh.setMatrixAt(i, M);
+};
+const topAt = (x, z) => { const c = cellAt(x, z); return c ? c.top : SEA; };
+
+let seasonNow = seasonState(0);
+
+/** Soft on/off envelope: fade in → hold → fade out → quiet gap. Returns 0..1. */
+function weatherPulse(t, period, duty, phase = 0) {
+  const u = (((t / period) + phase) % 1 + 1) % 1;
+  if (u >= duty) return 0;
+  const local = u / duty;
+  const fade = 0.22;
+  if (local < fade) return local / fade;
+  if (local > 1 - fade) return (1 - local) / fade;
+  return 1;
+}
+
+// Staggered event clocks per biome / phenomenon (seconds, duty, phase)
+const WX = {
+  jungleRain:   { period: 22, duty: 0.48, phase: 0.00 },
+  highlandRain: { period: 26, duty: 0.38, phase: 0.18 },
+  grassRain:    { period: 28, duty: 0.35, phase: 0.42 },
+  groveRain:    { period: 24, duty: 0.40, phase: 0.61 },
+  jungleMist:   { period: 18, duty: 0.45, phase: 0.55 },
+  swampMist:    { period: 16, duty: 0.58, phase: 0.22 },
+  deltaMist:    { period: 20, duty: 0.42, phase: 0.30 },
+  mountainSnow: { period: 16, duty: 0.62, phase: 0.05 },
+  coniferSnow:  { period: 16, duty: 0.65, phase: 0.08 }, // snow clouds over the snow forest
+  blizzard:     { period: 14, duty: 0.80, phase: 0.00 }, // end-of-island mountain slopes
+  desertWind:   { period: 16, duty: 0.40, phase: 0.12 },
+  sandstorm:    { period: 30, duty: 0.32, phase: 0.50 },
+  ash:          { period: 17, duty: 0.55, phase: 0.20 },
+};
+
+function cloudDeck(biome, count, heightAbove, color, opacity, pulse) {
+  const R = biome.radius * 1.65;
+  particles({
+    count, size: 26, color, opacity,
+    update(s, i, t, mesh) {
+      const vis = weatherPulse(t, pulse.period, pulse.duty, pulse.phase + s.d * 0.04);
+      if (vis < 0.02) { setP(mesh, i, 0, -9000, 0); return; }
+      const windX = t * (28 + s.c * 18);
+      const windZ = t * (10 + s.d * 8);
+      let lx = (s.a - 0.5) * 2 * R + windX;
+      let lz = (s.b - 0.5) * 2 * R + windZ;
+      lx = ((lx % (2 * R)) + 2 * R) % (2 * R) - R;
+      lz = ((lz % (2 * R)) + 2 * R) % (2 * R) - R;
+      const x = biome.cx + lx;
+      const z = biome.cz + lz;
+      const ground = topAt(x, z);
+      if (ground <= SEA - 40) { setP(mesh, i, 0, -9000, 0); return; }
+      const y = ground + heightAbove + s.d * 36 + Math.sin(t * 0.35 + s.a * 5) * 10;
+      const sc = (1.2 + s.c * 2.4) * (0.55 + 0.45 * vis);
+      setP(mesh, i, x, y, z, sc * 1.8, sc * 0.55, sc);
+      mesh.material.opacity = opacity * vis * (0.7 + 0.3 * seasonNow.rain);
+    },
+  });
+}
+
+function rainSystem(biome, count, cloudH, pulse) {
+  cloudDeck(biome, Math.max(12, Math.round(count / 16)), cloudH, 0xf2f6fa, 0.5, pulse);
+  particles({
+    count, size: 3, color: 0x9fd4ff, opacity: 0.75, emissive: true,
+    update(s, i, t, mesh) {
+      const vis = weatherPulse(t, pulse.period, pulse.duty, pulse.phase) * Math.min(1, seasonNow.rain / 0.7);
+      if (vis < 0.08) { setP(mesh, i, 0, -9000, 0); return; }
+      if (s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+      const x = biome.cx + (s.a - 0.5) * biome.radius * 1.7;
+      const z = biome.cz + (s.b - 0.5) * biome.radius * 1.7;
+      const ground = Math.max(SEA, topAt(x, z));
+      const ceil = ground + cloudH + 50;
+      const cycle = 2.2 + s.c * 1.6;
+      const f = ((t * (1.4 + s.d * 0.8) + s.c * cycle) % cycle) / cycle;
+      const y = ceil - f * (ceil - ground);
+      setP(mesh, i, x + f * 10, y, z, 0.65, 3.8, 0.65);
+    },
+  });
+}
+
+rainSystem(jungle, 520, 220, WX.jungleRain);
+rainSystem(highland, 200, 200, WX.highlandRain);
+rainSystem(grass, 240, 180, WX.grassRain);
+rainSystem(grove, 220, 170, WX.groveRain);
+rainSystem(swamp, 180, 140, WX.swampMist);
+
+particles({
+  count: 150, size: 12, color: 0xd8f0e8, opacity: 0.18, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.jungleMist.period, WX.jungleMist.duty, WX.jungleMist.phase);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const x = jungle.cx + (s.a - 0.5) * jungle.radius * 1.6;
+    const z = jungle.cz + (s.b - 0.5) * jungle.radius * 1.6;
+    const f = ((t * 0.55 + s.d * 8) % 8) / 8;
+    const y = topAt(x, z) + 24 + f * 140;
+    const sc = (0.5 + f * 1.5) * (0.7 + s.c) * vis;
+    setP(mesh, i, x, y, z, sc, sc * 0.7, sc);
+  },
+});
+particles({
+  count: 200, size: 14, color: 0xc8e0c8, opacity: 0.22, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.swampMist.period, WX.swampMist.duty, WX.swampMist.phase);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const x = swamp.cx + (s.a - 0.5) * swamp.radius * 1.7;
+    const z = swamp.cz + (s.b - 0.5) * swamp.radius * 1.7;
+    const f = ((t * 0.4 + s.d * 7) % 10) / 10;
+    const y = topAt(x, z) + 8 + f * 90;
+    const sc = (0.7 + f * 1.8) * (0.8 + s.c) * vis;
+    setP(mesh, i, x, y, z, sc * 1.3, sc * 0.55, sc);
+  },
+});
+particles({
+  count: 160, size: 14, color: 0xdfeefa, opacity: 0.16, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.deltaMist.period, WX.deltaMist.duty, WX.deltaMist.phase);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const x = PD[0] + (s.a - 0.5) * 680;
+    const z = PD[1] + 60 + (s.b - 0.5) * 480;
+    const f = ((t * 0.6 + s.d * 9) % 9) / 9;
+    const y = SEA + 10 + f * 140;
+    const sc = (0.6 + f * 1.7) * (0.7 + s.c) * vis;
+    setP(mesh, i, x, y, z, sc, sc * 0.7, sc);
+  },
+});
+
+// Snow clouds covering the snow forest + snowfall from those clouds
+cloudDeck(conifer, 40, 110, 0xf2f7ff, 0.62, WX.coniferSnow);
+particles({
+  count: 560, size: 4, color: 0xffffff, opacity: 0.92, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.coniferSnow.period, WX.coniferSnow.duty, WX.coniferSnow.phase)
+      * Math.min(1, 0.45 + seasonNow.snow);
+    if (vis < 0.08 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const ang = s.a * Math.PI * 2;
+    const rad = Math.sqrt(s.b) * conifer.radius * 0.98;
+    const x0 = conifer.cx + Math.cos(ang) * rad;
+    const z0 = conifer.cz + Math.sin(ang) * rad;
+    const c = cellAt(x0, z0);
+    if (!c || c.biome.id !== BIOME.CONIFER || c.kind !== "land") { setP(mesh, i, 0, -9000, 0); return; }
+    const ground = c.top;
+    const ceil = ground + 120 + s.c * 55;
+    const f = ((t * (0.95 + s.d * 0.6) + s.c * 5) % 5.2) / 5.2;
+    setP(mesh, i, x0 + Math.sin(t + s.a * 8) * 10, ceil - f * (ceil - ground - 4), z0 + Math.cos(t * 0.7 + s.b * 8) * 10, 1, 1, 1);
+  },
+});
+
+// Blizzard on the behind mountain — 6× wide rear-face sweep
+function blizzardSampleXZ(s) {
+  const lateral = -50 - s.d * 140 - s.c * 70;
+  const [x, z] = blizzardTapePoint(s.a, lateral);
+  return [x + (s.b - 0.5) * 160, z - s.c * 60];
+}
+particles({
+  count: 720, size: 7, color: 0xe8f2ff, opacity: 0.34, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.blizzard.period, WX.blizzard.duty, WX.blizzard.phase);
+    if (vis < 0.04 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const f = ((t * (0.6 + s.c * 0.4) + s.d) % 1);
+    const [sx, sz] = blizzardTapePoint((s.a + f * 0.12) % 1, -70 - f * 110);
+    const x = sx + (s.b - 0.5) * 144;
+    const z = sz - f * 160;
+    const y = topAt(x, z) + 90 + s.a * 110 + (1 - f) * 90;
+    setP(mesh, i, x, y, z + Math.sin(f * 9 + s.a * 5) * 20, 1.9 * vis, 0.4, 0.95);
+  },
+});
+particles({
+  count: 1400, size: 9, color: 0xf4f8ff, opacity: 0.5, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.blizzard.period, WX.blizzard.duty, WX.blizzard.phase);
+    if (vis < 0.04 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const f = ((t * (0.85 + s.c * 0.5) + s.d * 1.2) % 1);
+    const [sx, sz] = blizzardTapePoint((s.a + f * 0.15) % 1, -40 - f * 160 - s.b * 60);
+    const x = sx + (s.b - 0.5) * 180;
+    const z = sz - f * 200;
+    const y = topAt(x, z) + 120 + s.a * 140 + (1 - f) * 110;
+    setP(mesh, i, x, y, z + Math.sin(f * 12 + s.a * 6) * 28, 2.7 * vis, 0.6, 1.15);
+  },
+});
+particles({
+  count: 560, size: 5, color: 0xffffff, opacity: 0.68, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.blizzard.period, WX.blizzard.duty, WX.blizzard.phase)
+      * Math.min(1, 0.45 + seasonNow.snow);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const f = ((t * (1.5 + s.d) + s.c * 4) % 3.0) / 3.0;
+    const [x0, z0] = blizzardTapePoint(s.a, -30 - s.c * 90);
+    const ground = topAt(x0, z0);
+    setP(mesh, i, x0 + (s.b - 0.5) * 120 + f * 30, ground + 140 + (1 - f) * 260, z0 - f * 140, 1.2, 1.2, 1.2);
+  },
+});
+
+particles({
+  count: 180, size: 6, color: 0xe8c98a, opacity: 0.2, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.desertWind.period, WX.desertWind.duty, WX.desertWind.phase);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const z0 = desert.cz + (s.b - 0.5) * desert.radius * 1.8;
+    const f = ((t * (0.12 + s.c * 0.08) + s.d) % 1);
+    const x = desert.cx - desert.radius + f * desert.radius * 2;
+    const y = topAt(x, z0) + 10 + s.a * 40;
+    setP(mesh, i, x, y, z0 + Math.sin(f * 7 + s.a * 5) * 30, 1.6 * vis, 0.35, 0.8);
+  },
+});
+particles({
+  count: 380, size: 8, color: 0xd9b06a, opacity: 0.32, emissive: true,
+  update(s, i, t, mesh) {
+    const vis = weatherPulse(t, WX.sandstorm.period, WX.sandstorm.duty, WX.sandstorm.phase);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const z0 = desert.cz + (s.b - 0.5) * desert.radius * 1.9;
+    const f = ((t * (0.18 + s.c * 0.1) + s.d) % 1);
+    const x = desert.cx - desert.radius * 1.05 + f * desert.radius * 2.2;
+    const y = topAt(x, z0) + 16 + s.a * 70;
+    setP(mesh, i, x, y, z0 + Math.sin(f * 9 + s.a * 6) * 36, 2.3 * vis, 0.55, 1.1);
+  },
+});
+
+const ERUPTION_PERIOD = 18, ERUPTION_LEN = 4.2;
+const eruptionActive = t => (t % ERUPTION_PERIOD) < ERUPTION_LEN;
+particles({
+  count: 180, size: 8, color: 0xff7a20, opacity: 1, emissive: true,
+  update(s, i, t, mesh) {
+    const phase = (t % ERUPTION_PERIOD);
+    if (phase > ERUPTION_LEN) { setP(mesh, i, 0, -9000, 0); return; }
+    const life = ((phase * (0.7 + s.c) + s.d * 2) % ERUPTION_LEN) / ERUPTION_LEN;
+    const ang = s.a * Math.PI * 2, spd = 50 + s.b * 160;
+    const x = volcanic.cx + Math.cos(ang) * spd * life * 2.0;
+    const z = volcanic.cz + Math.sin(ang) * spd * life * 2.0;
+    const y = craterTop() + 50 + 620 * life - 700 * life * life;
+    if (y < topAt(x, z)) { setP(mesh, i, 0, -9000, 0); return; }
+    const sc = 0.8 + s.c * 1.2;
+    setP(mesh, i, x, y, z, sc, sc, sc);
+  },
+});
+particles({
+  count: 100, size: 5, color: 0xffaa33, opacity: 1, emissive: true,
+  update(s, i, t, mesh) {
+    const surge = eruptionActive(t) ? 1 : weatherPulse(t, 12, 0.25, 0.7) * 0.45;
+    if (surge < 0.08 || s.a > surge) { setP(mesh, i, 0, -9000, 0); return; }
+    const ch = s.a < 0.34 ? LAVA_CH : s.a < 0.67 ? LAVA_CH2 : LAVA_CH3;
+    const idx = Math.min(ch.length - 2, Math.floor(((t * (0.35 + s.c * 0.4) + s.d) % 1) * (ch.length - 1)));
+    const a = ch[idx], b = ch[idx + 1];
+    const f = ((t * 1.2 + s.b * 5) % 1);
+    const x = a[0] + (b[0] - a[0]) * f;
+    const z = a[1] + (b[1] - a[1]) * f;
+    setP(mesh, i, x, topAt(x, z) + 12 + Math.sin(t * 8 + s.a * 20) * 3, z, 0.9, 0.9, 0.9);
+  },
+});
+particles({
+  count: 120, size: 16, color: 0x8a827a, opacity: 0.42, emissive: true,
+  update(s, i, t, mesh) {
+    const base = weatherPulse(t, WX.ash.period, WX.ash.duty, WX.ash.phase);
+    const vis = Math.max(base * 0.55, eruptionActive(t) ? 1 : 0);
+    if (vis < 0.05 || s.a > vis) { setP(mesh, i, 0, -9000, 0); return; }
+    const f = ((t * 0.9 + s.d * 6) % 6) / 6;
+    const boost = eruptionActive(t) ? 1.8 : 1;
+    const y = craterTop() + 30 + f * 640 * boost;
+    const sc = (0.5 + f * 2.2) * (0.7 + s.c * 0.6) * boost * (0.5 + 0.5 * vis);
+    setP(mesh, i, volcanic.cx + (s.a - 0.5) * 50 + f * 40, y, volcanic.cz + (s.b - 0.5) * 50, sc, sc, sc);
+  },
+});
+
+particles({
+  count: 22, size: 6, color: 0x222222, opacity: 1,
+  update(s, i, t, mesh) {
+    const a = t * (0.045 + s.c * 0.04) + s.d * Math.PI * 2;
+    const r = 260 + s.a * 900;
+    setP(mesh, i, Math.cos(a) * r + (s.b - 0.5) * 200, 420 + s.b * 320, Math.sin(a) * r, 1.6, 0.4, 0.8);
+  },
+});
+
+const glowLight = scene.getObjectByName("volcanoGlow");
+const seasonNameEl = document.getElementById("seasonName");
+
+/* ------------------------------------------------------------------ *
+ *  legend
+ * ------------------------------------------------------------------ */
+const legend = document.getElementById("legend");
+let flyGoal = null;
+function flyTo(pos, tgt) { flyGoal = { pos: pos.clone(), tgt: tgt.clone() }; }
+controls.addEventListener("start", () => { flyGoal = null; });
+
+const entries = BIOMES.map(b => ({
+  name: b.name, wx: b.wx, color: "#" + new THREE.Color(b.low).lerp(new THREE.Color(b.high), 0.5).getHexString(),
+  go: () => {
+    const y = topAt(b.cx, b.cz);
+    flyTo(new THREE.Vector3(b.cx + 380, y + 520, b.cz + 480), new THREE.Vector3(b.cx, y + 30, b.cz));
+  },
+}));
+entries.push({ name: "Coast & Delta", wx: "mist", color: "#2ea9c9", go: () => {
+  flyTo(new THREE.Vector3(OCEAN_M[0] + 200, 520, OCEAN_M[1] + 200), new THREE.Vector3(PD[0], SEA, (PD[1] + OCEAN_M[1]) / 2));
+}});
+entries.push({ name: "Whole Island", wx: "", color: "#889199", go: () => flyTo(HOME.pos, HOME.tgt) });
+
+for (const e of entries) {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `<span class="sw" style="background:${e.color}"></span><span>${e.name}</span>` +
+    (e.wx ? `<span class="wx">${e.wx}</span>` : "");
+  row.onclick = e.go;
+  legend.appendChild(row);
+}
+const foot = document.createElement("div");
+foot.className = "foot";
+foot.textContent = "drag · scroll · square sun cycles day · seasons top-right";
+legend.appendChild(foot);
+
+const clock = new THREE.Clock();
+function animate() {
+  const t = clock.getElapsedTime();
+  seasonNow = seasonState(t);
+  seasonNameEl.textContent = seasonNow.name;
+
+  // square sun orbit — cyclic day pattern
+  const ang = (t / DAY) * Math.PI * 2;
+  const sunR = 2500, sunH = 980 + Math.sin(ang) * 720;
+  const sx = Math.cos(ang) * sunR;
+  const sz = Math.sin(ang) * sunR * 0.65 - 400;
+  sunMesh.position.set(sx, sunH, sz);
+  sunHalo.position.copy(sunMesh.position);
+  sunHalo.rotation.y = ang;
+  sunMesh.rotation.y = ang * 0.5;
+  sunMesh.rotation.z = ang * 0.25;
+
+  const day = dayFactor(t);
+  const sunCol = seasonNow.tint.clone().multiplyScalar(0.55 + 0.45 * day);
+  sunMesh.material.color.copy(sunCol);
+  sunHalo.material.color.copy(sunCol);
+  sunHalo.material.opacity = 0.2 + 0.25 * day;
+  sunLight.position.copy(sunMesh.position);
+  sunLight.color.copy(sunCol);
+  sunLight.intensity = (1.2 + 1.6 * day) * (1 - seasonNow.soft * 0.35);
+  hemi.intensity = 0.35 + 0.5 * day;
+  amb.intensity = 0.12 + 0.16 * day;
+
+  ocean.position.y = SEA - 7 + Math.sin(t * 0.6) * 1.5;
+  waterfallGroup.children.forEach((w, i) => { w.material.opacity = 0.45 + 0.15 * Math.sin(t * 3 + i); });
+
+  for (const ps of particleSystems) {
+    ps.seeds.forEach((s, i) => ps.update(s, i, t, ps.mesh));
+    ps.mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  if (glowLight) glowLight.intensity = eruptionActive(t) ? 5.0 + Math.sin(t * 14) * 1.8 : 2.2 + Math.sin(t * 3) * 0.4;
+
+  if (flyGoal) {
+    camera.position.lerp(flyGoal.pos, 0.045);
+    controls.target.lerp(flyGoal.tgt, 0.045);
+    if (camera.position.distanceTo(flyGoal.pos) < 4) flyGoal = null;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+document.getElementById("loading").remove();
+animate();
+</script>
+</body>
+</html>

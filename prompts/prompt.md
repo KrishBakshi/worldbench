@@ -4,6 +4,9 @@ build step, no separate asset files). It must just open in a browser and
 run, with a free camera (e.g. OrbitControls) so a visitor can orbit, zoom,
 and pan around the whole world.
 
+Include a simple on-screen UI so a visitor can navigate and read the
+world easily (see UI section below).
+
 Output ONLY the complete HTML file — no prose, no commentary, no code fences.
 
 Choose your own overall scale. What matters is relative placement,
@@ -79,6 +82,17 @@ like this (adapt freely as long as the relationships hold):
     the snow forest; sparse scrub on highlands).
 -   Mountains and the volcano dominate the skyline; desert flats and the
     grassland plateau sit lower between them.
+
+## Fauna
+
+Voxel / blocky animals (stacked cubes, same aesthetic as the land) —
+simple silhouettes are enough; place them where they belong:
+
+-   Deer or similar grazers in jungle edges, grasslands, grove, conifers
+-   Foxes or small arid / marsh creatures in desert and swamp
+-   Occasional coastal or river life near beaches and deltas if it fits
+-   Enough motion or presence to feel alive, not empty dioramas —
+    without overcrowding
 
 ## Ecological reasoning
 
@@ -211,7 +225,23 @@ A rich branching system that obeys ecological law:
     water+lava → obsidian.
 -   Reliable seasonal cycle (spring → summer → autumn → winter)
     modulating rain/snow intensity and light tint.
--   Visible square sun on a cyclic day pattern.
+-   Visible square sun on a cyclic day / night pattern: bright noon,
+    dimmer dusk and night (the void stays black; the land darkens).
+
+## UI (required for easy navigation)
+
+Keep the HUD minimal and readable over the black void:
+
+-   Biome legend: color swatch + biome name for every major region
+    (mountains, snow forest, highlands, jungle, swamp, grasslands,
+    flowering grove, desert, volcano, coast / ocean). Optionally note
+    each biome's weather flavor (rain, blizzard, sandstorm, etc.).
+-   Click (or tap) a legend entry to fly / animate the camera to that
+    biome; include a "whole island" overview entry that returns to a
+    comfortable high orbit.
+-   Season readout: show the current season name on screen and update
+    it as the seasonal cycle advances.
+-   Brief control hint in the legend footer (e.g. orbit / zoom / pan).
 
 ## Cliffs and Underside
 
@@ -240,10 +270,12 @@ A rich branching system that obeys ecological law:
 
 ## Lighting
 
--   Square sun drives cyclic daylight; seasonal tint modulates warmth
+-   Square sun drives a full day → night cycle; seasonal tint modulates
+    warmth
+-   Nights are clearly darker than noon (ambient + sun intensity drop)
 -   Local weather tinting (cooler in storms, ember glow near volcano)
 -   Crisp terrain shadows when weather is clear
--   High visibility of the whole island from a comfortable orbit
+-   High visibility of the whole island from a comfortable orbit by day
 -   Black void background with no stars or atmosphere dome
 
 ## Visual Composition
@@ -254,9 +286,10 @@ clouds; highlands on an elevated plain sloping into a pink grove; a large
 dense jungle with a backwater swamp on its far side; a flat grassland
 river plateau; arid desert with its own sandstone mountains separated
 from a tall erupting volcano; wet-corridor rivers to a coastal delta;
-cyclic weather; square sun and seasons. The ocean borders the land before
-plunging over cliff edges into the void.
+cyclic weather; square sun with day/night and seasons; clickable biome
+legend and season HUD. The ocean borders the land before plunging over
+cliff edges into the void.
 
-Success is ecological clarity, vivid living systems, and a coherent
-blocky voxel look — invent your own scale; make it as strong or stronger
-as this description allows.
+Success is ecological clarity, vivid living systems, easy navigation,
+and a coherent blocky voxel look — invent your own scale; make it as
+strong or stronger as this description allows.

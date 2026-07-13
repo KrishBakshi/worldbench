@@ -1,6 +1,5 @@
 <p align="center">
   <img src="public/world.png" alt="WorldBench — a generated floating natural world" width="612">
-  <img src="public/world.png" alt="WorldBench: a generated floating natural world" width="612">
 </p>
 
 # worldbench

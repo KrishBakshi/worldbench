@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/world.png" alt="WorldBench — a generated floating natural world" width="612">
+</p>
+
 # worldbench
 
 A single prompt for generating a self-contained Three.js `world.html` of a

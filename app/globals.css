@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+
+  --color-void: #0a0e17;
+  --color-void-deep: #05070c;
+  --color-mist: #aab4c8;
+  --color-mist-bright: #e7ecf5;
+  --color-glow: #7fd6c2;
+  --color-line: #1c2433;
+}
+
+:root[data-theme="day"] {
+  --color-void: #eef1f7;
+  --color-void-deep: #ffffff;
+  --color-mist: #5b6478;
+  --color-mist-bright: #10131c;
+  --color-glow: #2f8f78;
+  --color-line: #d8dde8;
+}
+
+html,
+body {
+  background: var(--color-void);
+  color: var(--color-mist-bright);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.prose {
+  --tw-prose-body: var(--color-mist);
+  --tw-prose-headings: var(--color-mist-bright);
+  --tw-prose-bold: var(--color-mist-bright);
+  --tw-prose-bullets: var(--color-mist);
+  --tw-prose-links: var(--color-mist);
+  --tw-prose-counters: var(--color-mist);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-quote-borders: var(--color-line);
+}
+
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+}
+
+.prose a {
+  transition: color 0.2s ease;
+}
+
+.prose a:hover {
+  color: var(--color-mist-bright);
+}
+
+.prose :where(code):not(:where(pre, pre *)) {
+  background: var(--color-line);
+  color: var(--color-glow);
+  padding: 0.15em 0.45em;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.prose :where(code):not(:where(pre, pre *))::before,
+.prose :where(code):not(:where(pre, pre *))::after {
+  content: "";
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}

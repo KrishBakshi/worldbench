@@ -1,0 +1,102 @@
+---
+title: "About worldbench"
+description: "What worldbench is, and what kind of reasoning it actually tests."
+---
+
+worldbench is a **human-as-judge benchmark**: one natural-language prompt,
+several models, no rubric, no automated scorer. You look at what each model
+built and decide for yourself whether it holds together.
+
+## What it actually tests
+
+Every model gets the same prompt and has to produce a single self-contained
+Three.js scene (a floating, multi-biome voxel island) from a text
+description alone, with no image, no schema, no reference file. Getting
+that right takes more than scene styling. It forces the model to reason
+about several different things at once:
+
+- **Spatial / relational placement**: the prompt encodes a placement graph,
+  not a list. Snow mountains sit behind the snowy conifer forest, which sits
+  beside the highlands, which slope down into a flowering grove; desert and
+  volcano have to stay physically and hydrologically separate. The model has
+  to hold that whole adjacency graph in its head and lay out geometry that
+  satisfies it, not just place ten biomes wherever they fit.
+- **Ecological causality**: water has to behave like water. Mountain melt
+  feeds a wet corridor through the forest, highlands, jungle, and grassland,
+  then widens into a coastal delta. Desert is a rain-shadow basin with no
+  through-river. The volcano sits outside that whole system, and lava
+  touching water is supposed to turn into obsidian. None of this is
+  decorative; it's a small causal system the model has to simulate
+  correctly, not just describe.
+- **Elevation and scale reasoning**: peaks dominate, shelves sit mid-height,
+  plains stay low, and cliffs drop sharply, and every biome still has to
+  read as its own region from a high orbit instead of collapsing into its
+  neighbor.
+- **Ecological grounding for flora and fauna**: cacti belong in the desert,
+  pines in the snow forest, deer at jungle edges and across the grassland.
+  Placing life that actually matches its climate is a grounding task, not
+  decoration.
+- **Temporal / systems reasoning**: a day/night cycle, a seasonal cycle,
+  and cyclic weather (rain, snow, blizzard, sandstorm, ash) that has to stay
+  staggered by biome instead of blanketing the whole island at once.
+- **UI and interaction logic**: a clickable biome legend that flies the
+  camera to each region, plus a live season readout, testing whether the
+  model can wire 3D scene state to on-screen UI, not just render geometry.
+- **Constrained code generation**: everything ships as one self-contained
+  HTML file, no build step, no separate assets, CDN Three.js only. It has
+  to just open in a browser and run.
+
+There's no scoring because there's no single correct island, only a
+hand-tuned reference built by a human, and your own eyes to compare it
+against a range of very different automated attempts.
+
+## Reading the island
+
+Every biome from the world description, mapped onto the reference island so
+it's easy to see what's what while you look through the test results.
+
+<IslandInfo />
+
+## The placement graph
+
+This is the same wet corridor described in the prompt, just drawn as a
+graph instead of prose. Follow the solid arrows and the required path is a
+single line: mountain melt feeds the conifer forest, then the highlands,
+then the jungle, then the grassland plateau, then out to the coastal
+delta.
+
+Two exceptions break that single line, and both are drawn differently on
+purpose. The flowering grove has two valid sources instead of one: its
+main feed comes down from the highlands, and the dashed teal "and/or" edge
+shows the grassland plateau as an equally valid alternate. Separately, the
+dashed amber edge into the volcano marks the one causal rule that still
+reaches it: lava touching water quenches to obsidian, even though the
+volcano gets no through-river. Desert and volcano stay dashed boxes
+because the prompt keeps both deliberately cut off from the water system,
+and the model has to preserve that isolation rather than route a river
+through either one.
+
+<BiomeGraph />
+
+## Try it yourself
+
+You don't need this site to run the benchmark, just the prompt and a
+model.
+
+1. Open the prompt below and copy it.
+2. Paste it into any model chat: `Claude`, `ChatGPT`, `Gemini`, whatever
+   you want to try.
+3. Save the raw output, with no surrounding text, as `world.html`.
+4. Open that file in your browser and look around.
+
+<PromptDropdown />
+
+---
+
+## Found something interesting?
+
+If a model gives you a genuinely great, or wonderfully broken, result, I'd
+love to see it. Make a short video, post it wherever you post things, and
+let me know. This is built and maintained by [Krish](https://krishb.tech).
+
+<SocialLinks />

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Floating Island</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 280px;
+            pointer-events: auto;
+            user-select: none;
+        }
+        
+        #hud h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            color: #aaa;
+        }
+        
+        .biome-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 8px;
+            margin: 2px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 13px;
+        }
+        
+        .biome-item:hover { background: rgba(255,255,255,0.15); }
+        .biome-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.3); flex-shrink: 0; }
+        .biome-name { flex: 1; }
+        .biome-weather { font-size: 11px; color: #888; }
+        
+        #season-display {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        #controls-hint {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        #time-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="hud">
+        <h2>Biomes</h2>
+        <div id="biome-list"></div>
+        <div id="season-display">Spring</div>
+        <div id="controls-hint">Left click: orbit • Right click: pan • Scroll: zoom<br>Click biome to fly</div>
+    </div>
+    <div id="time-display">Day</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        const ISLAND_SIZE = 140;
+        const OCEAN_LEVEL = 1;
+        const RIVER_LEVEL = 2;
+        
+        const materials = {
+            ocean: new THREE.MeshLambertMaterial({ color: 0x20b2aa, transparent: true, opacity: 0.75 }),
+            river: new THREE.MeshLambertMaterial({ color: 0x00ced1, transparent: true, opacity: 0.8 }),
+            waterfall: new THREE.MeshLambertMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.6 }),
+            sand: new THREE.MeshLambertMaterial({ color: 0xf5deb3 }),
+            grass: new THREE.MeshLambertMaterial({ color: 0x7cfc00 }),
+            jungleGrass: new THREE.MeshLambertMaterial({ color: 0x228b22 }),
+            groveGrass: new THREE.MeshLambertMaterial({ color: 0x90ee90 }),
+            desert: new THREE.MeshLambertMaterial({ color: 0xd2b48c }),
+            rock: new THREE.MeshLambertMaterial({ color: 0x808080 }),
+            snow: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+            volcanic: new THREE.MeshLambertMaterial({ color: 0x1a1a1a }),
+            lava: new THREE.MeshLambertMaterial({ color: 0xff4500, emissive: 0xff2200, emissiveIntensity: 0.8 }),
+            obsidian: new THREE.MeshLambertMaterial({ color: 0x2f2f2f, shininess: 80 }),
+            trunk: new THREE.MeshLambertMaterial({ color: 0x8b4513 }),
+            leavesTemp: new THREE.MeshLambertMaterial({ color: 0x32cd32 }),
+            leavesPine: new THREE.MeshLambertMaterial({ color: 0x006400 }),
+            leavesJungle: new THREE.MeshLambertMaterial({ color: 0x006400 }),
+            leavesGrove: new THREE.MeshLambertMaterial({ color: 0xff69b4 }),
+            leavesPalm: new THREE.MeshLambertMaterial({ color: 0x228b22 }),
+            cactus: new THREE.MeshLambertMaterial({ color: 0x2e8b57 }),
+            cloud: new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }),
+            sun: new THREE.MeshLambertMaterial({ color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 1.5 }),
+            mineral: new THREE.MeshLambertMaterial({ color: 0x00bfff, emissive: 0x0080ff, emissiveIntensity: 0.5 }),
+            ash: new THREE.MeshLambertMaterial({ color: 0x696969 }),
+            mud: new THREE.MeshLambertMaterial({ color: 0x556b2f }),
+            desertRock: new THREE.MeshLambertMaterial({ color: 0xc2b280 }),
+        };
+        
+        const BIOMES = {
+            MOUNTAINS: { 
+                name: 'Snow Mountains', 
+                center: [0, -50], 
+                radius: 24, 
+                height: 45, 
+                color: 0xffffff, 
+                weather: 'Blizzard',
+                weatherType: 'blizzard',
+                camPos: [0, 55, -85]
+            },
+            SNOW_FOREST: { 
+                name: 'Snowy Conifer Forest', 
+                center: [0, -32], 
+                radius: 20, 
+                height: 30, 
+                color: 0xe0e0e0, 
+                weather: 'Snowfall',
+                weatherType: 'snow',
+                camPos: [35, 38, -45]
+            },
+            HIGHLANDS: { 
+                name: 'Highlands', 
+                center: [30, -15], 
+                radius: 22, 
+                height: 24, 
+                color: 0x8fbc8f, 
+                weather: 'Mist',
+                weatherType: 'mist',
+                camPos: [55, 32, -25]
+            },
+            JUNGLE: { 
+                name: 'Dense Jungle', 
+                center: [-8, 2], 
+                radius: 26, 
+                height: 17, 
+                color: 0x228b22, 
+                weather: 'Rain',
+                weatherType: 'rain',
+                camPos: [-25, 28, 12]
+            },
+            SWAMP: { 
+                name: 'Swamp', 
+                center: [20, 2], 
+                radius: 15, 
+                height: 6, 
+                color: 0x556b2f, 
+                weather: 'Mist',
+                weatherType: 'mist',
+                camPos: [38, 16, 6]
+            },
+            GRASSLANDS: { 
+                name: 'Grasslands', 
+                center: [-24, 18], 
+                radius: 26, 
+                height: 10, 
+                color: 0x7cfc00, 
+                weather: 'Rain',
+                weatherType: 'rain',
+                camPos: [-45, 22, 32]
+            },
+            GROVE: { 
+                name: 'Flowering Grove', 
+                center: [14, 24], 
+                radius: 17, 
+                height: 8, 
+                color: 0xff69b4, 
+                weather: 'Rain',
+                weatherType: 'rain',
+                camPos: [28, 18, 38]
+            },
+            DESERT: { 
+                name: 'Desert', 
+                center: [-45, 30], 
+                radius: 30, 
+                height: 5, 
+                color: 0xd2b48c, 
+                weather: 'Sandstorm',
+                weatherType: 'sandstorm',
+                camPos: [-65, 18, 52]
+            },
+            VOLCANO: { 
+                name: 'Volcano', 
+                center: [45, 20], 
+                radius: 14, 
+                height: 40, 
+                color: 0xff4500, 
+                weather: 'Ash',
+                weatherType: 'ash',
+                camPos: [65, 42, 32]
+            },
+            OCEAN: { 
+                name: 'Coastal Ocean', 
+                center: [-28, 48], 
+                radius: 38, 
+                height: -3, 
+                color: 0x20b2aa, 
+                weather: 'Clear',
+                weatherType: 'clear',
+                camPos: [-45, 18, 75]
+            }
+        };
+        
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 65, 90);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 160;
+        controls.minDistance = 5;
+        controls.target.set(0, 10, 0);
+        
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(50, 80, 30);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 200;
+        sunLight.shadow.camera.left = -90;
+        sunLight.shadow.camera.right = 90;
+        sunLight.shadow.camera.top = 90;
+        sunLight.shadow.camera.bottom = -90;
+        scene.add(sunLight);
+        
+        const sunMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 8, 8), materials.sun);
+        scene.add(sunMesh);
+        
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const instances = {};
+        
+        function addBlock(x, y, z, matKey) {
+            if (!instances[matKey]) instances[matKey] = [];
+            instances[matKey].push({ x, y, z });
+        }
+        
+        function noise(x, z) {
+            return Math.sin(x * 0.1) * Math.cos(z * 0.1) + Math.sin(x * 0.3 + z * 0.2) * 0.5;
+        }
+        
+        function getBiome(x, z) {
+            let best = null, bestScore = -Infinity;
+            let second = null, secondScore = -Infinity;
+            
+            for (const [key, biome] of Object.entries(BIOMES)) {
+                const dx = x - biome.center[0];
+                const dz = z - biome.center[1];
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const score = 1 - dist / biome.radius;
+                
+                if (score > bestScore) {
+                    second = best; secondScore = bestScore;
+                    best = key; bestScore = score;
+                } else if (score > secondScore) {
+                    second = key; secondScore = score;
+                }
+            }
+            
+            const blend = Math.max(0, Math.min(1, (bestScore - secondScore) * 3));
+            return { biome: best, second, blend, score: bestScore };
+        }
+        
+        const riverPath = [
+            [-5, -45], [-5, -35], [-5, -25], [-8, -15], [-10, -8], 
+            [-12, 0], [-16, 8], [-20, 15], [-24, 22], [-28, 30], [-32, 40]
+        ];
+        
+        function getRiverDist(x, z) {
+            let dist = 999;
+            for (let i = 0; i < riverPath.length - 1; i++) {
+                const p1 = riverPath[i], p2 = riverPath[i+1];
+                const dx = p2[0] - p1[0], dz = p2[1] - p1[1];
+                const lenSq = dx*dx + dz*dz;
+                const t = Math.max(0, Math.min(1, ((x - p1[0]) * dx + (z - p1[1]) * dz) / lenSq));
+                const projX = p1[0] + t * dx;
+                const projZ = p1[1] + t * dz;
+                const d = Math.sqrt((x - projX)**2 + (z - projZ)**2);
+                dist = Math.min(dist, d);
+            }
+            return dist;
+        }
+        
+        function getHeight(x, z) {
+            const b = getBiome(x, z);
+            if (b.score < -0.2) return -8;
+            
+            const biome = BIOMES[b.biome];
+            const second = BIOMES[b.second] || biome;
+            
+            let h = biome.height * (0.7 + 0.3 * noise(x, z));
+            if (b.second && b.blend < 1) {
+                let h2 = second.height * (0.7 + 0.3 * noise(x + 100, z));
+                h = h * b.blend + h2 * (1 - b.blend);
+            }
+            
+            h += noise(x * 2, z * 2) * 2;
+            
+            const riverDist = getRiverDist(x, z);
+            if (riverDist < 5 && b.biome !== 'DESERT' && b.biome !== 'VOLCANO') {
+                const width = 1 + riverDist * 0.8;
+                h = Math.min(h, RIVER_LEVEL + width * 0.5);
+            }
+            
+            if (b.biome === 'DESERT' || (b.second === 'DESERT' && b.blend < 0.5)) {
+                h = Math.max(2, h * 0.4 + 2);
+                // Desert mountains
+                const dnoise = noise(x*0.5 + 50, z*0.5);
+                if (dnoise > 0.6) h += dnoise * 12;
+            }
+            
+            if (b.biome === 'VOLCANO') {
+                const dx = x - 45, dz = z - 20;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                h = 40 - dist * 2.8 + noise(x, z) * 3;
+                if (dist < 3.5) h = Math.max(h, 32);
+            }
+            
+            if (b.biome === 'MOUNTAINS') {
+                h += Math.abs(noise(x*2, z*2)) * 10;
+            }
+            
+            if (b.biome === 'OCEAN' || b.score < 0) {
+                h = Math.max(-6, h * 0.3);
+            }
+            
+            return Math.floor(h);
+        }
+        
+        const halfSize = ISLAND_SIZE / 2;
+        
+        for (let x = -halfSize; x <= halfSize; x++) {
+            for (let z = -halfSize; z <= halfSize; z++) {
+                const h = getHeight(x, z);
+                const b = getBiome(x, z);
+                
+                if (h < -6) continue;
+                
+                let surface = 'grass';
+                let sub = 'rock';
+                
+                if (b.biome === 'OCEAN' || h < OCEAN_LEVEL) {
+                    surface = 'ocean';
+                    sub = 'sand';
+                } else if (b.biome === 'DESERT') {
+                    surface = 'desert';
+                    sub = 'desert';
+                } else if (b.biome === 'VOLCANO') {
+                    surface = h > 32 ? 'lava' : 'volcanic';
+                    sub = 'volcanic';
+                } else if (b.biome === 'MOUNTAINS') {
+                    if (h > 32) { surface = 'snow'; sub = 'rock'; }
+                    else { surface = 'rock'; sub = 'rock'; }
+                } else if (b.biome === 'SNOW_FOREST') {
+                    surface = 'snow';
+                    sub = 'rock';
+                } else if (b.biome === 'JUNGLE') {
+                    surface = 'jungleGrass';
+                    sub = 'rock';
+                } else if (b.biome === 'SWAMP') {
+                    surface = 'mud';
+                    sub = 'mud';
+                } else if (b.biome === 'GROVE') {
+                    surface = 'groveGrass';
+                    sub = 'rock';
+                } else if (b.biome === 'HIGHLANDS') {
+                    surface = 'grass';
+                    sub = 'rock';
+                }
+                
+                const riverDist = getRiverDist(x, z);
+                if (riverDist < 4.5 && h <= RIVER_LEVEL + 3 && b.biome !== 'DESERT' && b.biome !== 'VOLCANO') {
+                    surface = 'river';
+                }
+                
+                if (b.biome !== 'OCEAN' && h <= OCEAN_LEVEL + 2) {
+                    surface = 'sand';
+                }
+                
+                // Desert rock outcrops
+                if (b.biome === 'DESERT' && h > 8) {
+                    surface = 'desertRock';
+                    sub = 'desertRock';
+                }
+                
+                const bottom = Math.max(-18, h - 10 - Math.floor(Math.abs(noise(x*3, z*3)) * 6));
+                
+                for (let y = bottom; y <= h; y++) {
+                    if (y === h) addBlock(x, y, z, surface);
+                    else if (y > h - 3) addBlock(x, y, z, sub);
+                    else if (y < -8 || Math.random() < 0.08) addBlock(x, y, z, 'rock');
+                }
+                
+                // Waterfalls
+                if (h > 12 && surface !== 'ocean' && surface !== 'river') {
+                    const nh = getHeight(x, z + 1);
+                    if (nh < h - 4) {
+                        for (let y = nh + 1; y < h; y++) addBlock(x, y, z + 1, 'waterfall');
+                    }
+                    const sh = getHeight(x + 1, z);
+                    if (sh < h - 4) {
+                        for (let y = sh + 1; y < h; y++) addBlock(x + 1, y, z, 'waterfall');
+                    }
+                }
+                
+                // Lava flows
+                if (b.biome === 'VOLCANO' && h > 25) {
+                    const nh = getHeight(x + 1, z);
+                    if (nh < h - 3) {
+                        for (let y = nh + 1; y < h; y++) addBlock(x + 1, y, z, 'lava');
+                    }
+                    // Obsidian where water meets lava
+                    if (riverDist < 6) {
+                        addBlock(x, h + 1, z, 'obsidian');
+                    }
+                }
+                
+                // Flora
+                if (surface !== 'ocean' && surface !== 'river' && surface !== 'waterfall' && surface !== 'lava') {
+                    const r = Math.random();
+                    
+                    if (r < 0.06) {
+                        if (b.biome === 'SNOW_FOREST') {
+                            addBlock(x, h+1, z, 'trunk');
+                            addBlock(x, h+2, z, 'trunk');
+                            addBlock(x, h+3, z, 'leavesPine');
+                            addBlock(x+1, h+3, z, 'leavesPine');
+                            addBlock(x-1, h+3, z, 'leavesPine');
+                            addBlock(x, h+3, z+1, 'leavesPine');
+                            addBlock(x, h+3, z-1, 'leavesPine');
+                            addBlock(x, h+4, z, 'leavesPine');
+                            addBlock(x, h+5, z, 'snow');
+                            addBlock(x+1, h+4, z, 'snow');
+                            addBlock(x-1, h+4, z, 'snow');
+                            addBlock(x, h+4, z+1, 'snow');
+                            addBlock(x, h+4, z-1, 'snow');
+                        } else if (b.biome === 'JUNGLE') {
+                            const th = 3 + Math.floor(Math.random() * 4);
+                            for (let i = 1; i <= th; i++) addBlock(x, h+i, z, 'trunk');
+                            for (let dx = -1; dx <= 1; dx++) {
+                                for (let dz = -1; dz <= 1; dz++) {
+                                    addBlock(x+dx, h+th, z+dz, 'leavesJungle');
+                                    if (Math.random() < 0.6) addBlock(x+dx, h+th+1, z+dz, 'leavesJungle');
+                                }
+                            }
+                        } else if (b.biome === 'GROVE') {
+                            addBlock(x, h+1, z, 'trunk');
+                            addBlock(x, h+2, z, 'trunk');
+                            for (let dx = -1; dx <= 1; dx++) {
+                                for (let dz = -1; dz <= 1; dz++) {
+                                    if (dx === 0 && dz === 0) continue;
+                                    addBlock(x+dx, h+2, z+dz, 'leavesGrove');
+                                    addBlock(x+dx, h+3, z+dz, 'leavesGrove');
+                                }
+                            }
+                            addBlock(x, h+3, z, 'leavesGrove');
+                            addBlock(x, h+4, z, 'leavesGrove');
+                        } else if ((b.biome === 'GRASSLANDS' || b.biome === 'HIGHLANDS') && r < 0.03) {
+                            addBlock(x, h+1, z, 'trunk');
+                            addBlock(x, h+2, z, 'leavesTemp');
+                            addBlock(x+1, h+2, z, 'leavesTemp');
+                            addBlock(x-1, h+2, z, 'leavesTemp');
+                            addBlock(x, h+2, z+1, 'leavesTemp');
+                            addBlock(x, h+2, z-1, 'leavesTemp');
+                        } else if (b.biome === 'DESERT') {
+                            addBlock(x, h+1, z, 'cactus');
+                            addBlock(x, h+2, z, 'cactus');
+                            if (Math.random() < 0.3) {
+                                addBlock(x+1, h+2, z, 'cactus');
+                            }
+                        } else if (h <= OCEAN_LEVEL + 3 && (b.biome === 'OCEAN' || b.biome === 'GRASSLANDS')) {
+                            addBlock(x, h+1, z, 'trunk');
+                            addBlock(x, h+2, z, 'trunk');
+                            addBlock(x, h+3, z, 'leavesPalm');
+                            addBlock(x+1, h+3, z, 'leavesPalm');
+                            addBlock(x-1, h+3, z, 'leavesPalm');
+                            addBlock(x, h+3, z+1, 'leavesPalm');
+                            addBlock(x, h+3, z-1, 'leavesPalm');
+                        }
+                    }
+                    
+                    if (b.biome === 'GROVE' && r < 0.25) {
+                        addBlock(x, h+1, z, 'leavesGrove');
+                    }
+                }
+            }
+        }
+        
+        // Floating fragments beneath
+        for (let i = 0; i < 60; i++) {
+            const fx = (Math.random() - 0.5) * 70;
+            const fz = (Math.random() - 0.5) * 70;
+            const fy = -22 - Math.random() * 18;
+            const s = 1 + Math.floor(Math.random() * 3);
+            for (let bx = 0; bx < s; bx++) {
+                for (let by = 0; by < s; by++) {
+                    for (let bz = 0; bz < s; bz++) {
+                        addBlock(Math.floor(fx + bx), Math.floor(fy + by), Math.floor(fz + bz), 'rock');
+                        if (Math.random() < 0.08) addBlock(Math.floor(fx + bx), Math.floor(fy + by), Math.floor(fz + bz), 'mineral');
+                    }
+                }
+            }
+        }
+        
+        // Build instanced meshes
+        for (const [key, positions] of Object.entries(instances)) {
+            if (positions.length === 0) continue;
+            const mesh = new THREE.InstancedMesh(geometry, materials[key], positions.length);
+            const dummy = new THREE.Object3D();
+            positions.forEach((pos, i) => {
+                dummy.position.set(pos.x, pos.y, pos.z);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+            });
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+        }
+        
+        // Fauna
+        const fauna = [];
+        const faunaGroup = new THREE.Group();
+        scene.add(faunaGroup);
+        
+        function createDeer(x, y, z) {
+            const g = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.8), materials.trunk);
+            body.position.y = 0.8; g.add(body);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.8), materials.trunk);
+            head.position.set(0, 1.4, 1.2); g.add(head);
+            for (let lx of [-0.4, 0.4]) {
+                for (let lz of [-0.6, 0.6]) {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), materials.trunk);
+                    leg.position.set(lx, 0.4, lz); g.add(leg);
+                }
+            }
+            const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), materials.trunk);
+            a1.position.set(-0.2, 1.8, 1.2); g.add(a1);
+            const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), materials.trunk);
+            a2.position.set(0.2, 1.8, 1.2); g.add(a2);
+            g.position.set(x, y, z);
+            return g;
+        }
+        
+        function createFox(x, y, z) {
+            const g = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0xd2691e });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.2), mat);
+            body.position.y = 0.5; g.add(body);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.6), mat);
+            head.position.set(0, 0.8, 0.9); g.add(head);
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.8), new THREE.MeshLambertMaterial({ color: 0xff4500 }));
+            tail.position.set(0, 0.6, -0.8); g.add(tail);
+            for (let lx of [-0.25, 0.25]) {
+                for (let lz of [-0.4, 0.4]) {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.2), materials.trunk);
+                    leg.position.set(lx, 0.25, lz); g.add(leg);
+                }
+            }
+            g.position.set(x, y, z);
+            return g;
+        }
+        
+        function createFish(x, y, z) {
+            const g = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0x4682b4 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.8), mat); g.add(body);
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.3), mat);
+            tail.position.z = -0.5; g.add(tail);
+            g.position.set(x, y, z);
+            return g;
+        }
+        
+        for (let i = 0; i < 35; i++) {
+            const x = (Math.random() - 0.5) * 90;
+            const z = (Math.random() - 0.5) * 90;
+            const h = getHeight(x, z);
+            const b = getBiome(x, z);
+            
+            if (h > 0 && b.biome !== 'OCEAN' && b.biome !== 'VOLCANO') {
+                if (b.biome === 'DESERT' || b.biome === 'SWAMP') {
+                    const fox = createFox(x, h + 1, z);
+                    faunaGroup.add(fox);
+                    fauna.push({ mesh: fox, type: 'fox', x, z, h, speed: 0.02 + Math.random() * 0.02, t: Math.random() * 100 });
+                } else if (b.biome === 'JUNGLE' || b.biome === 'GRASSLANDS' || b.biome === 'GROVE' || b.biome === 'SNOW_FOREST') {
+                    const deer = createDeer(x, h + 1, z);
+                    faunaGroup.add(deer);
+                    fauna.push({ mesh: deer, type: 'deer', x, z, h, speed: 0.01 + Math.random() * 0.02, t: Math.random() * 100 });
+                }
+            }
+        }
+        
+        for (let i = 0; i < 18; i++) {
+            const x = (Math.random() - 0.5) * 70;
+            const z = 25 + Math.random() * 35;
+            const h = getHeight(x, z);
+            if (h < 3) {
+                const fish = createFish(x, Math.max(-2, h + 0.5), z);
+                faunaGroup.add(fish);
+                fauna.push({ mesh: fish, type: 'fish', x, z, h: Math.max(-2, h + 0.5), speed: 0.03, t: Math.random() * 100 });
+            }
+        }
+        
+        // Weather
+        function createParticles(count, color, size, area, type) {
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const vel = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                pos[i*3] = area.x + (Math.random() - 0.5) * area.w;
+                pos[i*3+1] = area.y + Math.random() * area.h;
+                pos[i*3+2] = area.z + (Math.random() - 0.5) * area.d;
+                
+                if (type === 'rain') { vel[i*3] = 0; vel[i*3+1] = -0.3 - Math.random() * 0.2; vel[i*3+2] = 0; }
+                else if (type === 'snow') { vel[i*3] = (Math.random() - 0.5) * 0.02; vel[i*3+1] = -0.05 - Math.random() * 0.05; vel[i*3+2] = (Math.random() - 0.5) * 0.02; }
+                else if (type === 'blizzard') { vel[i*3] = 0.4 + Math.random() * 0.2; vel[i*3+1] = -0.1 - Math.random() * 0.1; vel[i*3+2] = (Math.random() - 0.5) * 0.1; }
+                else if (type === 'sandstorm') { vel[i*3] = 0.25 + Math.random() * 0.3; vel[i*3+1] = 0.05 + Math.random() * 0.05; vel[i*3+2] = (Math.random() - 0.5) * 0.2; }
+                else if (type === 'ash') { vel[i*3] = (Math.random() - 0.5) * 0.05; vel[i*3+1] = 0.1 + Math.random() * 0.1; vel[i*3+2] = (Math.random() - 0.5) * 0.05; }
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.8, sizeAttenuation: true });
+            const pts = new THREE.Points(geom, mat);
+            scene.add(pts);
+            return { mesh: pts, velocities: vel, count, type, area };
+        }
+        
+        const weather = {
+            rain: createParticles(2500, 0x87ceeb, 0.3, { x: -10, y: 25, z: 5, w: 55, h: 30, d: 55 }, 'rain'),
+            snow: createParticles(1800, 0xffffff, 0.4, { x: 0, y: 35, z: -32, w: 45, h: 20, d: 35 }, 'snow'),
+            blizzard: createParticles(2500, 0xeeeeee, 0.5, { x: 0, y: 42, z: -60, w: 55, h: 25, d: 35 }, 'blizzard'),
+            sandstorm: createParticles(1800, 0xd2b48c, 0.6, { x: -45, y: 10, z: 30, w: 55, h: 15, d: 55 }, 'sandstorm'),
+            ash: createParticles(1000, 0x808080, 0.4, { x: 45, y: 32, z: 20, w: 28, h: 22, d: 28 }, 'ash'),
+        };
+        
+        // Clouds
+        const cloudGroup = new THREE.Group();
+        scene.add(cloudGroup);
+        
+        function createCloud(x, y, z, w, d) {
+            const g = new THREE.Group();
+            for (let i = 0; i < w * d * 0.25; i++) {
+                const b = new THREE.Mesh(new THREE.BoxGeometry(2 + Math.random()*2, 1, 2 + Math.random()*2), materials.cloud);
+                b.position.set((Math.random() - 0.5) * w, 0, (Math.random() - 0.5) * d);
+                g.add(b);
+            }
+            g.position.set(x, y, z);
+            return g;
+        }
+        
+        cloudGroup.add(createCloud(-8, 30, 2, 35, 35));
+        cloudGroup.add(createCloud(-24, 24, 18, 28, 28));
+        cloudGroup.add(createCloud(14, 22, 24, 22, 22));
+        cloudGroup.add(createCloud(0, 34, -32, 28, 22));
+        
+        // Seasons
+        let seasonTime = 0;
+        const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+        const seasonColors = [0x90ee90, 0xffffe0, 0xdaa520, 0xb0c4de];
+        let currentSeason = 0;
+        
+        // UI
+        const biomeList = document.getElementById('biome-list');
+        const seasonDisplay = document.getElementById('season-display');
+        const timeDisplay = document.getElementById('time-display');
+        
+        for (const [key, biome] of Object.entries(BIOMES)) {
+            const item = document.createElement('div');
+            item.className = 'biome-item';
+            item.innerHTML = `<div class="biome-swatch" style="background: #${biome.color.toString(16).padStart(6, '0')}"></div><div class="biome-name">${biome.name}</div><div class="biome-weather">${biome.weather}</div>`;
+            item.addEventListener('click', () => flyTo(biome.camPos, [biome.center[0], biome.height * 0.5, biome.center[1]]));
+            biomeList.appendChild(item);
+        }
+        
+        const overviewItem = document.createElement('div');
+        overviewItem.className = 'biome-item';
+        overviewItem.style.marginTop = '8px';
+        overviewItem.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+        overviewItem.innerHTML = `<div class="biome-swatch" style="background: #888"></div><div class="biome-name">Whole Island</div><div class="biome-weather">Overview</div>`;
+        overviewItem.addEventListener('click', () => flyTo([0, 75, 100], [0, 10, 0]));
+        biomeList.appendChild(overviewItem);
+        
+        let flyTarget = null, flyLookAt = null, flyStart = null, flyStartLook = null, flyStartTime = 0;
+        
+        function flyTo(pos, look) {
+            flyStart = camera.position.clone();
+            flyStartLook = controls.target.clone();
+            flyTarget = new THREE.Vector3(...pos);
+            flyLookAt = new THREE.Vector3(...look);
+            flyStartTime = performance.now();
+        }
+        
+        const clock = new THREE.Clock();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+            
+            // Day/night
+            const dayTime = (time * 0.04) % 1;
+            const sunAngle = dayTime * Math.PI * 2;
+            const sunX = Math.cos(sunAngle) * 90;
+            const sunY = Math.sin(sunAngle) * 65 + 25;
+            const sunZ = Math.sin(sunAngle * 0.5) * 45;
+            
+            sunMesh.position.set(sunX, Math.max(sunY, -30), sunZ);
+            sunLight.position.set(sunX, Math.max(sunY, 10), sunZ);
+            
+            const dayInt = Math.max(0, Math.min(1, sunY / 50));
+            sunLight.intensity = dayInt * 1.2;
+            ambientLight.intensity = 0.25 + dayInt * 0.45;
+            
+            // Season
+            seasonTime += delta;
+            const seasonDur = 20;
+            currentSeason = Math.floor(seasonTime / seasonDur) % 4;
+            seasonDisplay.textContent = seasons[currentSeason];
+            timeDisplay.textContent = sunY > 5 ? 'Day' : 'Night';
+            
+            const sCol = new THREE.Color(seasonColors[currentSeason]);
+            sunLight.color.lerp(sCol, 0.05);
+            
+            // Weather
+            for (const [key, sys] of Object.entries(weather)) {
+                const pos = sys.mesh.geometry.attributes.position.array;
+                const cyc = (time * 0.08) % 1;
+                let active = true;
+                if (key === 'rain') active = cyc < 0.6 && (currentSeason === 0 || currentSeason === 1);
+                if (key === 'snow') active = cyc < 0.5 && (currentSeason === 3 || currentSeason === 0);
+                if (key === 'blizzard') active = cyc < 0.7 && currentSeason === 3;
+                if (key === 'sandstorm') active = cyc < 0.4 && currentSeason === 1;
+                if (key === 'ash') active = true;
+                
+                sys.mesh.visible = active;
+                if (active) {
+                    for (let i = 0; i < sys.count; i++) {
+                        pos[i*3] += sys.velocities[i*3];
+                        pos[i*3+1] += sys.velocities[i*3+1];
+                        pos[i*3+2] += sys.velocities[i*3+2];
+                        
+                        if (pos[i*3+1] < -15 || pos[i*3+1] > 70 ||
+                            Math.abs(pos[i*3] - sys.area.x) > sys.area.w * 0.6 ||
+                            Math.abs(pos[i*3+2] - sys.area.z) > sys.area.d * 0.6) {
+                            pos[i*3] = sys.area.x + (Math.random() - 0.5) * sys.area.w;
+                            pos[i*3+1] = sys.area.y + Math.random() * sys.area.h;
+                            pos[i*3+2] = sys.area.z + (Math.random() - 0.5) * sys.area.d;
+                        }
+                    }
+                    sys.mesh.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+            
+            // Fauna
+            fauna.forEach((f, i) => {
+                if (f.type === 'fish') {
+                    f.mesh.position.x = f.x + Math.sin(time * 0.5 + f.t) * 3;
+                    f.mesh.position.z = f.z + Math.cos(time * 0.3 + f.t) * 2;
+                    f.mesh.rotation.y = Math.atan2(Math.cos(time * 0.3 + f.t), Math.sin(time * 0.5 + f.t));
+                } else {
+                    f.mesh.position.x = f.x + Math.sin(time * f.speed + f.t) * 4;
+                    f.mesh.position.z = f.z + Math.cos(time * f.speed + f.t) * 4;
+                    f.mesh.rotation.y = Math.atan2(Math.cos(time * f.speed + f.t), Math.sin(time * f.speed + f.t));
+                }
+            });
+            
+            // Clouds
+            cloudGroup.children.forEach((c, i) => {
+                c.position.x += Math.sin(time * 0.03 + i) * 0.015;
+            });
+            
+            // Camera fly
+            if (flyTarget) {
+                const elapsed = (performance.now() - flyStartTime) / 1000;
+                const t = Math.min(1, elapsed / 2);
+                const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                camera.position.lerpVectors(flyStart, flyTarget, ease);
+                controls.target.lerpVectors(flyStartLook, flyLookAt, ease);
+                if (t >= 1) flyTarget = null;
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        animate();
+    </script>
+</body>
+</html>
+

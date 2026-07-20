@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Biome Island</title>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            color: #fff; user-select: none;
+        }
+        #webgl-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+        }
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 20px; box-sizing: border-box;
+        }
+        .panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #444; padding: 15px; border-radius: 5px;
+            pointer-events: auto; backdrop-filter: blur(4px);
+        }
+        #legend { width: 300px; max-height: 80vh; overflow-y: auto; }
+        h2 {
+            margin: 0 0 15px 0; font-size: 1.2rem; text-transform: uppercase;
+            letter-spacing: 2px; border-bottom: 1px solid #666; padding-bottom: 5px;
+        }
+        .legend-item {
+            display: flex; align-items: center; margin-bottom: 8px;
+            cursor: pointer; transition: background 0.2s; padding: 6px; border-radius: 3px;
+        }
+        .legend-item:hover { background: rgba(255, 255, 255, 0.15); }
+        .color-swatch {
+            width: 16px; height: 16px; margin-right: 12px; border: 1px solid #111;
+        }
+        .weather-note {
+            font-size: 0.75rem; color: #aaa; margin-left: auto; font-style: italic;
+        }
+        #top-bar { display: flex; justify-content: space-between; pointer-events: none; }
+        #season-display { font-size: 1.5rem; font-weight: bold; pointer-events: auto; text-transform: uppercase;}
+        #time-display { font-size: 1.2rem; color: #ddd; }
+        #controls-hint {
+            text-align: center; font-size: 0.85rem; color: #888;
+            margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;
+        }
+        /* Custom scrollbar for legend */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
+    </style>
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+    <div id="ui-layer">
+        <div id="top-bar">
+            <div id="season-display" class="panel">SEASON: SPRING</div>
+            <div class="panel" style="pointer-events:none;"><span id="time-display">DAY (12:00)</span></div>
+        </div>
+        <div id="legend" class="panel">
+            <h2>Biome Legend</h2>
+            <div id="legend-items"></div>
+            <div class="legend-item" style="margin-top:10px; border-top:1px solid #666; padding-top:10px;" onclick="flyTo('Orbit')">
+                <div class="color-swatch" style="background: #ffffff; border-radius:50%;"></div>
+                <span style="font-weight: bold;">Whole Island Orbit</span>
+            </div>
+            <div id="controls-hint">L-Click: Orbit &middot; R-Click: Pan &middot; Scroll: Zoom</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & PALETTE ---
+        const C = {
+            ocean: 0x1da2d8, beach: 0xe8d8a3, rock: 0x555555, snow: 0xffffff,
+            conifer: 0x2e4a31, highland: 0x7a8a70, jungle: 0x1f471f, jungleWood: 0x3d2817,
+            swamp: 0x3a4520, swampWater: 0x2c3a20, grass: 0x557a2b, grove: 0xffb6c1,
+            desert: 0xd3b574, desertRock: 0xc87b40, volcano: 0x1a1a1a, lava: 0xea330c,
+            obsidian: 0x0b0b1a, wood: 0x4a3018, mineral: 0x00ffff, dirt: 0x5c4033
+        };
+
+        const BIOMES = {
+            mountains: { name: 'Snow Mountains', color: C.snow, x: 0, z: -55, r: 25, weather: 'Blizzard', targetY: 45 },
+            conifer: { name: 'Snowy Conifer', color: C.conifer, x: 0, z: -25, r: 20, weather: 'Snow', targetY: 25 },
+            highlands: { name: 'Temperate Highlands', color: C.highland, x: -35, z: -25, r: 22, weather: 'Mist', targetY: 25 },
+            grove: { name: 'Flowering Grove', color: C.grove, x: -40, z: 5, r: 20, weather: 'Clear', targetY: 15 },
+            jungle: { name: 'Dense Jungle', color: C.jungle, x: 30, z: -10, r: 25, weather: 'Rain', targetY: 18 },
+            swamp: { name: 'Backwater Swamp', color: C.swamp, x: 50, z: -25, r: 18, weather: 'Stagnant', targetY: 12 },
+            grasslands: { name: 'Central Grasslands', color: C.grass, x: 0, z: 15, r: 25, weather: 'Clear', targetY: 12 },
+            desert: { name: 'Arid Desert', color: C.desert, x: -30, z: 45, r: 25, weather: 'Sandstorm', targetY: 12 },
+            volcano: { name: 'Volcanic Wasteland', color: C.volcano, x: 35, z: 45, r: 22, weather: 'Ash', targetY: 35 },
+            coast: { name: 'Coastal Ocean', color: C.ocean, x: 0, z: 55, r: 15, weather: 'Waves', targetY: 5 }
+        };
+
+        const GRID_SIZE = 150;
+        const HALF = Math.floor(GRID_SIZE / 2);
+        const ISLAND_RADIUS = 68;
+
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); // Black void
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(0, 160, 220);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.target.set(0, 10, 0); controls.maxDistance = 400;
+
+        // --- LIGHTING & SUN ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffee, 1.5);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048; sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 10; sunLight.shadow.camera.far = 400;
+        const d = 100;
+        sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.bias = -0.001;
+        scene.add(sunLight);
+
+        // Square Sun Mesh
+        const sunGeo = new THREE.BoxGeometry(12, 12, 12);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+        const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+        scene.add(sunMesh);
+
+        // --- UTILS ---
+        function hash(x, y) {
+            let n = x * 137 + y * 281; n = (n << 13) ^ n;
+            return (1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+        }
+        function noise(x, y) {
+            const ix = Math.floor(x), iy = Math.floor(y);
+            const fx = x - ix, fy = y - iy;
+            const v1 = hash(ix, iy), v2 = hash(ix + 1, iy);
+            const v3 = hash(ix, iy + 1), v4 = hash(ix + 1, iy + 1);
+            const i1 = v1 * (1 - fx) + v2 * fx;
+            const i2 = v3 * (1 - fx) + v4 * fx;
+            return i1 * (1 - fy) + i2 * fy;
+        }
+        function getDist(x1, z1, x2, z2) { return Math.sqrt((x1-x2)**2 + (z1-z2)**2); }
+
+        // --- DATA STRUCTURES ---
+        let heightMap = new Array(GRID_SIZE).fill(0).map(() => new Array(GRID_SIZE).fill(-999));
+        let biomeMap = new Array(GRID_SIZE).fill(0).map(() => new Array(GRID_SIZE).fill(null));
+        let waterMap = new Array(GRID_SIZE).fill(0).map(() => new Array(GRID_SIZE).fill(0)); // 0:none, 1:river, 2:lava
+
+        // Draw Rivers
+        function drawRiver(x0, z0, x1, z1, type) {
+            const steps = Math.max(Math.abs(x1-x0), Math.abs(z1-z0)) * 2;
+            for(let i=0; i<=steps; i++) {
+                const t = i/steps;
+                let rx = Math.floor(x0 + (x1-x0)*t + Math.sin(t*Math.PI*2)*1.5);
+                let rz = Math.floor(z0 + (z1-z0)*t + Math.cos(t*Math.PI*2)*1.5);
+                for(let dx=-1; dx<=1; dx++) {
+                    for(let dz=-1; dz<=1; dz++) {
+                        let cx = rx+dx+HALF, cz = rz+dz+HALF;
+                        if(cx>=0 && cx<GRID_SIZE && cz>=0 && cz<GRID_SIZE) {
+                            if (Math.abs(dx)+Math.abs(dz) <= 1) waterMap[cx][cz] = type;
+                        }
+                    }
+                }
+            }
+        }
+        // Main wet corridor
+        drawRiver(0, -45, 5, -20, 1); // Mountain melt to Conifer
+        drawRiver(5, -20, 20, -5, 1); // Conifer to Jungle
+        drawRiver(20, -5, 5, 15, 1);  // Jungle to Grasslands
+        drawRiver(5, 15, -5, 35, 1);  // Grasslands to Delta
+        drawRiver(-5, 35, -10, 55, 1); // Delta to Ocean
+        drawRiver(5, 15, 15, 45, 1);  // Delta branch
+        // Highland to Grove
+        drawRiver(-35, -20, -35, 5, 1);
+        // Volcano Lava
+        drawRiver(35, 45, 25, 55, 2);
+        drawRiver(35, 45, 45, 55, 2);
+
+        // --- TERRAIN GENERATION ---
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let z = 0; z < GRID_SIZE; z++) {
+                const wx = x - HALF, wz = z - HALF;
+                const distFromCenter = getDist(wx, wz, 0, 0);
+                if (distFromCenter > ISLAND_RADIUS) continue;
+
+                // Determine Biome
+                let dominantBiome = null; let minDist = 9999;
+                for (const [key, b] of Object.entries(BIOMES)) {
+                    if (key === 'coast') continue;
+                    let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10; 
+                    if (d < minDist) { minDist = d; dominantBiome = key; }
+                }
+                
+                // Coast override
+                if (distFromCenter > ISLAND_RADIUS - 12 && wz > -10 && dominantBiome !== 'volcano') {
+                    dominantBiome = 'coast';
+                }
+                if (distFromCenter > ISLAND_RADIUS - 5) dominantBiome = 'coast'; // Extreme edge
+
+                biomeMap[x][z] = dominantBiome;
+
+                // Calculate Height
+                let baseHeight = 5;
+                let n = noise(wx * 0.1, wz * 0.1) * 3;
+
+                switch(dominantBiome) {
+                    case 'mountains':
+                        let peakD = getDist(wx, wz, BIOMES.mountains.x, BIOMES.mountains.z);
+                        baseHeight = 25 + Math.max(0, 30 - peakD*1.2) + n; break;
+                    case 'volcano':
+                        let volD = getDist(wx, wz, BIOMES.volcano.x, BIOMES.volcano.z);
+                        baseHeight = 15 + Math.max(0, 22 - volD*1.5) + n; break;
+                    case 'highlands': baseHeight = 18 + n; break;
+                    case 'conifer': baseHeight = 14 + n; break;
+                    case 'jungle': baseHeight = 10 + n; break;
+                    case 'swamp': baseHeight = 7; break; // Flat
+                    case 'grasslands': baseHeight = 8 + n; break;
+                    case 'grove': baseHeight = 9 + n; break;
+                    case 'desert':
+                        let dune = noise(wx*0.2, wz*0.2)*2;
+                        let peak = getDist(wx, wz, -45, 35) < 8 ? 10 : 0; // Sandstone mountains
+                        baseHeight = 8 + dune + peak; break;
+                    case 'coast':
+                        baseHeight = 5 + (noise(wx*0.5, wz*0.5)*1);
+                        if (distFromCenter > ISLAND_RADIUS - 6) baseHeight = 3; // Drop into ocean
+                        break;
+                }
+
+                // Carve rivers
+                if (waterMap[x][z] === 1) { // Water
+                    if (dominantBiome !== 'desert' && dominantBiome !== 'volcano') {
+                        baseHeight = Math.min(baseHeight, 6);
+                    }
+                } else if (waterMap[x][z] === 2 && dominantBiome === 'volcano') { // Lava
+                    baseHeight = Math.min(baseHeight, 18);
+                }
+
+                heightMap[x][z] = Math.floor(baseHeight);
+            }
+        }
+
+        // --- INSTANCED MESH SYSTEM ---
+        const MAX_INSTANCES = 160000;
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const boxMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const instancedMesh = new THREE.InstancedMesh(boxGeo, boxMat, MAX_INSTANCES);
+        instancedMesh.castShadow = true; instancedMesh.receiveShadow = true;
+        scene.add(instancedMesh);
+
+        let instanceCount = 0;
+        const matrix = new THREE.Matrix4();
+        const colorObj = new THREE.Color();
+        const position = new THREE.Vector3();
+        const scale = new THREE.Vector3(1, 1, 1);
+        const rotation = new THREE.Quaternion();
+
+        function addBlock(x, y, z, hexColor, sX=1, sY=1, sZ=1) {
+            if (instanceCount >= MAX_INSTANCES) return;
+            position.set(x, y, z); scale.set(sX, sY, sZ);
+            matrix.compose(position, rotation, scale);
+            instancedMesh.setMatrixAt(instanceCount, matrix);
+            colorObj.setHex(hexColor);
+            instancedMesh.setColorAt(instanceCount, colorObj);
+            instanceCount++;
+        }
+
+        // Add Multi-block Flora/Fauna
+        function addTree(x, y, z, type) {
+            if (type === 'pine') {
+                addBlock(x, y+1, z, C.wood); addBlock(x, y+2, z, C.wood);
+                addBlock(x, y+3, z, C.conifer, 3, 1, 3);
+                addBlock(x, y+4, z, C.conifer, 2, 1, 2);
+                addBlock(x, y+5, z, C.snow, 1.5, 0.5, 1.5);
+            } else if (type === 'jungle') {
+                let th = Math.floor(Math.random()*3) + 3;
+                for(let i=1; i<=th; i++) addBlock(x, y+i, z, C.jungleWood);
+                addBlock(x, y+th, z, C.jungle, 4, 1.5, 4);
+                addBlock(x, y+th+1, z, C.jungle, 2, 1, 2);
+            } else if (type === 'grove') {
+                addBlock(x, y+1, z, C.wood); addBlock(x, y+2, z, C.wood);
+                addBlock(x, y+3, z, C.grove, 3, 2, 3);
+            } else if (type === 'cactus') {
+                addBlock(x, y+1, z, 0x228b22); addBlock(x, y+2, z, 0x228b22);
+                if(Math.random()>0.5) addBlock(x+1, y+2, z, 0x228b22, 0.8, 0.8, 0.8);
+            }
+        }
+        function addAnimal(x, y, z, type) {
+            if (type === 'deer') {
+                addBlock(x, y+0.8, z, 0x8b4513, 0.6, 0.6, 0.6); // Body
+                addBlock(x, y+1.3, z+0.3, 0x8b4513, 0.3, 0.3, 0.3); // Head
+            } else if (type === 'fox') {
+                addBlock(x, y+0.4, z, 0xd2842c, 0.4, 0.4, 0.4);
+            }
+        }
+
+        // --- BUILD ISLAND SHELL (Optimization: Hollow interior) ---
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let z = 0; z < GRID_SIZE; z++) {
+                const h = heightMap[x][z];
+                if (h === -999) continue;
+                
+                const wx = x - HALF, wz = z - HALF;
+                const biome = biomeMap[x][z];
+                const rType = waterMap[x][z];
+                
+                // Determine Surface Color
+                let topColor = C.grass;
+                if (h <= 3) topColor = C.ocean;
+                else if (h === 4) topColor = C.beach;
+                else if (rType === 1 && h <= 6) {
+                    topColor = (biome === 'swamp') ? C.swampWater : C.ocean;
+                    if (getDist(wx, wz, 30, 45) < 15) topColor = C.obsidian; // Water + Lava
+                } else if (rType === 2) {
+                    topColor = C.lava;
+                } else {
+                    switch(biome) {
+                        case 'mountains': topColor = (h > 30) ? C.snow : C.rock; break;
+                        case 'conifer': topColor = C.snow; break; // ground is snowy
+                        case 'highlands': topColor = (h > 21) ? C.rock : C.highland; break;
+                        case 'grove': topColor = C.grove; break;
+                        case 'jungle': topColor = C.jungle; break;
+                        case 'swamp': topColor = C.swamp; break;
+                        case 'grasslands': topColor = C.grass; break;
+                        case 'desert': topColor = (h > 15) ? C.desertRock : C.desert; break;
+                        case 'volcano': topColor = C.volcano; break;
+                        case 'coast': topColor = C.beach; break;
+                    }
+                }
+
+                // Surface Block
+                addBlock(wx, h, wz, topColor);
+                
+                // Features (Trees, Flora, Fauna)
+                if (h > 4 && Math.random() < 0.04 && rType === 0 && biome !== 'mountains' && biome !== 'volcano' && biome !== 'coast') {
+                    if (biome === 'conifer') addTree(wx, h, wz, 'pine');
+                    else if (biome === 'jungle') addTree(wx, h, wz, 'jungle');
+                    else if (biome === 'grove') addTree(wx, h, wz, 'grove');
+                    else if (biome === 'desert' && h < 12) addTree(wx, h, wz, 'cactus');
+                    else if (biome === 'grasslands') {
+                        if (Math.random() < 0.2) addTree(wx, h, wz, 'grove'); // copses
+                        else addBlock(wx, h+0.5, wz, Math.random()>0.5?0xffff00:0xffffff, 0.2, 0.5, 0.2); // flowers
+                    }
+                }
+                
+                // Fauna
+                if (h > 4 && Math.random() < 0.003 && rType === 0) {
+                    if (biome === 'grasslands' || biome === 'grove' || biome === 'conifer') addAnimal(wx, h, wz, 'deer');
+                    else if (biome === 'desert' || biome === 'swamp') addAnimal(wx, h, wz, 'fox');
+                }
+
+                // Volcano Crater Lava
+                if (biome === 'volcano' && h > 30 && getDist(wx, wz, BIOMES.volcano.x, BIOMES.volcano.z) < 3) {
+                    addBlock(wx, h+1, wz, C.lava);
+                }
+
+                // Walls (Exposed Sides)
+                let minNeighborH = h;
+                let isEdge = false;
+                const neighbors = [[-1,0],[1,0],[0,-1],[0,1]];
+                for (let [dx, dz] of neighbors) {
+                    const nx = x + dx, nz = z + dz;
+                    if (nx>=0 && nx<GRID_SIZE && nz>=0 && nz<GRID_SIZE) {
+                        const nh = heightMap[nx][nz];
+                        if (nh === -999) isEdge = true;
+                        else if (nh < minNeighborH) minNeighborH = nh;
+                    } else isEdge = true;
+                }
+
+                // Fill down to minimum neighbor to seal gaps
+                let bottomLimit = minNeighborH;
+                if (isEdge) {
+                    // Taper bottom base at the edges
+                    let dist = getDist(wx, wz, 0, 0);
+                    bottomLimit = -25 * (1 - (dist / ISLAND_RADIUS)) + noise(wx, wz)*5;
+                    if (h === 3) bottomLimit = 0; // Ocean edge is shallow
+                }
+                
+                for (let y = h - 1; y >= bottomLimit; y--) {
+                    let sideColor = C.rock;
+                    if (h <= 4) sideColor = C.rock;
+                    else if (y > h - 4 && biome !== 'mountains' && biome !== 'volcano' && biome !== 'desert') sideColor = C.dirt;
+                    if (biome === 'volcano') sideColor = C.volcano;
+                    if (biome === 'desert') sideColor = C.desertRock;
+                    if (isEdge && y < -10 && Math.random() < 0.03) sideColor = C.mineral; // Glowing seams
+                    addBlock(wx, y, wz, sideColor);
+                }
+                
+                // Floating debris
+                if (isEdge && Math.random() < 0.05) {
+                    addBlock(wx, bottomLimit - Math.floor(Math.random()*6 + 2), wz, C.rock, 
+                             Math.random()+0.5, Math.random()+0.5, Math.random()+0.5);
+                }
+            }
+        }
+        instancedMesh.instanceMatrix.needsUpdate = true;
+        instancedMesh.instanceColor.needsUpdate = true;
+
+        // --- WEATHER SYSTEMS & PARTICLES ---
+        const particleCount = 2500;
+        const particlesGeo = new THREE.BufferGeometry();
+        const posArray = new Float32Array(particleCount * 3);
+        const typeArray = new Float32Array(particleCount); // custom array to track types
+
+        for(let i=0; i<particleCount; i++) {
+            let type = Math.floor(Math.random() * 5); // 0:Blizzard, 1:Snow, 2:Rain, 3:Sand, 4:Ash
+            let px, pz, py = Math.random() * 50;
+            switch(type) {
+                case 0: px = -15 + Math.random()*30; pz = -65 + Math.random()*15; py += 25; break; // Blizzard behind mountains
+                case 1: px = -15 + Math.random()*30; pz = -35 + Math.random()*20; py += 15; break; // Snow over conifer
+                case 2: px = 15 + Math.random()*30; pz = -25 + Math.random()*30; py += 10; break; // Rain over jungle
+                case 3: px = -45 + Math.random()*30; pz = 30 + Math.random()*30; break; // Sandstorm over desert
+                case 4: px = 25 + Math.random()*20; pz = 35 + Math.random()*20; py += 30; break; // Ash over volcano
+            }
+            posArray[i * 3] = px; posArray[i * 3 + 1] = py; posArray[i * 3 + 2] = pz;
+            typeArray[i] = type;
+        }
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        // Use a basic material, we will manually update positions
+        const particlesMat = new THREE.PointsMaterial({ size: 0.6, color: 0xffffff, transparent: true, opacity: 0.7 });
+        const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particlesMesh);
+
+        // --- UI POPULATION ---
+        const legendDiv = document.getElementById('legend-items');
+        for (const [key, b] of Object.entries(BIOMES)) {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            let colorStr = b.color.toString(16).padStart(6, '0');
+            item.innerHTML = `<div class="color-swatch" style="background: #${colorStr}"></div>
+                              <span>${b.name}</span>
+                              <span class="weather-note">${b.weather}</span>`;
+            item.onclick = () => flyTo(key);
+            legendDiv.appendChild(item);
+        }
+
+        // --- CAMERA FLIGHT ---
+        let targetCameraPos = new THREE.Vector3();
+        let targetControlsPos = new THREE.Vector3();
+        let isFlying = false;
+
+        function flyTo(target) {
+            isFlying = true;
+            if (target === 'Orbit') {
+                targetCameraPos.set(0, 160, 220);
+                targetControlsPos.set(0, 10, 0);
+            } else {
+                const b = BIOMES[target];
+                targetControlsPos.set(b.x, b.targetY, b.z);
+                targetCameraPos.set(b.x + 30, b.targetY + 20, b.z + 40);
+            }
+        }
+
+        // --- ANIMATION & CYCLES ---
+        const clock = new THREE.Clock();
+        let timeOfDay = 0.25; // 0 to 1 (0.25 is noon)
+        let seasonCycle = 0; // 0 to 1
+        const seasons = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
+
+        const seasonUI = document.getElementById('season-display');
+        const timeUI = document.getElementById('time-display');
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+
+            // Time & Sun Update (Day = ~40 seconds real time)
+            timeOfDay = (timeOfDay + dt * 0.025) % 1;
+            seasonCycle = (seasonCycle + dt * 0.005) % 1;
+            
+            const sunAngle = timeOfDay * Math.PI * 2;
+            sunMesh.position.set(Math.cos(sunAngle) * 180, Math.sin(sunAngle) * 180, 0);
+            sunLight.position.copy(sunMesh.position);
+
+            // Season and Time UI
+            let currentSeason = Math.floor(seasonCycle * 4);
+            seasonUI.innerText = "SEASON: " + seasons[currentSeason];
+            
+            let hour = Math.floor(timeOfDay * 24);
+            let timeStr = hour >= 6 && hour < 18 ? "DAY" : "NIGHT";
+            timeUI.innerText = `${timeStr} (${hour}:00)`;
+
+            // Light Intensity (Night fade)
+            let lightInt = Math.max(0, Math.sin(sunAngle));
+            sunLight.intensity = lightInt * 1.5;
+            ambientLight.intensity = lightInt * 0.6 + 0.15; // never pure black
+            if(lightInt < 0.1) sunMesh.material.color.setHex(0x222222);
+            else {
+                // Seasonal tint
+                if (currentSeason === 1) sunLight.color.setHex(0xffeebb); // Summer warm
+                else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool
+                else sunLight.color.setHex(0xffffee);
+                sunMesh.material.color.copy(sunLight.color);
+            }
+
+            // Weather Particles Update
+            const positions = particlesGeo.attributes.position.array;
+            for(let i=0; i<particleCount; i++) {
+                let type = typeArray[i];
+                let idx = i * 3;
+                
+                if (type === 0) { // Blizzard (fast horizontal)
+                    positions[idx+2] += dt * 40;
+                    if (positions[idx+2] > -40) { positions[idx+2] = -80; positions[idx] = -15 + Math.random()*30; }
+                } else if (type === 1) { // Snow (slow fall)
+                    positions[idx+1] -= dt * 10;
+                    positions[idx] += Math.sin(timeOfDay*10 + i)*0.1;
+                    if (positions[idx+1] < 10) positions[idx+1] = 40 + Math.random()*15;
+                } else if (type === 2) { // Rain (fast fall)
+                    positions[idx+1] -= dt * 35;
+                    if (positions[idx+1] < 5) positions[idx+1] = 40 + Math.random()*20;
+                } else if (type === 3) { // Sandstorm (horizontal drift)
+                    positions[idx] += dt * 25;
+                    if (positions[idx] > -10) { positions[idx] = -50; positions[idx+2] = 30 + Math.random()*30; }
+                } else if (type === 4) { // Ash (rise up)
+                    positions[idx+1] += dt * 15;
+                    positions[idx] += Math.sin(timeOfDay*5 + i)*0.2;
+                    if (positions[idx+1] > 60) positions[idx+1] = 25;
+                }
+            }
+            particlesGeo.attributes.position.needsUpdate = true;
+
+            // Camera Flight
+            if (isFlying) {
+                camera.position.lerp(targetCameraPos, 3 * dt);
+                controls.target.lerp(targetControlsPos, 3 * dt);
+                if (camera.position.distanceTo(targetCameraPos) < 1) isFlying = false;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

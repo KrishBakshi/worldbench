@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floating Biome Island</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif}
+canvas{display:block}
+#ui{position:fixed;top:14px;left:14px;z-index:10;background:rgba(0,0,0,.78);color:#ddd;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.55;max-height:92vh;overflow-y:auto;width:210px;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+#ui::-webkit-scrollbar{width:4px}
+#ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+#ui h2{font-size:11px;margin-bottom:8px;color:#aaa;letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.li{display:flex;align-items:center;gap:7px;padding:3.5px 5px;border-radius:5px;cursor:pointer;transition:background .15s}
+.li:hover{background:rgba(255,255,255,.1)}
+.sw{width:12px;height:12px;border-radius:2px;flex-shrink:0;border:1px solid rgba(255,255,255,.15)}
+.ln{flex:1;white-space:nowrap}
+.lw{font-size:9.5px;color:#777;margin-left:-2px}
+#season{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;color:#aaa}
+#season span{color:#fff;font-weight:600}
+#hint{margin-top:8px;padding-top:7px;border-top:1px solid rgba(255,255,255,.07);font-size:10.5px;color:#555;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="ui">
+<h2>Biome Legend</h2>
+<div id="leg"></div>
+<div id="season">Season: <span id="sn">Spring</span></div>
+<div id="hint">Left drag: orbit<br>Right drag: pan<br>Scroll: zoom<br>Click legend to fly</div>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+
+// ========== NOISE ==========
+function hash(x,y){let n=(x*73856093)^(y*19349663);n=((n>>13)^n);n=(n*(n*n*60493+19990303)+1376312589)&0x7fffffff;return n/0x7fffffff}
+function snoise(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;const sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy}
+function fbm(x,y,o=4){let v=0,a=1,f=1,m=0;for(let i=0;i<o;i++){v+=snoise(x*f,y*f)*a;m+=a;a*=.5;f*=2}return v/m}
+function srand(x,z){return hash(x*131+17,z*271+31)}
+
+// ========== CONSTANTS ==========
+const W=130,H=100,OX=-65,OZ=-50;
+const WY=2,BY=-14;
+const B={NONE:0,OCEAN:1,BEACH:2,SMT:3,CON:4,HIG:5,GRO:6,JUN:7,SWA:8,GRA:9,DES:10,VOL:11};
+
+// Colors
+const C={
+water:0x20B2AA,waterDeep:0x187878,sand:0xF5E6C8,sandDk:0xE0D0A8,
+grass:0x5D8C3A,grassDk:0x4A7030,grassLt:0x7AA84E,pinkMead:0xD4899E,
+dirt:0x8B6914,stone:0x707070,stoneDk:0x555555,stoneBlue:0x8090A0,
+snow:0xF0F0F8,snowBlue:0xD0D8E8,
+pineTrunk:0x4A3520,pineLeaf:0x1A4A1A,pineSnow:0xC8D8E0,
+jTrunk:0x6B4226,jLeaf:0x0D7A0D,jLeafDk:0x0A5A0A,
+palmTrunk:0xC4A35A,palmLeaf:0x2E8B2E,
+cactus:0x2E8B2E,cactusDk:0x1E6B1E,
+pinkLeaf:0xFF85A2,pinkLeafDk:0xFF69B4,
+pinkTrunk:0x6B4226,scrub:0x6B7B4A,
+lava:0xFF4500,lavaBr:0xFF6600,basalt:0x1A1A1A,basaltDk:0x111111,
+obsidian:0x1A0A2A,mineral:0x4090FF,
+desertStone:0xC4A060,desertStoneDk:0x9A7A40,
+swampW:0x3A5A2A,swampG:0x4A5A2A,
+flowerY:0xFFD700,flowerW:0xFFFFF0,
+river:0x40C4C4,mangroveTrunk:0x5A3A1A,mangroveLeaf:0x3A6A2A
+};
+
+// ========== GRIDS ==========
+const biomeGrid=new Uint8Array(W*H);
+const hGrid=new Float32Array(W*H);
+function gi(gx,gz){return gz*W+gx}
+function getHeight(gx,gz){return(gx>=0&&gx<W&&gz>=0&&gz<H)?hGrid[gi(gx,gz)]:WY-3}
+function getBiome(gx,gz){return(gx>=0&&gx<W&&gz>=0&&gz<H)?biomeGrid[gi(gx,gz)]:B.OCEAN}
+function dist2d(x,z,ax,az){return Math.sqrt((x-ax)**2+(z-az)**2)}
+
+// ========== ISLAND SHAPE ==========
+function islandMask(x,z){
+const circles=[
+{cx:-5,cz:-25,r:38},{cx:15,cz:-5,r:32},{cx:-15,cz:10,r:30},
+{cx:30,cz:5,r:24},{cx:22,cz:22,r:19},{cx:-28,cz:30,r:22},{cx:44,cz:34,r:15}
+];
+let mx=0;
+for(const c of circles){const d=dist2d(x,z,c.cx,c.cz)/c.r;mx=Math.max(mx,1-d)}
+mx+=fbm(x*.05,z*.05,3)*.14;
+return Math.max(0,mx);
+}
+
+// ========== BIOME ASSIGNMENT ==========
+function getLandBiome(x,z){
+const scores={};
+// Snow mountains
+let d=dist2d(x,z,-5,-38)/20;
+scores[B.SMT]=Math.max(0,1-d)*2.5*(z<-25?1:.15);
+// Conifer
+d=dist2d(x,z,-2,-22)/18;
+scores[B.CON]=Math.max(0,1-d)*2*(z>-30&&z<-12?1:.1);
+// Highlands
+d=dist2d(x,z,30,-18)/16;
+scores[B.HIG]=Math.max(0,1-d)*2*(x>18&&z<-5?1:.1);
+// Grove
+d=dist2d(x,z,35,2)/14;
+scores[B.GRO]=Math.max(0,1-d)*2*(x>24&&z>-8&&z<14?1:.1);
+// Jungle
+d=dist2d(x,z,10,-3)/20;
+scores[B.JUN]=Math.max(0,1-d)*1.8*(z>-18&&z<10?1:.1);
+// Swamp
+d=dist2d(x,z,22,18)/13;
+scores[B.SWA]=Math.max(0,1-d)*1.5*(z>8?1:.1);
+// Grasslands
+d=dist2d(x,z,-20,5)/20;
+scores[B.GRA]=Math.max(0,1-d)*1.5*(x<2?1:.1);
+// Desert
+d=dist2d(x,z,-28,30)/18;
+scores[B.DES]=Math.max(0,1-d)*1.5*(z>18?1:.1);
+// Volcano (highest priority)
+d=dist2d(x,z,44,34)/12;
+scores[B.VOL]=Math.max(0,1-d)*3;
+
+let best=B.GRA,bestS=0;
+for(const[id,s]of Object.entries(scores)){if(s>bestS){bestS=s;best=+id}}
+return best;
+}
+
+// ========== HEIGHT ==========
+function computeHeight(biome,x,z){
+const n1=fbm(x*.06,z*.06,4),n2=fbm(x*.12,z*.12,3);
+switch(biome){
+case B.SMT:{
+const p1=Math.max(0,1-dist2d(x,z,-10,-40)/11)*18;
+const p2=Math.max(0,1-dist2d(x,z,5,-42)/9)*16;
+const p3=Math.max(0,1-dist2d(x,z,-18,-36)/8)*12;
+return 18+p1+p2+p3+n1*4+n2*2;
+}
+case B.CON:return 13+n1*6+n2*2;
+case B.HIG:return 11+n1*6+n2*2;
+case B.GRO:return 5+n1*5+n2*2;
+case B.JUN:return 7+n1*6+n2*2;
+case B.SWA:return 2+n1*3.5+n2*1.5;
+case B.GRA:return 4+n1*5+n2*2;
+case B.DES:{
+const dp=Math.max(0,1-dist2d(x,z,-32,32)/8)*8;
+const dp2=Math.max(0,1-dist2d(x,z,-22,28)/6)*5;
+return 3+dp+dp2+n1*3+n2*1;
+}
+case B.VOL:{
+const dv=dist2d(x,z,44,34);
+const cone=Math.max(0,1-dv/11)*28;
+return 4+cone+n2*1.5;
+}
+default:return 3+n1*3;
+}
+}
+
+// ========== SURFACE COLOR ==========
+function surfColor(biome,h,x,z){
+switch(biome){
+case B.SMT:return h>24?C.snow:(h>20?C.snowBlue:C.stoneBlue);
+case B.CON:return C.pineLeaf;
+case B.HIG:return C.scrub;
+case B.GRO:return h<7?C.pinkMead:C.pinkLeaf;
+case B.JUN:return h>11?C.jLeafDk:C.jLeaf;
+case B.SWA:return C.swampG;
+case B.GRA:return srand(x,z)>.7?C.grassLt:(srand(x+1,z)>.5?C.grass:C.grassDk);
+case B.DES:return srand(x,z)>.6?C.desertStoneDk:C.desertStone;
+case B.VOL:return h>14?C.basalt:C.basaltDk;
+default:return C.stone;
+}
+}
+
+// ========== CLIFF COLOR ==========
+function cliffColor(biome,y,sH){
+switch(biome){
+case B.SMT:return y>sH-3?C.snowBlue:C.stoneBlue;
+case B.VOL:return C.basalt;
+case B.DES:return C.desertStoneDk;
+case B.CON:case B.JUN:return C.dirt;
+default:return C.stoneDk;
+}
+}
+
+// ========== VOXEL COLLECTION ==========
+const opaqueV={};
+const waterV=[],lavaV=[],mineralV=[],cloudV=[];
+function addO(x,y,z,c){const k=c.toString(16).padStart(6,'0');if(!opaqueV[k])opaqueV[k]=[];opaqueV[k].push(x,y,z)}
+function addW(x,y,z){waterV.push(x,y,z)}
+function addL(x,y,z){lavaV.push(x,y,z)}
+function addM(x,y,z){mineralV.push(x,y,z)}
+function addC(x,y,z){cloudV.push(x,y,z)}
+
+// ========== GENERATE WORLD ==========
+function generateWorld(){
+// Assign biomes & heights
+for(let gz=0;gz<H;gz++){for(let gx=0;gx<W;gx++){
+const x=gx+OX,z=gz+OZ,idx=gi(gx,gz);
+const mask=islandMask(x,z);
+if(mask<=0){biomeGrid[idx]=B.OCEAN;hGrid[idx]=WY-2;continue}
+if(mask<.13){biomeGrid[idx]=B.BEACH;hGrid[idx]=WY+fbm(x*.1,z*.1)*1.2;continue}
+biomeGrid[idx]=getLandBiome(x,z);
+hGrid[idx]=computeHeight(biomeGrid[idx],x,z);
+}}
+
+// Terrain voxels
+for(let gz=0;gz<H;gz++){for(let gx=0;gx<W;gx++){
+const x=gx+OX,z=gz+OZ,idx=gi(gx,gz);
+const biome=biomeGrid[idx];
+const h=Math.round(hGrid[idx]);
+
+if(biome===B.OCEAN){
+if(h<WY)addW(x,WY,z);
+if(h<WY-1)addW(x,WY-1,z);
+continue;
+}
+if(biome===B.BEACH){
+addO(x,h,z,C.sand);
+if(h>=WY)addW(x,WY,z);
+// bottom
+addO(x,BY,z,C.stoneDk);
+continue;
+}
+
+// Top surface
+addO(x,h,z,surfColor(biome,h,x,z));
+
+// Bottom
+addO(x,BY,z,C.stoneDk);
+
+// Cliff faces
+let minNH=BY;let exposed=false;
+const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
+for(const[dx,dz]of dirs){
+const nx=gx+dx,nz=gz+dz;
+if(nx<0||nx>=W||nz<0||nz>=H){exposed=true;continue}
+const nb=getBiome(nx,nz),nh=Math.round(getHeight(nx,nz));
+if(nb===B.OCEAN||nb===B.BEACH){exposed=true;minNH=Math.max(minNH,WY);continue}
+if(nh<h-1){exposed=true;minNH=Math.max(minNH,nh)}
+}
+if(exposed){
+for(let y=minNH+1;y<h;y++){
+addO(x,y,z,cliffColor(biome,y,h));
+// Occasional mineral seam
+if(y>BY+2&&y<BY+8&&srand(x*3+y,z*5+y)>.97)addM(x,y,z);
+}
+}
+}}
+
+// Volcano crater
+const vcx=44-OX,vcz=34-OZ;
+for(let dx=-2;dx<=2;dx++){for(let dz=-2;dz<=2;dz++){
+if(Math.abs(dx)+Math.abs(dz)>3)continue;
+const gx=vcx+dx,gz=vcz+dz;
+if(gx<0||gx>=W||gz<0||gz>=H)continue;
+const idx=gi(gx,gz);
+const h=Math.round(hGrid[idx]);
+hGrid[idx]=h-3;
+addL(gx+OX,h-3,gz+OZ);
+}}
+
+// Lava tributaries from crater
+const lavaPaths=[
+[[44,34],[46,35],[48,36],[50,37],[51,38]],
+[[44,34],[42,36],[40,38],[39,40]],
+[[44,34],[44,36],[44,38],[43,40]]
+];
+for(const path of lavaPaths){
+for(let i=1;i<path.length;i++){
+const[px,pz]=path[i-1],[cx,cz]=path[i];
+const steps=Math.max(Math.abs(cx-px),Math.abs(cz-pz))*2;
+for(let s=0;s<=steps;s++){
+const t=s/steps;
+const lx=px+(cx-px)*t,lz=pz+(cz-pz)*t;
+const lgx=Math.round(lx-OX),lgz=Math.round(lz-OZ);
+const lh=Math.round(getHeight(lgx,lgz));
+addL(Math.round(lx),lh,Math.round(lz));
+if(srand(Math.round(lx),Math.round(lz))>.5)addL(Math.round(lx)+1,lh,Math.round(lz));
+}
+}
+// Lava pool at end
+const[ex,ez]=path[path.length-1];
+const egx=Math.round(ex-OX),egz=Math.round(ez-OZ);
+const eh=Math.round(getHeight(egx,egz));
+for(let ddx=-1;ddx<=1;ddx++)for(let ddz=-1;ddz<=1;ddz++){
+if(srand(ex+ddx,ez+ddz)>.3)addL(ex+ddx,eh,ez+ddz);
+}
+}
+
+// Water+Lava=Obsidian check
+const lavaSet=new Set();
+for(let i=0;i<lavaV.length;i+=3)lavaSet.add(`${lavaV[i]},${lavaV[i+1]},${lavaV[i+2]}`);
+// Check water near lava and replace with obsidian
+for(let i=0;i<waterV.length;i+=3){
+const wx=waterV[i],wy=waterV[i+1],wz=waterV[i+2];
+for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
+if(lavaSet.has(`${wx+dx},${wy+dy},${wz+dz}`)){
+waterV[i]=wx;waterV[i+1]=wy;waterV[i+2]=wz;// mark
+addO(wx,wy,wz,C.obsidian);
+}}}
+
+// Rivers
+const mainRiver=[[-5,-35],[-3,-31],[0,-27],[3,-23],[5,-19],[8,-15],[10,-11],[8,-7],[5,-3],[2,1],[-2,5],[-6,9],[-10,12],[-15,15],[-20,17],[-24,19],[-28,21],[-32,22]];
+placeRiver(mainRiver,C.river,2);
+
+// Delta branches
+const deltaA=[[-28,21],[-30,23],[-33,24],[-36,24]];
+const deltaB=[[-28,21],[-29,24],[-31,26],[-33,27]];
+const deltaC=[[-28,21],[-27,23],[-26,26],[-25,28]];
+placeRiver(deltaA,C.river,1);placeRiver(deltaB,C.river,1);placeRiver(deltaC,C.river,1);
+
+// Grove stream
+placeRiver([[30,-16],[32,-12],[34,-8],[35,-4],[35,0],[34,4],[33,8]],C.river,1);
+
+// Swamp channel
+placeRiver([[15,10],[18,14],[20,17],[22,19]],C.swampW,1);
+
+// Waterfalls at cliff edges
+for(let i=0;i<mainRiver.length-1;i++){
+const[rx,rz]=mainRiver[i];
+const rgx=Math.round(rx-OX),rgz=Math.round(rz-OZ);
+const rh=Math.round(getHeight(rgx,rgz));
+for(const[dx,dz]of[[-1,0],[1,0],[0,-1],[0,1]]){
+const nx=rgx+dx,nz=rgz+dz;
+const nh=getHeight(nx,nz);
+if(nh<rh-4){
+const fallH=Math.round(nh);
+for(let y=fallH;y<rh;y++)addW(rx+dx,y,rz+dz);
+}}}
+
+// Trees
+placeTrees();
+
+// Flowers
+for(let gz=0;gz<H;gz++){for(let gx=0;gx<W;gx++){
+const x=gx+OX,z=gz+OZ,biome=getBiome(gx,gz),h=Math.round(getHeight(gx,gz));
+if(biome===B.GRA){const r=srand(x,z);if(r>.92&&r<.96)addO(x,h+1,z,C.flowerY);if(r>.96)addO(x,h+1,z,C.flowerW)}
+if(biome===B.GRO&&srand(x+1,z)>.88)addO(x,h+1,z,C.pinkLeafDk);
+}}
+
+// Cloud decks
+for(let x=-22;x<=22;x+=2)for(let z=-30;z<=-13;z+=2){
+if(srand(x,z)>.35){const gy=getHeight(Math.round(x-OX),Math.round(z-OZ));addC(x,gy+9+srand(x+1,z)*3,z)}
+}
+for(let x=-5;x<=25;x+=2)for(let z=-18;z<=8;z+=2){
+if(srand(x+50,z+50)>.4){const gy=getHeight(Math.round(x-OX),Math.round(z-OZ));addC(x,gy+10+srand(x+51,z+51)*3,z)}
+}
+
+// Floating rock fragments
+for(let i=0;i<40;i++){
+const rx=-45+hash(i,100)*90,rz=-40+hash(i,200)*80;
+const ry=BY-4-hash(i,300)*12;
+const sz=1+Math.floor(hash(i,400)*2);
+for(let dx=0;dx<sz;dx++)for(let dy=0;dy<sz;dy++)for(let dz=0;dz<sz;dz++){
+if(hash(i+dx*7,i+dy*13+dz*19)>.25)addO(rx+dx,ry+dy,rz+dz,C.stoneDk);
+}}
+
+// Palm trees on beaches
+for(let gz=0;gz<H;gz++){for(let gx=0;gx<W;gx++){
+if(getBiome(gx,gz)!==B.BEACH)continue;
+if(srand(gx+5,gz+5)>.92)placePalm(gx+OX,Math.round(getHeight(gx,gz))+1,gz+OZ);
+}}
+}
+
+function placeRiver(path,color,width){
+for(let i=0;i<path.length-1;i++){
+const[px,pz]=path[i],[cx,cz]=path[i+1];
+const steps=Math.max(Math.abs(cx-px),Math.abs(cz-pz))*3;
+for(let s=0;s<=steps;s++){
+const t=s/steps;
+const lx=Math.round(px+(cx-px)*t),lz=Math.round(pz+(cz-pz)*t);
+const lgx=lx-OX,lgz=lz-OZ;
+const lh=Math.round(getHeight(lgx,lgz));
+addW(lx,lh+1,lz);
+if(width>1){addW(lx+1,lh+1,lz);addW(lx-1,lh+1,lz)}
+if(width>1&&srand(lx,lz)>.5){addW(lx,lh+1,lz+1);addW(lx,lh+1,lz-1)}
+}}}
+
+function placeTrees(){
+for(let gz=2;gz<H-2;gz++){for(let gx=2;gx<W-2;gx++){
+const x=gx+OX,z=gz+OZ,biome=getBiome(gx,gz),h=Math.round(getHeight(gx,gz));
+const r=srand(gx,gz);
+switch(biome){
+case B.CON:if(r<.14)placePine(x,h+1,z,true);break;
+case B.JUN:if(r<.18)placeJTree(x,h+1,z);break;
+case B.HIG:if(r<.04)placeScrub(x,h+1,z);break;
+case B.GRO:if(r<.11)placePinkTree(x,h+1,z);break;
+case B.GRA:if(r<.025)placeOak(x,h+1,z);break;
+case B.SWA:if(r<.07)placeMangrove(x,h+1,z);break;
+case B.DES:if(r<.055)placeCactus(x,h+1,z);break;
+case B.SMT:if(h<24&&r<.015)placePine(x,h+1,z,false);break;
+}}}
+
+function placePine(x,y,z,snow){
+const th=3+Math.floor(srand(x+1,z)*2);
+for(let i=0;i<th;i++)addO(x,y+i,z,C.pineTrunk);
+const cy=y+th,cc=snow?C.pineSnow:C.pineLeaf;
+for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
+if(!dx&&!dz)continue;
+addO(x+dx,cy,z+dz,cc);
+if(Math.abs(dx)+Math.abs(dz)<2)addO(x+dx,cy+1,z+dz,cc);
+}
+addO(x,cy+2,z,cc);
+}
+
+function placeJTree(x,y,z){
+const th=4+Math.floor(srand(x+1,z)*3);
+for(let i=0;i<th;i++)addO(x,y+i,z,C.jTrunk);
+const cy=y+th;
+for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
+if(!dx&&!dz)continue;
+addO(x+dx,cy,z+dz,C.jLeaf);
+if(Math.abs(dx)+Math.abs(dz)<=2)addO(x+dx,cy+1,z+dz,C.jLeafDk);
+}
+addO(x,cy+2,z,C.jLeafDk);
+if(srand(x+2,z)>.6){addO(x+2,cy-1,z,C.jLeaf);addO(x-2,cy-1,z,C.jLeaf)}
+}
+
+function placePinkTree(x,y,z){
+const th=3+Math.floor(srand(x+1,z)*2);
+for(let i=0;i<th;i++)addO(x,y+i,z,C.pinkTrunk);
+const cy=y+th;
+for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
+if(!dx&&!dz)continue;
+addO(x+dx,cy,z+dz,C.pinkLeaf);
+addO(x+dx,cy+1,z+dz,C.pinkLeafDk);
+}
+addO(x,cy+2,z,C.pinkLeafDk);
+}
+
+function placeOak(x,y,z){
+const th=3+Math.floor(srand(x+1,z));
+for(let i=0;i<th;i++)addO(x,y+i,z,C.pineTrunk);
+const cy=y+th;
+for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
+if(!dx&&!dz)continue;
+addO(x+dx,cy,z+dz,C.grass);
+if(Math.abs(dx)+Math.abs(dz)<2)addO(x+dx,cy+1,z+dz,C.grassLt);
+}
+addO(x,cy+2,z,C.grassLt);
+}
+
+function placeScrub(x,y,z){
+addO(x,y,z,C.scrub);
+if(srand(x+1,z+1)>.4)addO(x+1,y,z,C.scrub);
+if(srand(x-1,z)>.5)addO(x,y,z+1,C.scrub);
+}
+
+function placeCactus(x,y,z){
+const ch=2+Math.floor(srand(x+1,z)*3);
+for(let i=0;i<ch;i++)addO(x,y+i,z,C.cactus);
+if(ch>=3){const ay=y+1+Math.floor(srand(x+2,z)*(ch-2));const dir=srand(x,z+1)>.5?1:-1;
+addO(x+dir,ay,z,C.cactus);addO(x+dir,ay+1,z,C.cactus);
+if(srand(x+3,z)>.6){addO(x,ay,z+dir,C.cactus);addO(x,ay+1,z+dir,C.cactus)}}
+}
+
+function placeMangrove(x,y,z){
+for(let i=0;i<3;i++)addO(x,y+i,z,C.mangroveTrunk);
+const cy=y+3;
+for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
+if(!dx&&!dz)continue;if(Math.abs(dx)+Math.abs(dz)>1)continue;
+addO(x+dx,cy,z+dz,C.mangroveLeaf);
+}
+addO(x,cy+1,z,C.mangroveLeaf);
+// Roots
+addO(x-1,y-1,z,C.mangroveTrunk);addO(x+1,y-1,z,C.mangroveTrunk);
+addO(x,y-1,z-1,C.mangroveTrunk);addO(x,y-1,z+1,C.mangroveTrunk);
+}
+
+function placePalm(x,y,z){
+for(let i=0;i<4;i++)addO(x,y+i,z,C.palmTrunk);
+const cy=y+4;
+for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){
+if(Math.abs(dx)+Math.abs(dz)>2)continue;if(!dx&&!dz)continue;
+addO(x+dx,cy,z+dz,C.palmLeaf);
+}
+addO(x,cy+1,z,C.palmLeaf);
+}
+}
+
+// ========== BUILD MESHES ==========
+let allMeshes=[];
+function buildMeshes(){
+const box=new THREE.BoxGeometry(1,1,1);
+const dummy=new THREE.Object3D();
+
+// Opaque
+for(const[key,pos]of Object.entries(opaqueV)){
+const cnt=pos.length/3;if(!cnt)continue;
+const c=parseInt(key,16);
+const mat=new THREE.MeshLambertMaterial({color:c});
+const m=new THREE.InstancedMesh(box,mat,cnt);
+for(let i=0;i<cnt;i++){dummy.position.set(pos[i*3],pos[i*3+1],pos[i*3+2]);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)}
+m.instanceMatrix.needsUpdate=true;m.castShadow=true;m.receiveShadow=true;
+scene.add(m);allMeshes.push(m);
+}
+
+// Water
+if(waterV.length){
+const cnt=waterV.length/3;
+const mat=new THREE.MeshLambertMaterial({color:C.water,transparent:true,opacity:.72});
+const m=new THREE.InstancedMesh(box,mat,cnt);
+for(let i=0;i<cnt;i++){dummy.position.set(waterV[i*3],waterV[i*3+1],waterV[i*3+2]);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)}
+m.instanceMatrix.needsUpdate=true;m.receiveShadow=true;scene.add(m);allMeshes.push(m);
+}
+
+// Lava
+if(lavaV.length){
+const cnt=lavaV.length/3;
+const mat=new THREE.MeshLambertMaterial({color:C.lava,emissive:0xFF2200,emissiveIntensity:.9});
+const m=new THREE.InstancedMesh(box,mat,cnt);
+for(let i=0;i<cnt;i++){dummy.position.set(lavaV[i*3],lavaV[i*3+1],lavaV[i*3+2]);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)}
+m.instanceMatrix.needsUpdate=true;scene.add(m);allMeshes.push(m);
+}
+
+// Minerals
+if(mineralV.length){
+const cnt=mineralV.length/3;
+const mat=new THREE.MeshLambertMaterial({color:C.mineral,emissive:0x2050CC,emissiveIntensity:.7});
+const m=new THREE.InstancedMesh(box,mat,cnt);
+for(let i=0;i<cnt;i++){dummy.position.set(mineralV[i*3],mineralV[i*3+1],mineralV[i*3+2]);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)}
+m.instanceMatrix.needsUpdate=true;scene.add(m);allMeshes.push(m);
+}
+
+// Clouds
+if(cloudV.length){
+const cnt=cloudV.length/3;
+const mat=new THREE.MeshLambertMaterial({color:0xD0D0D8,transparent:true,opacity:.45});
+const m=new THREE.InstancedMesh(box,mat,cnt);
+for(let i=0;i<cnt;i++){dummy.position.set(cloudV[i*3],cloudV[i*3+1],cloudV[i*3+2]);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)}
+m.instanceMatrix.needsUpdate=true;scene.add(m);allMeshes.push(m);
+}
+}
+
+// ========== WEATHER ==========
+const weatherSystems=[];
+function createWeather(){
+// Jungle rain
+weatherSystems.push(makeWeather(600,0x6090FF,{minX:-5,maxX:25,minY:8,maxY:22,minZ:-18,maxZ:10},{x:0,y:-12,z:0},.35));
+// Conifer snow
+weatherSystems.push(makeWeather(400,0xE8E8F0,{minX:-22,maxX:18,minY:14,maxY:28,minZ:-30,maxZ:-13},{x:0,y:-6,z:0},.4));
+// Mountain blizzard (back face)
+weatherSystems.push(makeWeather(500,0xE0E0F0,{minX:-25,maxX:15,minY:22,maxY:38,minZ:-50,maxZ:-38},{x:15,y:-2,z:0},.5));
+// Desert sandstorm
+weatherSystems.push(makeWeather(350,0xD4A843,{minX:-45,maxX:-10,minY:2,maxY:10,minZ:20,maxZ:42},{x:12,y:1,z:3},.4));
+// Volcano ash
+weatherSystems.push(makeWeather(200,0x666666,{minX:35,maxX:55,minY:15,maxY:40,minZ:25,maxZ:45},{x:2,y:6,z:1},.45));
+// Swamp mist
+weatherSystems.push(makeWeather(150,0x889988,{minX:10,maxX:35,minY:1,maxY:6,minZ:10,maxZ:28},{x:1,y:.3,z:.5},.3));
+// Highland mist
+weatherSystems.push(makeWeather(120,0x99AA99,{minX:18,maxX:48,minY:8,maxY:16,minZ:-30,maxZ:-5},{x:.8,y:.2,z:.5},.25));
+}
+
+function makeWeather(count,color,bounds,vel,size){
+const geo=new THREE.BufferGeometry();
+const pos=new Float32Array(count*3);
+const vels=new Float32Array(count*3);
+for(let i=0;i<count;i++){
+pos[i*3]=bounds.minX+Math.random()*(bounds.maxX-bounds.minX);
+pos[i*3+1]=bounds.minY+Math.random()*(bounds.maxY-bounds.minY);
+pos[i*3+2]=bounds.minZ+Math.random()*(bounds.maxZ-bounds.minZ);
+vels[i*3]=vel.x*(0.7+Math.random()*.6);
+vels[i*3+1]=vel.y*(0.7+Math.random()*.6);
+vels[i*3+2]=vel.z*(0.7+Math.random()*.6);
+}
+geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const mat=new THREE.PointsMaterial({color,size,transparent:true,opacity:.55,depthWrite:false});
+const pts=new THREE.Points(geo,mat);
+pts.userData={vels,bounds};
+scene.add(pts);
+return pts;
+}
+
+function updateWeather(dt,seasonMod){
+for(const ws of weatherSystems){
+const p=ws.geometry.attributes.position.array;
+const v=ws.userData.vels;
+const b=ws.userData.bounds;
+const sm=seasonMod;
+for(let i=0;i<p.length/3;i++){
+p[i*3]+=v[i*3]*dt*sm;
+p[i*3+1]+=v[i*3+1]*dt*sm;
+p[i*3+2]+=v[i*3+2]*dt*sm;
+if(p[i*3+1]<b.minY)p[i*3+1]=b.maxY;
+if(p[i*3+1]>b.maxY)p[i*3+1]=b.minY;
+if(p[i*3]<b.minX)p[i*3]=b.maxX;
+if(p[i*3]>b.maxX)p[i*3]=b.minX;
+if(p[i*3+2]<b.minZ)p[i*3+2]=b.maxZ;
+if(p[i*3+2]>b.maxZ)p[i*3+2]=b.minZ;
+}
+ws.geometry.attributes.position.needsUpdate=true;
+}
+}
+
+// ========== SUN & CYCLES ==========
+let sunMesh,dirLight,ambientLight;
+const DAY_LEN=60;
+const SEASON_LEN=90;
+const SEASONS=['Spring','Summer','Autumn','Winter'];
+
+function createSun(){
+const geo=new THREE.BoxGeometry(5,5,.6);
+const mat=new THREE.MeshBasicMaterial({color:0xFFFF90});
+sunMesh=new THREE.Mesh(geo,mat);
+scene.add(sunMesh);
+dirLight=new THREE.DirectionalLight(0xffffff,1.5);
+dirLight.castShadow=true;
+dirLight.shadow.mapSize.set(2048,2048);
+dirLight.shadow.camera.left=-75;dirLight.shadow.camera.right=75;
+dirLight.shadow.camera.top=55;dirLight.shadow.camera.bottom=-55;
+dirLight.shadow.camera.near=1;dirLight.shadow.camera.far=250;
+dirLight.shadow.bias=-.001;
+scene.add(dirLight);scene.add(dirLight.target);
+ambientLight=new THREE.AmbientLight(0x404050,.3);
+scene.add(ambientLight);
+}
+
+function updateDayNight(time){
+const t=(time%DAY_LEN)/DAY_LEN;
+const angle=t*Math.PI*2-Math.PI/2;
+const sr=110;
+const sx=Math.cos(angle)*sr,sy=Math.sin(angle)*sr,sz=-25;
+sunMesh.position.set(sx,sy,sz);
+sunMesh.lookAt(0,0,0);
+dirLight.position.set(sx,sy,sz);
+dirLight.target.position.set(0,0,0);
+const dayF=Math.max(0,Math.sin(angle));
+const duskF=Math.max(0,Math.sin(angle)*Math.cos(angle)*4);
+dirLight.intensity=.15+dayF*1.35;
+ambientLight.intensity=.04+dayF*.26;
+const warm=dayF;
+dirLight.color.setRGB(1,.92+warm*.08,.82+warm*.18);
+sunMesh.material.color.setRGB(1,.95+duskF*.05,.7+duskF*.2);
+sunMesh.visible=sy>-10;
+// Fade weather with night
+for(const ws of weatherSystems)ws.material.opacity=sy>0?.55:Math.max(.1,.55+sy*.05);
+}
+
+function getSeasonMod(time){
+const si=Math.floor((time%(SEASON_LEN*4))/SEASON_LEN);
+document.getElementById('sn').textContent=SEASONS[si];
+switch(si){
+case 0:return 1;// spring moderate
+case 1:return .6;// summer less
+case 2:return .85;// autumn some
+case 3:return 1.4;// winter more
+}
+}
+
+// ========== ANIMALS ==========
+const animals=[];
+function createAnimals(){
+function makeDeer(x,y,z){
+const g=new THREE.Group();
+const bm=new THREE.MeshLambertMaterial({color:0x8B6914});
+const hm=new THREE.MeshLambertMaterial({color:0xA07828});
+const body=new THREE.Mesh(new THREE.BoxGeometry(1,1,2),bm);body.position.y=1.5;g.add(body);
+const head=new THREE.Mesh(new THREE.BoxGeometry(.6,.6,.6),hm);head.position.set(0,2.2,1.2);g.add(head);
+const lg=new THREE.BoxGeometry(.3,1,.3);
+[[-.3,.5,-.6],[.3,.5,-.6],[-.3,.5,.6],[.3,.5,.6]].forEach(p=>{const l=new THREE.Mesh(lg,bm);l.position.set(...p);g.add(l)});
+// Antlers
+const am=new THREE.MeshLambertMaterial({color:0x6B5020});
+const a1=new THREE.Mesh(new THREE.BoxGeometry(.1,.5,.1),am);a1.position.set(-.2,2.7,1.2);g.add(a1);
+const a2=new THREE.Mesh(new THREE.BoxGeometry(.1,.5,.1),am);a2.position.set(.2,2.7,1.2);g.add(a2);
+g.position.set(x,y,z);g.userData={baseY:y,phase:Math.random()*6};
+scene.add(g);animals.push(g);
+}
+function makeFox(x,y,z){
+const g=new THREE.Group();
+const bm=new THREE.MeshLambertMaterial({color:0xCC6622});
+const wm=new THREE.MeshLambertMaterial({color:0xEEEEEE});
+const body=new THREE.Mesh(new THREE.BoxGeometry(.8,.6,1.6),bm);body.position.y=1;g.add(body);
+const head=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),bm);head.position.set(0,1.5,1);g.add(head);
+const snout=new THREE.Mesh(new THREE.BoxGeometry(.3,.25,.3),wm);snout.position.set(0,1.35,1.35);g.add(snout);
+const lg=new THREE.BoxGeometry(.2,.7,.2);
+[[-.25,.35,-.5],[.25,.35,-.5],[-.25,.35,.5],[.25,.35,.5]].forEach(p=>{const l=new THREE.Mesh(lg,bm);l.position.set(...p);g.add(l)});
+// Tail
+const tail=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.8),bm);tail.position.set(0,1.2,-1);tail.rotation.x=.3;g.add(tail);
+const tt=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.3),wm);tt.position.set(0,1.3,-1.3);g.add(tt);
+g.position.set(x,y,z);g.userData={baseY:y,phase:Math.random()*6};
+scene.add(g);animals.push(g);
+}
+
+// Place deer in grasslands, jungle edges, grove, conifers
+const deerSpots=[[-18,6],[-25,10],[-12,3],[-8,0],[5,-8],[15,5],[30,0],[-3,-18],[8,-12],[-20,14]];
+deerSpots.forEach(([x,z])=>{
+const gx=x-OX,gz=z-OZ;
+if(gx<0||gx>=W||gz<0||gz>=H)return;
+const h=Math.round(getHeight(gx,gz));
+const b=getBiome(gx,gz);
+if(b===B.OCEAN||b===B.BEACH||b===B.VOL||b===B.DES||b===B.SWA)return;
+makeDeer(x,h+1,z);
+});
+
+// Foxes in desert and swamp
+const foxSpots=[[-30,28],[-25,32],[-35,30],[-20,35],[18,16],[25,20],[15,22]];
+foxSpots.forEach(([x,z])=>{
+const gx=x-OX,gz=z-OZ;
+if(gx<0||gx>=W||gz<0||gz>=H)return;
+const h=Math.round(getHeight(gx,gz));
+makeFox(x,h+1,z);
+});
+}
+
+function updateAnimals(time){
+for(const a of animals){
+const p=a.userData.phase;
+a.position.y=a.userData.baseY+Math.sin(time*1.5+p)*.06;
+a.rotation.y=Math.sin(time*.4+p*2)*.15;
+}
+}
+
+// ========== VOLCANO ERUPTION ==========
+let eruptionTimer=0;
+let eruptionActive=false;
+const eruptionParticles=[];
+function createEruptionSystem(){
+const geo=new THREE.BufferGeometry();
+const count=80;
+const pos=new Float32Array(count*3);
+const vel=new Float32Array(count*3);
+for(let i=0;i<count;i++){
+pos[i*3]=44;pos[i*3+1]=30;pos[i*3+2]=34;
+vel[i*3]=(Math.random()-.5)*8;
+vel[i*3+1]=8+Math.random()*12;
+vel[i*3+2]=(Math.random()-.5)*8;
+}
+geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const mat=new THREE.PointsMaterial({color:0xFF4400,size:1.2,transparent:true,opacity:.8,depthWrite:false});
+const pts=new THREE.Points(geo,mat);
+pts.userData={vels:vel,life:new Float32Array(count)};
+scene.add(pts);
+eruptionParticles.push(pts);
+}
+
+function updateEruption(dt){
+eruptionTimer+=dt;
+if(eruptionTimer>8&&!eruptionActive){eruptionActive=true;eruptionTimer=0}
+if(eruptionActive&&eruptionTimer>3){eruptionActive=false;eruptionTimer=0}
+
+for(const ep of eruptionParticles){
+const p=ep.geometry.attributes.position.array;
+const v=ep.userData.vels;
+const l=ep.userData.life;
+const active=eruptionActive;
+ep.visible=active||eruptionTimer<1;
+if(!ep.visible)continue;
+for(let i=0;i<p.length/3;i++){
+if(active){
+l[i]+=dt;
+if(l[i]>.01&&l[i]<.05){p[i*3]=44;p[i*3+1]=30;p[i*3+2]=34;v[i*3]=(Math.random()-.5)*8;v[i*3+1]=8+Math.random()*12;v[i*3+2]=(Math.random()-.5)*8;l[i]=0}
+}
+p[i*3]+=v[i*3]*dt;
+p[i*3+1]+=v[i*3+1]*dt;
+v[i*3+1]-=9.8*dt;// gravity
+p[i*3+2]+=v[i*3+2]*dt;
+l[i]+=dt;
+}
+ep.geometry.attributes.position.needsUpdate=true;
+ep.material.opacity=eruptionActive?.8:Math.max(0,.8-eruptionTimer*.8);
+}
+}
+
+// ========== SCENE SETUP ==========
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,.5,500);
+camera.position.set(0,80,105);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,5,0);
+controls.enableDamping=true;
+controls.dampingFactor=.08;
+controls.minDistance=15;
+controls.maxDistance=200;
+controls.update();
+
+// ========== UI ==========
+const biomeViews=[
+{name:'Whole Island',color:'#888888',weather:'',cam:[0,80,105],tgt:[0,5,0]},
+{name:'Snow Mountains',color:'#E0E0F0',weather:'Blizzard',cam:[-5,55,-62],tgt:[-5,26,-38]},
+{name:'Snowy Conifer Forest',color:'#1A4A1A',weather:'Snowfall',cam:[-2,32,-42],tgt:[-2,16,-22]},
+{name:'Temperate Highlands',color:'#6B7B4A',weather:'Mist',cam:[32,30,-32],tgt:[32,14,-18]},
+{name:'Dense Jungle',color:'#0D7A0D',weather:'Rain',cam:[10,24,-18],tgt:[10,10,-3]},
+{name:'Swamp',color:'#4A5A2A',weather:'Low mist',cam:[22,16,32],tgt:[22,4,18]},
+{name:'Central Grasslands',color:'#5D8C3A',weather:'Clear',cam:[-22,22,25],tgt:[-22,7,5]},
+{name:'Flowering Grove',color:'#FF85A2',weather:'Light rain',cam:[36,20,18],tgt:[36,8,2]},
+{name:'Desert',color:'#D4A843',weather:'Sandstorm',cam:[-28,22,48],tgt:[-28,5,30]},
+{name:'Volcanic Wasteland',color:'#FF4500',weather:'Ash & eruptions',cam:[44,45,54],tgt:[44,20,34]},
+{name:'Coastal Ocean',color:'#20B2AA',weather:'',cam:[-42,16,32],tgt:[-30,2,20]},
+{name:'Beaches',color:'#F5E6C8',weather:'Palms',cam:[-35,13,20],tgt:[-30,3,12]},
+];
+
+const legEl=document.getElementById('leg');
+biomeViews.forEach((bv,i)=>{
+const div=document.createElement('div');
+div.className='li';
+div.innerHTML=`<div class="sw" style="background:${bv.color}"></div><span class="ln">${bv.name}</span>${bv.weather?`<span class="lw">${bv.weather}</span>`:''}`;
+div.addEventListener('click',()=>flyTo(new THREE.Vector3(...bv.cam),new THREE.Vector3(...bv.tgt)));
+legEl.appendChild(div);
+});
+
+// ========== CAMERA FLY ==========
+let flyTgt=null,flyLook=null,flyProg=0;
+const flySP=new THREE.Vector3(),flySL=new THREE.Vector3();
+function flyTo(pos,look){
+flySP.copy(camera.position);flySL.copy(controls.target);
+flyTgt=pos.clone();flyLook=look.clone();flyProg=0;
+}
+
+function updateFly(dt){
+if(!flyTgt)return;
+flyProg+=dt*.7;
+if(flyProg>=1){camera.position.copy(flyTgt);controls.target.copy(flyLook);flyTgt=null}
+else{const t=flyProg*flyProg*(3-2*flyProg);camera.position.lerpVectors(flySP,flyTgt,t);controls.target.lerpVectors(flySL,flyLook,t)}
+controls.update();
+}
+
+// ========== RESIZE ==========
+window.addEventListener('resize',()=>{
+camera.aspect=window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// ========== INIT ==========
+console.log('Generating world...');
+generateWorld();
+console.log('Building meshes...');
+buildMeshes();
+createSun();
+createWeather();
+createAnimals();
+createEruptionSystem();
+console.log('World ready.');
+
+// ========== LAVA PULSE ==========
+function pulseLava(time){
+const lm=allMeshes.find(m=>m.material.emissive&&m.material.color.getHex()===C.lava);
+if(lm){
+const pulse=.7+Math.sin(time*3)*.3;
+lm.material.emissiveIntensity=pulse;
+}
+}
+
+// ========== MAIN LOOP ==========
+const clock=new THREE.Clock();
+function animate(){
+requestAnimationFrame(animate);
+const dt=Math.min(clock.getDelta(),.05);
+const time=clock.elapsedTime;
+
+updateDayNight(time);
+const sm=getSeasonMod(time);
+updateWeather(dt,sm);
+updateAnimals(time);
+updateEruption(dt);
+updateFly(dt);
+pulseLava(time);
+
+// Slow cloud drift
+const cm=allMeshes.find(m=>m.material.transparent&&m.material.opacity<.5&&m.material.color.getHex()===0xD0D0D8);
+if(cm){
+const p=cm.geometry.attributes.position.array;
+for(let i=0;i<p.length/3;i++)p[i*3]+=dt*.3;
+cm.geometry.attributes.position.needsUpdate=true;
+}
+
+controls.update();
+renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
+

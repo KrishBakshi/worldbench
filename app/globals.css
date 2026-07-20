@@ -5,27 +5,106 @@
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
 
-  --color-void: #0a0e17;
-  --color-void-deep: #05070c;
-  --color-mist: #aab4c8;
-  --color-mist-bright: #e7ecf5;
+  /* Duration of a day/night swap. Shared by the CSS transition and the
+     starfield's canvas colour fade so both land together. */
+  --theme-swap: 320ms;
+
+  --color-void: #0b0b0c;
+  --color-void-deep: #060607;
+  --color-mist: #9a9a9e;
+  --color-mist-bright: #f0f0f2;
+  /* Diagram-only accent (BiomeGraph water edges). Not used by UI chrome, which
+     is strictly monochrome. */
   --color-glow: #7fd6c2;
-  --color-line: #1c2433;
+  --color-line: #232325;
 }
 
 :root[data-theme="day"] {
-  --color-void: #eef1f7;
+  --color-void: #f0f0f2;
   --color-void-deep: #ffffff;
-  --color-mist: #5b6478;
-  --color-mist-bright: #10131c;
+  --color-mist: #63636a;
+  --color-mist-bright: #121214;
   --color-glow: #2f8f78;
-  --color-line: #d8dde8;
+  --color-line: #dbdbde;
 }
 
 html,
 body {
   background: var(--color-void);
   color: var(--color-mist-bright);
+}
+
+/* Keep native UI (scrollbars, form controls, overlay scrollbar flash) on the
+   active theme rather than the OS default. */
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme="day"] {
+  color-scheme: light;
+}
+
+/* Themed scrollbars. `scrollbar-*` covers Firefox and modern Chrome; the
+   ::-webkit-* rules cover older WebKit/Blink, which ignores those. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  /* Inset via a transparent border so the thumb doesn't touch the track edge. */
+  background: var(--color-line);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-mist);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Theme switching. Only applied while the toggle is mid-swap, so ordinary hover
+   transitions keep their own timings. Without this, elements carrying
+   `transition-colors` ease over 150ms while untransitioned ones (card fills,
+   body, text) snap instantly, and the page changes in visible stages. */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  /* `linear`, deliberately. Eased curves have a long tail, and because
+     high-contrast values (headings, bold, code: near-white <-> near-black)
+     travel much further than low-contrast ones (body text: mid-gray <->
+     mid-gray), that tail reads as those elements lagging behind the rest.
+     Linear makes every colour, near or far, land together. */
+  transition:
+    background-color var(--theme-swap) linear,
+    border-color var(--theme-swap) linear,
+    color var(--theme-swap) linear,
+    fill var(--theme-swap) linear,
+    stroke var(--theme-swap) linear !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: none !important;
+  }
 }
 
 * {
@@ -57,7 +136,7 @@ body {
 
 .prose :where(code):not(:where(pre, pre *)) {
   background: var(--color-line);
-  color: var(--color-glow);
+  color: var(--color-mist-bright);
   padding: 0.15em 0.45em;
   border-radius: 4px;
   font-weight: 500;

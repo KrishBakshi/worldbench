@@ -1,5 +1,8 @@
-import Link from "next/link";
+import { createElement } from "react";
 import type { Test } from "@/lib/tests";
+import { getProvider } from "@/lib/providers";
+import { getProviderIcon } from "@/components/icons";
+import LiquidCard from "@/components/LiquidCard";
 
 export default function TestCard({
   test,
@@ -8,42 +11,56 @@ export default function TestCard({
   test: Test;
   compact?: boolean;
 }) {
+  const provider = getProvider(test.provider);
+  // Kept lowercase and rendered via createElement: a capitalized binding here
+  // trips react-hooks/static-components, which reads it as building a component
+  // during render rather than looking one up from a static map.
+  const icon = getProviderIcon(test.provider);
+
   return (
-    <Link
-      href={`/tests/${test.slug}`}
-      className="group block overflow-hidden rounded-lg border border-line bg-void-deep/60 transition-colors hover:border-glow/60"
-    >
+    <LiquidCard href={`/tests/${test.slug}`}>
       <div
-        className={`relative w-full overflow-hidden bg-void-deep ${
+        className={`relative flex w-full flex-col items-center justify-center overflow-hidden px-4 ${
           compact ? "aspect-[4/3]" : "aspect-video"
         }`}
       >
-        {test.introMedia?.type === "video" ? (
-          <video
-            src={test.introMedia.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="h-full w-full object-cover"
-          />
-        ) : test.introMedia?.type === "gif" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={test.introMedia.src} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-mist">
-            {test.model}
-          </div>
-        )}
+        {/* Watermark. Sits behind the text and is cropped by the card, so it
+            reads as a graphic field rather than a centred logo. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          {icon ? (
+            createElement(icon, {
+              // Rest must contrast the card (light on dark / dark on light).
+              // Hover flips against the liquid fill (black on white / white on
+              // black) so the mark stays visible in both states. Scale and
+              // opacity motion are unchanged.
+              className:
+                "h-[56%] w-[56%] scale-[0.99] text-white opacity-[0.14] transition-[opacity,transform,color] duration-500 ease-out group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.28] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white",
+            })
+          ) : provider ? (
+            // A known provider with no vendored mark yet: its initial stands in.
+            <span className="font-display scale-[0.99] text-[5.5rem] leading-none font-bold text-white opacity-[0.12] transition-[opacity,transform,color] duration-500 ease-out select-none group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.26] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white">
+              {provider.name.charAt(0)}
+            </span>
+          ) : null}
+          {/* Entries with no provider (the hand-tuned reference) get no mark —
+              falling back to the title's initial just renders a stray glyph. */}
+        </div>
+
+        <span
+          className={`relative text-center font-display leading-tight text-mist-bright transition-colors duration-300 group-hover:text-void ${
+            compact ? "text-sm" : "text-base"
+          }`}
+        >
+          {test.title}
+        </span>
+
+        <span className="relative mt-2 text-[10px] uppercase tracking-[0.18em] text-mist transition-colors duration-300 group-hover:text-void/70">
+          {provider?.name ?? "Hand-tuned"}
+        </span>
       </div>
-      <div className={`flex items-center justify-between px-4 ${compact ? "py-2" : "py-3"}`}>
-        <span className="text-sm text-mist-bright">{test.title}</span>
-        {test.legacyPrompt && !compact && (
-          <span className="rounded-full border border-line px-2 py-0.5 text-[10px] uppercase tracking-wide text-mist">
-            legacy prompt
-          </span>
-        )}
-      </div>
-    </Link>
+    </LiquidCard>
   );
 }

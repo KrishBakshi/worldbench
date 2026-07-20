@@ -15,8 +15,13 @@ export interface Test {
   model: string;
   date: string;
   pinned: boolean;
-  legacyPrompt: boolean;
+  /** Key into PROVIDERS in lib/providers.ts. Null for the hand-tuned reference. */
+  provider: string | null;
   introMedia: IntroMedia | null;
+  /** Full URL of the X post walking through this result, if one exists. */
+  xPostUrl: string | null;
+  /** One or two sentences, shown under the title and used as the meta description. */
+  summary: string;
   worldHtmlSrc: string;
   content: string;
 }
@@ -47,8 +52,10 @@ function loadTest(slug: string): Test | null {
     model: data.model ?? "Unknown model",
     date: data.date ?? "",
     pinned: Boolean(data.pinned),
-    legacyPrompt: Boolean(data.legacyPrompt),
+    provider: typeof data.provider === "string" ? data.provider : null,
     introMedia,
+    xPostUrl: typeof data.xPost === "string" ? data.xPost : null,
+    summary: typeof data.summary === "string" ? data.summary : "",
     worldHtmlSrc: `/tests/${slug}/world.html`,
     content: content.trim(),
   };

@@ -24,13 +24,15 @@ this file" language into the model-facing text.
   legend image, rendered on that page alongside a hand-built placement
   graph in `components/about/BiomeGraph.tsx`).
 - `public/tests/<slug>/`: the site's content model. Each folder is one
-  test: `meta.mdx` (frontmatter: `title`, `model`, `date`, `pinned`,
-  `legacyPrompt`, plus optional notes body), an optional `intro.mp4` /
-  `intro.webm` / `intro.gif`, and the actual `world.html` output. Adding a
-  new test is just adding a new folder, no code changes needed. `pinned:
-  true` tests (up to 4, most recent first) show on the home page under "See
-  Recent Tests"; all tests show on `/tests`. `legacyPrompt: true` marks
-  tests generated from an older, different version of the prompt.
+  test: `meta.mdx` (frontmatter: `title`, `model`, `provider`, `date`,
+  `pinned`, plus optional `summary`, `xPost`, and a notes body), an optional
+  `intro.mp4` / `intro.webm` / `intro.gif`, and the actual `world.html`
+  output. Adding a new test is just adding a new folder, no code changes
+  needed. `pinned: true` tests (up to 4, most recent first) show on the home
+  page under "See Recent Tests"; all tests show on `/tests`. `provider` keys
+  into `lib/providers.ts`, which supplies the company name and the Simple
+  Icons logo drawn as the card watermark; leave it out for non-model entries
+  like the hand-tuned reference.
 - `app/`: Next.js App Router pages: `/` (home, floating-island hero + recent
   tests), `/about` (what worldbench is), `/tests` (grid of all tests),
   `/tests/[slug]` (intro media + the live `world.html` embedded in an

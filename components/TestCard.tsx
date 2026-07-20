@@ -44,11 +44,11 @@ export default function TestCard({
               // black) so the mark stays visible in both states. Scale and
               // opacity motion are unchanged.
               className:
-                "h-[56%] w-[56%] scale-[0.99] text-white opacity-[0.14] transition-[opacity,transform,color] duration-500 ease-out group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.28] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white",
+                "h-[56%] w-[56%] scale-[0.99] text-white opacity-[0.07] transition-[opacity,transform,color] duration-500 ease-out group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.28] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white",
             })
           ) : provider ? (
             // A known provider with no vendored mark yet: its initial stands in.
-            <span className="font-display scale-[0.99] text-[5.5rem] leading-none font-bold text-white opacity-[0.12] transition-[opacity,transform,color] duration-500 ease-out select-none group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.26] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white">
+            <span className="font-display scale-[0.99] text-[5.5rem] leading-none font-bold text-white opacity-[0.06] transition-[opacity,transform,color] duration-500 ease-out select-none group-hover:scale-[1.01] group-hover:text-black group-hover:opacity-[0.26] [[data-theme=day]_&]:text-black [[data-theme=day]_&]:group-hover:text-white">
               {provider.name.charAt(0)}
             </span>
           ) : null}

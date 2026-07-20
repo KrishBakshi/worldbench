@@ -14,7 +14,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="grid h-16 shrink-0 grid-cols-3 items-center px-6 md:px-10">
+    <header className="relative z-10 grid h-16 shrink-0 grid-cols-3 items-center px-6 md:px-10">
       <Link
         href="/"
         className="font-display justify-self-start text-sm uppercase tracking-[0.2em] text-mist-bright"

@@ -1,140 +1,35 @@
-"use client";
-
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-
-const WIDGETS_SRC = "https://platform.twitter.com/widgets.js";
-/** If the widget hasn't rendered by now, assume it's blocked and show the link. */
-const RENDER_TIMEOUT_MS = 4000;
-
-type TwitterWidgets = {
-  widgets: { createTweet: (id: string, el: HTMLElement, options?: object) => Promise<unknown> };
-};
-
-declare global {
-  interface Window {
-    twttr?: TwitterWidgets;
-  }
-}
-
 /**
- * Injected once per page load and shared by every embed on it. Resolves with the
- * global the script installs, or rejects when the request is blocked — extensions
- * and network filters commonly block this host, which is why callers must have a
- * fallback rather than treating success as guaranteed.
+ * A plain link out to the post. Embedding it — either via widgets.js or
+ * react-tweet — brought the whole thread in with it: these posts quote an
+ * earlier test, and both carry video, so the card read as two posts stacked
+ * under the world it was meant to annotate.
  */
-let widgetsPromise: Promise<TwitterWidgets> | null = null;
-
-function loadWidgets(): Promise<TwitterWidgets> {
-  if (widgetsPromise) return widgetsPromise;
-
-  widgetsPromise = new Promise<TwitterWidgets>((resolve, reject) => {
-    if (window.twttr?.widgets) {
-      resolve(window.twttr);
-      return;
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${WIDGETS_SRC}"]`);
-    const script = existing ?? document.createElement("script");
-
-    script.addEventListener("load", () => {
-      if (window.twttr?.widgets) resolve(window.twttr);
-      else reject(new Error("widgets.js loaded without installing window.twttr"));
-    });
-    script.addEventListener("error", () => reject(new Error("widgets.js blocked")));
-
-    if (!existing) {
-      script.src = WIDGETS_SRC;
-      script.async = true;
-      document.head.appendChild(script);
-    }
-  });
-
-  return widgetsPromise;
-}
-
-/** Accepts a status URL and returns the numeric id createTweet needs. */
-function parseStatusId(url: string): string | null {
-  return url.match(/status\/(\d+)/)?.[1] ?? null;
-}
-
-function subscribeToTheme(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"],
-  });
-  return () => observer.disconnect();
-}
-
-function readTheme(): "dark" | "light" {
-  return document.documentElement.getAttribute("data-theme") === "day" ? "light" : "dark";
-}
-
-/** Null on the server: there is no data-theme to read, and guessing would build
- *  the widget in the wrong colour before swapping it. */
-function readThemeOnServer(): null {
-  return null;
-}
-
 export default function XPostEmbed({ url }: { url: string }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
-  const theme = useSyncExternalStore(subscribeToTheme, readTheme, readThemeOnServer);
-  const statusId = parseStatusId(url);
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host || !statusId || theme === null) return;
-
-    let cancelled = false;
-    // The widget renders into an iframe we can't restyle, so a theme change means
-    // tearing the whole thing down and asking X to build it again.
-    host.replaceChildren();
-
-    const timeout = window.setTimeout(() => {
-      if (!cancelled) setFailed(true);
-    }, RENDER_TIMEOUT_MS);
-
-    loadWidgets()
-      .then((twttr) =>
-        twttr.widgets.createTweet(statusId, host, { theme, dwell: false, align: "center" }),
-      )
-      .then((rendered) => {
-        if (cancelled) return;
-        window.clearTimeout(timeout);
-        // createTweet resolves with undefined when the post is deleted or private.
-        setFailed(!rendered);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        window.clearTimeout(timeout);
-        setFailed(true);
-      });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-    };
-  }, [statusId, theme]);
-
-  const showFallback = failed || !statusId;
-
   return (
-    <div className="not-prose my-4">
-      {/* Reserves height so the page doesn't jump when the widget resolves. */}
-      <div ref={hostRef} className={showFallback ? "hidden" : "min-h-40"} />
-
-      {showFallback && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-lg border border-line px-4 py-3 text-sm text-mist transition-colors hover:border-mist/60 hover:text-mist-bright"
-        >
-          <span>Watch the walkthrough on X</span>
-          <span aria-hidden="true">&rarr;</span>
-        </a>
-      )}
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 text-sm text-mist transition-colors hover:text-mist-bright"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3.5 w-3.5 fill-current">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+      <span className="underline underline-offset-2">Check this test on X</span>
+      {/* Up-and-right arrow: the usual sign that the link leaves for a new tab. */}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="h-3.5 w-3.5"
+      >
+        <path d="M7 17 17 7" />
+        <path d="M8 7h9v9" />
+      </svg>
+    </a>
   );
 }

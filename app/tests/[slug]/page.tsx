@@ -77,7 +77,7 @@ export default async function TestDetailPage({
       </div>
 
       {test.xPostUrl && (
-        <div className="mt-8">
+        <div className="mt-4">
           <XPostEmbed url={test.xPostUrl} />
         </div>
       )}

@@ -1,7 +1,12 @@
 import { createElement } from "react";
 import type { Test } from "@/lib/tests";
 import { getProvider } from "@/lib/providers";
-import { getProviderIcon } from "@/components/icons";
+import {
+  WORDMARK_SIZE,
+  getProviderIcon,
+  getProviderWordmark,
+  wordmarkSize,
+} from "@/components/icons";
 import LiquidCard from "@/components/LiquidCard";
 
 export default function TestCard({
@@ -16,6 +21,8 @@ export default function TestCard({
   // trips react-hooks/static-components, which reads it as building a component
   // during render rather than looking one up from a static map.
   const icon = getProviderIcon(test.provider);
+  // The company wordmark, set as type under the model name.
+  const wordmark = getProviderWordmark(test.provider);
 
   return (
     <LiquidCard href={`/tests/${test.slug}`}>
@@ -57,8 +64,19 @@ export default function TestCard({
           {test.title}
         </span>
 
-        <span className="relative mt-2 text-[10px] uppercase tracking-[0.18em] text-mist transition-colors duration-300 group-hover:text-void/70">
-          {provider?.name ?? "Hand-tuned"}
+        <span className="relative mt-2 flex items-center text-[10px] uppercase tracking-[0.18em] text-mist transition-colors duration-300 group-hover:text-void/70">
+          {provider && wordmark ? (
+            createElement(wordmark, {
+              size: wordmarkSize(
+                test.provider,
+                compact ? WORDMARK_SIZE.cardCompact : WORDMARK_SIZE.card,
+              ),
+              role: "img",
+              "aria-label": provider.name,
+            })
+          ) : (
+            <>{provider?.name ?? "Hand-tuned"}</>
+          )}
         </span>
       </div>
     </LiquidCard>

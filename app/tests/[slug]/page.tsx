@@ -5,6 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllTests, getTestBySlug } from "@/lib/tests";
 import WorldEmbed from "@/components/tests/WorldEmbed";
 import XPostEmbed from "@/components/tests/XPostEmbed";
+import ProviderByline from "@/components/tests/ProviderByline";
 import ContributeCTA from "@/components/tests/ContributeCTA";
 import SocialLinks from "@/components/about/SocialLinks";
 import BiomeGraph from "@/components/about/BiomeGraph";
@@ -50,7 +51,7 @@ export default async function TestDetailPage({
       </Link>
 
       <h1 className="mt-6 font-display text-2xl text-mist-bright">{test.title}</h1>
-      <p className="mt-1 text-sm text-mist">{test.model}</p>
+      <ProviderByline provider={test.provider} />
 
       {test.summary && <p className="mt-4 text-sm text-mist">{test.summary}</p>}
 

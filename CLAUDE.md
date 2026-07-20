@@ -30,9 +30,11 @@ this file" language into the model-facing text.
   output. Adding a new test is just adding a new folder, no code changes
   needed. `pinned: true` tests (up to 4, most recent first) show on the home
   page under "See Recent Tests"; all tests show on `/tests`. `provider` keys
-  into `lib/providers.ts`, which supplies the company name and the Simple
-  Icons logo drawn as the card watermark; leave it out for non-model entries
-  like the hand-tuned reference.
+  into `lib/providers.ts` for the company name, and into
+  `components/icons/index.ts` for two vendored marks: the model logo drawn as
+  the card watermark, and the company wordmark (`*-text.tsx`) set as type
+  under the model name on both the card and the detail page. Leave it out for
+  non-model entries like the hand-tuned reference.
 - `app/`: Next.js App Router pages: `/` (home, floating-island hero + recent
   tests), `/about` (what worldbench is), `/tests` (grid of all tests),
   `/tests/[slug]` (intro media + the live `world.html` embedded in an

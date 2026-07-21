@@ -1,5 +1,5 @@
-import Image from "next/image";
 import GravityStarsBackground from "@/components/backgrounds/GravityStarsBackground";
+import HomeIsland from "@/components/HomeIsland";
 import ExploreEvaluationsButton from "@/components/ExploreEvaluationsButton";
 
 export default function HomePage() {
@@ -21,20 +21,11 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <div className="absolute inset-0 z-10 translate-y-[14%] sm:translate-y-[11%]">
-              <Image
-                src="/island.webp"
-                alt="Floating biome island"
-                fill
-                sizes="(max-width: 768px) 90vw, 700px"
-                className="animate-float object-contain select-none"
-                priority
-              />
-            </div>
+            <HomeIsland />
           </div>
 
           {/* Bottom half kept as is: tagline caption, then the call to action. */}
-          <p className="animate-tagline mt-10 text-center font-display text-xs uppercase tracking-[0.35em] text-mist sm:text-sm">
+          <p className="mt-10 text-center font-display text-xs uppercase tracking-[0.35em] text-mist sm:text-sm">
             Pushing intelligent reasoning{" "}
             <span className="text-mist-bright">into the unknown</span>
           </p>

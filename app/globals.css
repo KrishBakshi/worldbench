@@ -230,9 +230,10 @@ body {
   }
 }
 
-/* Tagline reveal: the words settle in a moment after the island, so it reads as
-   the island drifting up and the line surfacing beneath it. */
-@keyframes tagline-surface {
+/* Island reveal: on first load the island fades and settles in, masking the
+   image fetch so it doesn't pop in once it arrives. Applied by HomeIsland only
+   on the first load of the session, not on return visits. */
+@keyframes island-reveal {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -243,13 +244,13 @@ body {
   }
 }
 
-.animate-tagline {
+.animate-island-reveal {
   opacity: 0;
-  animation: tagline-surface 1.4s ease-out 0.5s forwards;
+  animation: island-reveal 0.6s ease-out 0.35s forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-tagline {
+  .animate-island-reveal {
     opacity: 1;
     animation: none;
   }

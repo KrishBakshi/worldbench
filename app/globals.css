@@ -171,6 +171,43 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+/* World embed modal: the backdrop fades the blurred page in, the dialog pops
+   from slightly small so it reads as opening from the frame it replaced. */
+@keyframes backdrop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-backdrop-fade {
+  animation: backdrop-fade 200ms ease-out;
+}
+
+.animate-modal-pop {
+  animation: modal-pop 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-backdrop-fade,
+  .animate-modal-pop {
+    animation: none;
+  }
+}
+
 /* Tagline reveal: the words settle in a moment after the island, so it reads as
    the island drifting up and the line surfacing beneath it. */
 @keyframes tagline-surface {

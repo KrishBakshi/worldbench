@@ -29,23 +29,22 @@ Three pages:
   (up to 4 pinned tests).
 - **About**: what worldbench is, the reasoning it tests, the biome legend
   image, and a placement graph of how the biomes relate to each other.
-- **View Tests**: a grid of every test, each opening into its own page with
-  an intro clip and the live, interactive `world.html` embedded below it.
+- **View Tests**: a grid of every test, searchable by name, model, or
+  provider and filterable by provider badge, each card opening into its own
+  page with an intro clip, the test date, and the live, interactive
+  `world.html` embedded below it.
 
 ## Adding a test
 
 Drop a new folder in `public/tests/<slug>/` with:
-- `meta.mdx`: frontmatter (`title`, `model`, `date`, `pinned`, `legacyPrompt`)
-  plus optional notes
+- `meta.mdx`: frontmatter (`title`, `model`, `provider`, `date`, `pinned`,
+  plus optional `summary`, `xPost`) followed by optional notes. `provider`
+  keys into the company name and logo; leave it out for non-model entries
+  like the hand-tuned reference.
 - `world.html`: the model's raw output
 - optionally `intro.mp4` / `intro.webm` / `intro.gif`
 
 No code changes needed, the site reads `public/tests/` at build time.
-
-> The tests currently on the site were generated from an earlier, free-form
-> version of the prompt (see each test's "legacy prompt" badge). They
-> predate the live [`prompts/prompt.md`](prompts/prompt.md) and are
-> placeholders until fresh outputs are generated against it.
 
 ## Using the prompt yourself
 

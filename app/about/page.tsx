@@ -6,6 +6,7 @@ import PromptDropdown from "@/components/about/PromptDropdown";
 import IslandInfo from "@/components/about/IslandInfo";
 import SocialLinks from "@/components/about/SocialLinks";
 import HashHighlight from "@/components/about/HashHighlight";
+import TableOfContents from "@/components/ui/TableOfContents";
 
 /** "What is worldbench" -> "what-is-worldbench", so headings are linkable. */
 function slugify(node: ReactNode): string | undefined {
@@ -40,7 +41,7 @@ export default function AboutPage() {
 
       <HashHighlight />
 
-      <div className="prose mt-8 max-w-none text-sm">
+      <div id="about-content" className="prose mt-8 max-w-none text-sm">
         <MDXRemote
           source={about.content}
           components={{
@@ -52,6 +53,12 @@ export default function AboutPage() {
           }}
         />
       </div>
+
+      <TableOfContents
+        contentSelector="#about-content"
+        title={about.title}
+        levels={[2]}
+      />
     </section>
   );
 }

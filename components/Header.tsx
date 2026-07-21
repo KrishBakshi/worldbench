@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import AboutTooltipLink from "@/components/AboutTooltipLink";
+import MobileNav from "@/components/MobileNav";
 
 const links = [
   { href: "/", label: "Home" },
@@ -15,7 +16,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="relative z-10 grid h-16 shrink-0 grid-cols-3 items-center px-6 md:px-10">
+    <header className="relative z-40 flex h-16 shrink-0 items-center justify-between px-6 md:grid md:grid-cols-3 md:px-10">
       <div className="flex items-center gap-2 justify-self-start">
         <Link
           href="/"
@@ -25,7 +26,7 @@ export default function Header() {
         </Link>
         <AboutTooltipLink />
       </div>
-      <nav className="flex justify-self-center gap-8 text-xs uppercase tracking-[0.15em]">
+      <nav className="hidden justify-self-center gap-8 text-xs uppercase tracking-[0.15em] md:flex">
         {links.map((link) => {
           const active =
             link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -44,8 +45,9 @@ export default function Header() {
           );
         })}
       </nav>
-      <div className="justify-self-end">
+      <div className="flex items-center gap-1 justify-self-end">
         <ThemeToggle />
+        <MobileNav links={links} />
       </div>
     </header>
   );

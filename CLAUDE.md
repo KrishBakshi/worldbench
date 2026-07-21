@@ -54,3 +54,8 @@ this file" language into the model-facing text.
   island animation beyond the header and "See Recent Tests".
 - The header has exactly three links: Home, About, and View Tests. Don't
   add more without being asked.
+- Keep `README.md` current. When a major commit is requested — a new page,
+  a user-facing feature, or a change to the test frontmatter / folder
+  layout — check whether the README still describes things accurately and
+  update it in the same batch of work. Skip it for minor or internal-only
+  changes.

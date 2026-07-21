@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
+import AboutTooltipLink from "@/components/AboutTooltipLink";
 
 const links = [
   { href: "/", label: "Home" },
@@ -15,12 +16,15 @@ export default function Header() {
 
   return (
     <header className="relative z-10 grid h-16 shrink-0 grid-cols-3 items-center px-6 md:px-10">
-      <Link
-        href="/"
-        className="font-display justify-self-start text-sm uppercase tracking-[0.2em] text-mist-bright"
-      >
-        worldbench
-      </Link>
+      <div className="flex items-center gap-2 justify-self-start">
+        <Link
+          href="/"
+          className="font-display text-sm uppercase tracking-[0.2em] text-mist-bright"
+        >
+          worldbench
+        </Link>
+        <AboutTooltipLink />
+      </div>
       <nav className="flex justify-self-center gap-8 text-xs uppercase tracking-[0.15em]">
         {links.map((link) => {
           const active =

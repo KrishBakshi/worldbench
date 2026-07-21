@@ -44,13 +44,34 @@ export default async function TestDetailPage({
   const test = getTestBySlug(slug);
   if (!test) notFound();
 
+  // Parsed as UTC so an ISO date like "2026-07-20" doesn't shift a day in
+  // negative-offset timezones.
+  const formattedDate = test.date
+    ? new Date(test.date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      })
+    : "";
+
   return (
     <section className="mx-auto max-w-3xl px-6 py-10 md:px-10">
       <Link href="/tests" className="text-sm text-mist hover:text-mist-bright">
         &larr; Back
       </Link>
 
-      <h1 className="mt-6 font-display text-2xl text-mist-bright">{test.title}</h1>
+      <div className="mt-6 flex items-start justify-between gap-4">
+        <h1 className="font-display text-2xl text-mist-bright">{test.title}</h1>
+        {formattedDate && (
+          <time
+            dateTime={test.date}
+            className="mt-1 shrink-0 text-sm text-mist tabular-nums"
+          >
+            {formattedDate}
+          </time>
+        )}
+      </div>
       <ProviderByline provider={test.provider} />
 
       {test.summary && <p className="mt-4 text-sm text-mist">{test.summary}</p>}

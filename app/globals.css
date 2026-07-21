@@ -171,6 +171,31 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+/* Tagline reveal: the words settle in a moment after the island, so it reads as
+   the island drifting up and the line surfacing beneath it. */
+@keyframes tagline-surface {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tagline {
+  opacity: 0;
+  animation: tagline-surface 1.4s ease-out 0.5s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tagline {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 /* Highlight the heading you were sent to, e.g. the info button's
    #what-is-worldbench. Applied by HashHighlight rather than via :target, which
    Next's client-side navigation doesn't reliably trigger. A marker band flashes

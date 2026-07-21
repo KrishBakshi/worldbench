@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
+import GitHubLink from "@/components/GitHubLink";
 import AboutTooltipLink from "@/components/AboutTooltipLink";
 import MobileNav from "@/components/MobileNav";
 
@@ -46,6 +47,8 @@ export default function Header() {
         })}
       </nav>
       <div className="flex items-center gap-1 justify-self-end">
+        <GitHubLink />
+        <span aria-hidden="true" className="h-4 w-px bg-line" />
         <ThemeToggle />
         <MobileNav links={links} />
       </div>

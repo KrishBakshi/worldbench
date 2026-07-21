@@ -7,6 +7,7 @@ import IslandInfo from "@/components/about/IslandInfo";
 import SocialLinks from "@/components/about/SocialLinks";
 import HashHighlight from "@/components/about/HashHighlight";
 import TableOfContents from "@/components/ui/TableOfContents";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 /** "What is worldbench" -> "what-is-worldbench", so headings are linkable. */
 function slugify(node: ReactNode): string | undefined {
@@ -59,6 +60,8 @@ export default function AboutPage() {
         title={about.title}
         levels={[2]}
       />
+
+      <ScrollToTopButton />
     </section>
   );
 }

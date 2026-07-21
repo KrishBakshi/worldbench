@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: "worldbench",
   description: "One prompt, many models, floating biome islands compared side by side.",
   icons: {
-    icon: "/world.png",
+    icon: "/globe.svg",
   },
 };
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import Header from "@/components/Header";
+import MobileNotice from "@/components/MobileNotice";
 import "./globals.css";
 
 const display = Space_Grotesk({
@@ -45,6 +46,7 @@ export default function RootLayout({
       >
         <Header />
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        <MobileNotice />
       </body>
     </html>
   );

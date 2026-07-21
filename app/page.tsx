@@ -9,19 +9,19 @@ export default function HomePage() {
           recent-tests row, not just the hero. */}
       <GravityStarsBackground className="fixed inset-0 z-0" mouseGravity="repel" />
       <div className="relative z-10 flex h-full flex-col">
-        <section className="flex min-h-0 flex-1 flex-col items-center justify-center px-6">
+        <section className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-28 sm:pb-0">
           {/* Layered hero: the heading sits behind the floating island, up near
               the top so the mountain rises into it. Line one is solid; line two
               is a hollow outline that hovers over the peaks. */}
-          <div className="relative h-[52vh] w-full max-w-3xl">
-            <h1 className="absolute inset-x-0 top-[-6%] z-0 flex flex-col items-center gap-2 text-center font-display text-4xl leading-[0.95] font-bold tracking-[-0.015em] sm:text-5xl">
+          <div className="relative aspect-[3/2] w-full max-w-3xl sm:aspect-auto sm:h-[52vh]">
+            <h1 className="absolute inset-x-0 top-[-8%] z-0 flex flex-col items-center gap-1.5 text-center font-display text-2xl leading-[0.95] font-bold tracking-[-0.015em] sm:top-[-6%] sm:gap-2 sm:text-4xl md:text-5xl">
               <span className="text-mist-bright">Intelligence Has Landscapes</span>
-              <span className="text-transparent [-webkit-text-stroke:1.5px_var(--color-mist-bright)]">
+              <span className="text-transparent [-webkit-text-stroke:1.25px_var(--color-mist-bright)] sm:[-webkit-text-stroke:1.5px_var(--color-mist-bright)]">
                 Explore Them
               </span>
             </h1>
 
-            <div className="absolute inset-0 z-10 translate-y-[11%]">
+            <div className="absolute inset-0 z-10 translate-y-[14%] sm:translate-y-[11%]">
               <Image
                 src="/island.webp"
                 alt="Floating biome island"

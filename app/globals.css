@@ -230,13 +230,15 @@ body {
   }
 }
 
-/* Island reveal: on first load the island fades and settles in, masking the
-   image fetch so it doesn't pop in once it arrives. Applied by HomeIsland only
+/* Island reveal: on first load the island rises and settles into the heading,
+   masking the image fetch so it doesn't pop in once it arrives. Timed to land
+   after both title lines have settled (see the RevealText delays in app/page.tsx),
+   so it reads as the landscape rising into the title. Applied by HomeIsland only
    on the first load of the session, not on return visits. */
 @keyframes island-reveal {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -246,7 +248,7 @@ body {
 
 .animate-island-reveal {
   opacity: 0;
-  animation: island-reveal 0.6s ease-out 0.35s forwards;
+  animation: island-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -27,7 +27,7 @@ export default function HomePage() {
                 by="character"
                 animation="blurInUp"
                 startOnView={false}
-                delay={0.2}
+                delay={0.15}
                 className="text-mist-bright"
               >
                 Intelligence Has Landscapes
@@ -37,7 +37,7 @@ export default function HomePage() {
                 by="character"
                 animation="blurInUp"
                 startOnView={false}
-                delay={0.55}
+                delay={0.4}
                 className="text-transparent [-webkit-text-stroke:1.25px_var(--color-mist-bright)] sm:[-webkit-text-stroke:1.5px_var(--color-mist-bright)]"
               >
                 Explore Them
@@ -54,13 +54,13 @@ export default function HomePage() {
             as="h1"
             animation="blurIn"
             startOnView={false}
-            delay={0.9}
+            delay={1.05}
             className="mt-10 text-center font-display text-xs uppercase tracking-[0.35em] text-mist sm:text-sm"
           >
             Pushing intelligent reasoning into the unknown
           </RevealText>
           {/* The liquid-fill CTA fades up last, also first load only. */}
-          <RevealFade className="mt-6" delay={1.3}>
+          <RevealFade className="mt-6" delay={1.35}>
             <ExploreEvaluationsButton />
           </RevealFade>
         </section>

@@ -33,9 +33,9 @@ const nodes: Node[] = [
   { id: "highlands", label: "Highlands", cx: 130, cy: 172, w: 168, h: 46 },
   { id: "jungle", label: "Dense Jungle", cx: 362, cy: 252, w: 168, h: 46 },
   { id: "swamp", label: "Backwater Swamp", cx: 95, cy: 322, w: 168, h: 46 },
-  { id: "grove", label: "Flowering Grove", cx: 250, cy: 448, w: 168, h: 46 },
+  { id: "grove", label: "Flowering Grove", cx: 250, cy: 438, w: 168, h: 46 },
   { id: "grassland", label: "Grassland Plateau", cx: 372, cy: 372, w: 180, h: 46 },
-  { id: "delta", label: "Coastal Delta / Ocean", cx: 340, cy: 492, w: 200, h: 46 },
+  { id: "delta", label: "Coastal Delta / Ocean", cx: 348, cy: 512, w: 200, h: 46 },
   {
     id: "desert",
     label: "Desert Basin",

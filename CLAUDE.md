@@ -54,6 +54,12 @@ this file" language into the model-facing text.
   island animation beyond the header and "See Recent Tests".
 - The header has exactly three links: Home, About, and View Tests. Don't
   add more without being asked.
+- Prefix every commit subject with its kind: `Add:` for new files or
+  features, `Update:` for changes to something that already works, `Fix:`
+  for corrections, `Remove:` for deletions, `Refactor:` for behaviour-neutral
+  restructuring, `Docs:` for prose-only edits. Keep the rest of the subject
+  imperative and short (`Add: Opus 5 test metadata`), with the detail in the
+  body.
 - Keep `README.md` current. When a major commit is requested — a new page,
   a user-facing feature, or a change to the test frontmatter / folder
   layout — check whether the README still describes things accurately and

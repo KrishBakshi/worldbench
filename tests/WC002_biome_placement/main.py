@@ -1,0 +1,45 @@
+"""strip → classify → extract → grade.
+
+Writes classified.json, graph.json (website), and graph.svg (local preview)
+next to world.html.
+
+    uv run python tests/WC002_biome_placement/main.py [world.html] [out_dir]
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from classify import classify_biome_js
+from extract import extract_graph
+from grade import grade_graph
+from plot import write_graph
+from llm import CheckResult, ClassifiedBiomeJS, ExtractedGraph
+
+def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS, graph: ExtractedGraph, result: CheckResult) -> dict:
+    classified_path = out_dir / "classified.json"
+    classified_path.write_text(classified.model_dump_json(indent=2), encoding="utf-8")
+    files = write_graph(graph, result, out_dir / "graph.json", out_dir / "graph.svg")
+    return {"classified": classified_path.name, **files}
+
+
+def check_biome_placement(html_path: str, out_dir: Path, model: str | None = None) -> CheckResult:
+    classified = classify_biome_js(html_path, model)
+    graph = extract_graph(classified, model)
+    result = grade_graph(graph)
+    result.details["artifacts"] = write_artifacts(html_path, out_dir, classified, graph, result)
+    return result
+
+
+if __name__ == "__main__":
+    path = sys.argv[1]
+    out_dir = Path(sys.argv[2]) / f"{Path(path).parent.name}__WC002_biome_placement"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    result = check_biome_placement(path, out_dir)
+    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
+    print(result.reason)
+    for name in ("classified.json", "graph.json", "graph.svg"):
+        print(f"{out_dir}/{name}")

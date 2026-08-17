@@ -1,13 +1,14 @@
 """strip → classify → extract → grade.
 
-Writes classified.json, graph.json (website), and graph.svg (local preview)
-next to world.html.
+Writes classified.json, graph.json (website), graph.svg (local preview),
+and score.json (per-rule earned/lost, including elevation ranks).
 
     uv run python tests/WC002_biome_placement/main.py [world.html] [out_dir]
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -23,7 +24,9 @@ def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS
     classified_path = out_dir / "classified.json"
     classified_path.write_text(classified.model_dump_json(indent=2), encoding="utf-8")
     files = write_graph(graph, result, out_dir / "graph.json", out_dir / "graph.svg")
-    return {"classified": classified_path.name, **files}
+    score_path = out_dir / "score.json"
+    score_path.write_text(json.dumps(result.details["scorecard"], indent=2) + "\n", encoding="utf-8")
+    return {"classified": classified_path.name, "score": score_path.name, **files}
 
 
 def check_biome_placement(html_path: str, out_dir: Path, model: str | None = None) -> CheckResult:
@@ -41,5 +44,5 @@ if __name__ == "__main__":
     result = check_biome_placement(path, out_dir)
     print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
     print(result.reason)
-    for name in ("classified.json", "graph.json", "graph.svg"):
+    for name in ("classified.json", "graph.json", "graph.svg", "score.json"):
         print(f"{out_dir}/{name}")

@@ -1,0 +1,93 @@
+{
+  "biome_id": "cycle",
+  "label": "Day/Night and Seasons",
+  "entities": [
+    {
+      "id": "sun_orbit",
+      "label": "Sun (or key light) orbits over time — position from a day-angle, not a fixed Vector3",
+      "kind": "sky",
+      "looks_like": "A sun mesh or directional light exists in the scene",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "light_follows_sun",
+      "label": "Directional light tracks the sun and/or intensity follows solar elevation",
+      "kind": "sky",
+      "looks_like": "Light.position copied from sun, or intensity driven by sin(elevation)",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "night_dimming",
+      "label": "Night darkens the world — ambient/dir lights drop when the sun is down",
+      "kind": "sky",
+      "looks_like": "Ambient or directional intensity is low at night / when elevation is negative",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "dusk_dawn_tint",
+      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+      "kind": "sky",
+      "looks_like": "Light or sun material color changes with time of day, not a constant hex",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "season_cycle",
+      "label": "Four-season (or year) loop advancing on a clock",
+      "kind": "season",
+      "looks_like": "Season index from time modulo 4 (or equivalent year fraction), not a one-shot flag",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "season_world_tint",
+      "label": "Season changes world lighting or terrain tint — not HUD text alone",
+      "kind": "season",
+      "looks_like": "Light color, fog, grass, or sky tint indexed or lerped by season",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "season_modulates_weather",
+      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+      "kind": "season",
+      "looks_like": "Weather burst/opacity/speed multiplied by season rain/snow/sand factors",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "cloud_drift_wrap",
+      "label": "Clouds drift and wrap — cyclic sky motion",
+      "kind": "sky",
+      "looks_like": "Cloud boxes/groups translate over time and reset when off-island",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "sky_or_fog_day_cycle",
+      "label": "Sky, fog, or background color follows the day clock",
+      "kind": "sky",
+      "looks_like": "Fog color, scene background, or hemisphere light changes with day phase",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    },
+    {
+      "id": "moon",
+      "label": "Moon disc in the sky — reasoned extra, not named in the generation prompt",
+      "kind": "sky",
+      "looks_like": "A 3D moon mesh (box/sphere/disc), not a HUD glyph and not a starfield",
+      "expected_axis": "cyclic",
+      "requires_motion": true
+    }
+  ],
+  "must_not_present": [
+    {
+      "id": "stars_or_atmosphere_dome",
+      "label": "Stars, starfield, or atmosphere/sky dome — banned; void stays black",
+      "keywords": ["star", "stars", "starfield", "sky dome", "atmosphere"]
+    }
+  ]
+}

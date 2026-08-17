@@ -1,12 +1,12 @@
-"""Only path for producing an output right now — no automated generation
-exists (see CLAUDE.md's "Future / deferred" note). Copies a manually
-placed input into outputs/, so validate.py always reads from the same
-place regardless of how an output was produced.
+"""Copy a manually placed world.html into outputs/.
 
-Naming convention: inputs/<model>__<test_dir_name>/world.html, where
-<test_dir_name> matches a folder under tests/ exactly (e.g.
-"opus-5__WC001_trying_all_the_biomes"). That's how run.py knows which
-test's checks to run against a given input.
+    inputs/<model>/world.html
+        full ladder (every WC* test against that one world)
+
+    inputs/<model>__<test_dir>/world.html
+        legacy single-test folder; still valid for `harness.run model__WC00N_...`
+
+No generate step — see CLAUDE.md's deferred note.
 """
 
 from __future__ import annotations
@@ -19,14 +19,22 @@ INPUTS_DIR = REPO_ROOT / "inputs"
 OUTPUTS_DIR = REPO_ROOT / "outputs"
 
 
-def ingest(name: str) -> Path:
-    """name is a folder under inputs/, e.g. "opus-5__WC001_trying_all_the_biomes".
-    Returns the outputs/<name>/ dir containing the copied world.html."""
-    src = INPUTS_DIR / name / "world.html"
-    if not src.is_file():
-        raise FileNotFoundError(f"No world.html at {src}")
+def ingest(model: str, test_dir_name: str | None = None) -> Path:
+    """Copy world.html into outputs/<run_id>/ and return that directory.
 
-    dest_dir = OUTPUTS_DIR / name
+    Prefers inputs/<model>/ (one world, any subset of tests). Falls back
+    to inputs/<model>__<test_dir>/ when that is how the input was filed.
+    """
+    candidates: list[Path] = [INPUTS_DIR / model]
+    if test_dir_name:
+        candidates.insert(0, INPUTS_DIR / f"{model}__{test_dir_name}")
+
+    src_dir = next((p for p in candidates if (p / "world.html").is_file()), None)
+    if src_dir is None:
+        wanted = " or ".join(str(p / "world.html") for p in candidates)
+        raise FileNotFoundError(f"No world.html at {wanted}")
+
+    dest_dir = OUTPUTS_DIR / src_dir.name
     dest_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy(src, dest_dir / "world.html")
+    shutil.copy(src_dir / "world.html", dest_dir / "world.html")
     return dest_dir

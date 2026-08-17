@@ -1,14 +1,10 @@
-"""Two-stage validation of one output against one test's checks.
+"""Validate one world.html against one test, several tests, or the full WC* ladder.
 
-1. checks.structural.check_input_ready(output_dir) — does world.html
-   exist and look real. Fails fast with that reason; a test's content
-   checks never run against a missing/wrong file.
-2. Only if that passes: load and run every check listed in the test's
-   test.yaml (script + function, relative to that test's own folder),
-   via harness.loader + harness.audit (so every check run is a named,
-   metadata-tagged LangSmith run — see harness/audit.py).
+1. checks.structural.check_input_ready — fail fast if the file is missing/wrong.
+2. For each selected test.yaml check: load + run_audited_check (LangSmith).
 
-Writes validation.json into output_dir and returns the same dict.
+Direct test scripts do not call this. Harness does — that is what makes a
+run auditable.
 """
 
 from __future__ import annotations
@@ -16,48 +12,101 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import yaml
+from langsmith import traceable
 
 from checks.structural import check_input_ready
 from harness.audit import run_audited_check
-from harness.loader import load_check
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-TESTS_DIR = REPO_ROOT / "tests"
+from harness.loader import discover_tests, load_check, resolve_test
+from harness.score import score_records
 
 
-def validate(output_dir: Path, test_dir_name: str) -> dict:
+def validate(
+    output_dir: Path,
+    test_dir_name: str | None = None,
+    *,
+    test_dir_names: list[str] | None = None,
+) -> dict:
     output_dir = Path(output_dir)
-    test_dir = TESTS_DIR / test_dir_name
     model = output_dir.name.split("__", 1)[0]
+    selected = _selected_tests(test_dir_name, test_dir_names)
 
+    @traceable(
+        name=f"{model}::pipeline",
+        run_type="chain",
+        metadata={
+            "model": model,
+            "tests": [t["dir_name"] for t in selected],
+        },
+    )
+    def _run() -> dict:
+        return _validate(output_dir, model, selected)
+
+    return _run()
+
+
+def _selected_tests(
+    test_dir_name: str | None,
+    test_dir_names: list[str] | None,
+) -> list[dict]:
+    all_tests = discover_tests()
+    if test_dir_names:
+        return [resolve_test(name, all_tests) for name in test_dir_names]
+    if test_dir_name:
+        return [resolve_test(test_dir_name, all_tests)]
+    return all_tests
+
+
+def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
     structural = check_input_ready(output_dir)
     result = {
-        "test": test_dir_name,
         "model": model,
-        "structural": {"passed": structural.passed, "reason": structural.reason, "details": structural.details},
+        "tests": [t["dir_name"] for t in selected],
+        "structural": {
+            "passed": structural.passed,
+            "reason": structural.reason,
+            "details": structural.details,
+        },
         "checks": {},
     }
 
     if not structural.passed:
         result["passed"] = False
+        result.update(score_records({}))
         _write(output_dir, result)
         return result
 
-    world_html = output_dir / "world.html"
-    test_yaml = yaml.safe_load((test_dir / "test.yaml").read_text())
-
+    world_html = str(output_dir / "world.html")
     checks_passed = True
-    for check in test_yaml["checks"]:
-        check_fn = load_check(test_dir / check["script"], check["function"])
-        record = run_audited_check(check_fn, str(world_html), test_id=test_dir_name, model=model)
-        result["checks"][check["function"]] = record
-        checks_passed = checks_passed and record["passed"]
+    for test in selected:
+        test_out = output_dir / test["dir_name"]
+        test_out.mkdir(parents=True, exist_ok=True)
+        for check in test["checks"]:
+            key = f"{test['dir_name']}::{check['function']}"
+            try:
+                check_fn = load_check(test["path"] / check["script"], check["function"])
+                record = run_audited_check(
+                    check_fn,
+                    world_html,
+                    test_id=test["dir_name"],
+                    model=model,
+                    out_dir=test_out,
+                )
+            except Exception as exc:
+                record = {
+                    "passed": False,
+                    "reason": str(exc),
+                    "score": 0,
+                    "max_score": 0,
+                    "details": {"error": str(exc)},
+                }
+            result["checks"][key] = record
+            checks_passed = checks_passed and bool(record.get("passed"))
 
     result["passed"] = checks_passed
+    result.update(score_records(result["checks"]))
     _write(output_dir, result)
     return result
 
 
 def _write(output_dir: Path, result: dict) -> None:
-    (output_dir / "validation.json").write_text(json.dumps(result, indent=2))
+    (output_dir / "validation.json").write_text(json.dumps(result, indent=2, default=str))

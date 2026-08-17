@@ -55,3 +55,14 @@ def score_report(results: dict[str, object]) -> dict:
         "total_max_score": total_max,
         "pct": total_score / total_max if total_max else 0.0,
     }
+
+
+def score_records(records: dict[str, dict]) -> dict:
+    """Sum already-scored harness records (dicts with score/max_score/passed)."""
+    total_score = sum(float(r.get("score") or 0) for r in records.values())
+    total_max = sum(float(r.get("max_score") or 0) for r in records.values())
+    return {
+        "total_score": total_score,
+        "total_max_score": total_max,
+        "pct": total_score / total_max if total_max else 0.0,
+    }

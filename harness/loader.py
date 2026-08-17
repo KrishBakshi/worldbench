@@ -16,6 +16,42 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+TESTS_DIR = REPO_ROOT / "tests"
+
+
+def discover_tests() -> list[dict]:
+    """Every WC* folder with a test.yaml, in ladder order (WC000, WC001, …)."""
+    tests = []
+    for yaml_path in sorted(TESTS_DIR.glob("WC*/test.yaml")):
+        data = yaml.safe_load(yaml_path.read_text()) or {}
+        tests.append(
+            {
+                "dir_name": yaml_path.parent.name,
+                "id": data.get("id", yaml_path.parent.name),
+                "title": data.get("title", ""),
+                "checks": list(data.get("checks") or []),
+                "path": yaml_path.parent,
+            }
+        )
+    return tests
+
+
+def resolve_test(name: str, tests: list[dict] | None = None) -> dict:
+    """Match WC005, WC005_day_night_seasons, or the yaml id."""
+    tests = tests if tests is not None else discover_tests()
+    key = name.strip()
+    for test in tests:
+        if key in {test["dir_name"], test["id"]}:
+            return test
+    matches = [t for t in tests if t["dir_name"].startswith(key) or t["id"] == key]
+    if len(matches) == 1:
+        return matches[0]
+    known = ", ".join(t["dir_name"] for t in tests)
+    raise ValueError(f"Unknown test {name!r}. Known: {known}")
+
 
 def load_check(module_path: str | Path, function_name: str):
     """Load `function_name` from the Python file at `module_path`.

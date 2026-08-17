@@ -1,52 +1,72 @@
-"""CLI entrypoint: ingest a manually-produced input, validate it against
-its test's checks, print the score. (No generate step yet — see
-CLAUDE.md's "Future / deferred" note.)
+"""CLI: ingest a world, validate it, print the score.
+
+LangSmith is on this path only (see harness/audit.py). Direct
+`uv run python tests/WC00N/...` does not trace.
 
 Usage:
-    uv run python -m harness.run <input-name>
+    uv run python -m harness.run <model>
+        Full ladder: WC000 → WC005 against inputs/<model>/world.html
 
-<input-name> is a folder under inputs/, named
-"<model>__<test_dir_name>" (test_dir_name matches a folder under tests/
-exactly), e.g.:
+    uv run python -m harness.run <model> --test WC005
+    uv run python -m harness.run <model> --test WC005_day_night_seasons
+        One test, still through the harness (still traced).
 
-    uv run python -m harness.run opus-5__WC001_trying_all_the_biomes
+    uv run python -m harness.run <model>__WC001_trying_all_the_biomes
+        Legacy: inputs/<model>__<test_dir>/world.html, that test only.
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from harness.ingest import ingest  # noqa: E402
-from harness.score import score_report  # noqa: E402
+from harness.loader import resolve_test  # noqa: E402
 from harness.validate import validate  # noqa: E402
 
 
-def main():
-    if len(sys.argv) != 2:
-        print(__doc__)
-        sys.exit(1)
+def parse_name(name: str) -> tuple[str, str | None]:
+    if "__" in name:
+        model, test_dir = name.split("__", 1)
+        return model, test_dir
+    return name, None
 
-    name = sys.argv[1]
-    if "__" not in name:
-        print(f'Expected "<model>__<test_dir_name>", got: {name}')
-        sys.exit(1)
-    test_dir_name = name.split("__", 1)[1]
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="WorldBench harness: score a world.html")
+    parser.add_argument(
+        "name",
+        help='model folder under inputs/ (e.g. "fable"), or "model__test_dir" for a single test',
+    )
+    parser.add_argument(
+        "--test",
+        metavar="WC",
+        help="run one test (WC005 or WC005_day_night_seasons). Omit to run the full ladder.",
+    )
+    args = parser.parse_args(argv)
+
+    model, legacy_test = parse_name(args.name)
+    test_dir_name = legacy_test
+    if args.test:
+        test_dir_name = resolve_test(args.test)["dir_name"]
 
     try:
-        output_dir = ingest(name)
+        output_dir = ingest(model, test_dir_name)
     except FileNotFoundError as e:
         print(e)
         sys.exit(1)
 
-    result = validate(output_dir, test_dir_name)
+    if test_dir_name is None and "__" not in args.name:
+        result = validate(output_dir)
+    else:
+        result = validate(output_dir, test_dir_name)
 
-    print(f"test:   {result['test']}")
     print(f"model:  {result['model']}")
+    print(f"tests:  {', '.join(result['tests'])}")
     print(f"passed: {result['passed']}")
 
     if not result["checks"]:
@@ -54,13 +74,16 @@ def main():
         sys.exit(1)
 
     for name, record in result["checks"].items():
-        status = "PASS" if record["passed"] else "FAIL"
-        print(f"  [{status}] {name}: {record['score']}/{record['max_score']} — {record['reason']}")
+        status = "PASS" if record.get("passed") else "FAIL"
+        score = record.get("score", 0)
+        max_score = record.get("max_score", 0)
+        reason = record.get("reason", "")
+        print(f"  [{status}] {name}: {score}/{max_score} — {reason}")
 
-    report = score_report(
-        {name: SimpleNamespace(**r) for name, r in result["checks"].items()}
+    print(
+        f"score: {result['total_score']}/{result['total_max_score']} "
+        f"({result['pct']:.0%})"
     )
-    print(f"score: {report['total_score']}/{report['total_max_score']} ({report['pct']:.0%})")
     print(f"\nWrote {output_dir / 'validation.json'}")
 
 

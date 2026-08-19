@@ -57,12 +57,84 @@ def score_report(results: dict[str, object]) -> dict:
     }
 
 
+# A hovering ocean is not a sea. WC003/WC004 still count inland biomes, but
+# Coastal Delta / Ocean (delta) points are removed when still water has no bed
+# or never holds as a body of water.
+SEA_GATE_IDS = frozenset({"water_physics", "water_bed"})
+SEA_BIOME_ID = "delta"
+CONTENT_PREFIXES = ("WC003_", "WC004_")
+
+
+def _wc000_lost_ids(records: dict[str, dict]) -> set[str]:
+    for key, rec in records.items():
+        if "WC000_" not in key or not isinstance(rec, dict):
+            continue
+        details = rec.get("details") or {}
+        missing = details.get("missing")
+        if isinstance(missing, list):
+            return {str(item) for item in missing}
+        card = details.get("scorecard") or {}
+        lost = card.get("lost") or []
+        return {str(row.get("id")) for row in lost if isinstance(row, dict)}
+    return set()
+
+
+def _sea_biome_score(rec: dict) -> float:
+    details = rec.get("details") or {}
+    card = details.get("scorecard") if isinstance(details, dict) else None
+    biomes = (card or {}).get("biomes") if isinstance(card, dict) else None
+    biome = (biomes or {}).get(SEA_BIOME_ID) if isinstance(biomes, dict) else None
+    if not isinstance(biome, dict):
+        return 0.0
+    return float(biome.get("score") or 0)
+
+
+def apply_island_gate(records: dict[str, dict]) -> bool:
+    """Drop ocean/sea (delta) points on WC003/WC004 when water has no seafloor."""
+    gated = bool(_wc000_lost_ids(records) & SEA_GATE_IDS)
+    for key, rec in records.items():
+        if not isinstance(rec, dict) or not key.startswith(CONTENT_PREFIXES):
+            continue
+        if "probe_score" not in rec:
+            rec["probe_score"] = rec.get("score") or 0
+            rec["probe_reason"] = rec.get("reason") or ""
+            rec["probe_passed"] = rec.get("passed")
+        if gated:
+            deduct = _sea_biome_score(rec)
+            max_score = rec.get("max_score") or 0
+            rec["score"] = round(max(0.0, float(rec["probe_score"]) - deduct), 2)
+            rec["passed"] = False
+            rec["gated"] = True
+            rec["sea_deduction"] = deduct
+            probe_reason = str(rec.get("probe_reason") or "")
+            if "Scored " in probe_reason and "/" in probe_reason:
+                rec["reason"] = f"Scored {rec['score']}/{probe_reason.split('/', 1)[1]}"
+            else:
+                rec["reason"] = probe_reason or f"Scored {rec['score']}/{max_score}"
+            details = rec.get("details")
+            if isinstance(details, dict):
+                details["score"] = rec["score"]
+        else:
+            rec["score"] = rec["probe_score"]
+            rec["reason"] = rec.get("probe_reason") or ""
+            rec["passed"] = rec.get("probe_passed")
+            rec.pop("gated", None)
+            rec.pop("sea_deduction", None)
+            details = rec.get("details")
+            if isinstance(details, dict):
+                details["score"] = rec["score"]
+    return gated
+
+
 def score_records(records: dict[str, dict]) -> dict:
     """Sum already-scored harness records (dicts with score/max_score/passed)."""
+    gated = apply_island_gate(records)
     total_score = sum(float(r.get("score") or 0) for r in records.values())
     total_max = sum(float(r.get("max_score") or 0) for r in records.values())
-    return {
+    out = {
         "total_score": total_score,
         "total_max_score": total_max,
         "pct": total_score / total_max if total_max else 0.0,
+        "island_gate": gated,
     }
+    return out

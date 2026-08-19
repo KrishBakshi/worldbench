@@ -65,6 +65,7 @@ if __name__ == "__main__":
     if args.regrade:
         cycle_path = Path(args.regrade)
         out_dir = cycle_path.parent
+        print(f"WC005  regrade  {cycle_path}", file=sys.stderr, flush=True)
         result = regrade_cycle(cycle_path, out_dir)
     else:
         if not args.world_html:
@@ -74,9 +75,9 @@ if __name__ == "__main__":
         else:
             out_dir = Path(args.world_html).parent
         result = check_day_night_seasons(args.world_html, out_dir)
-    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
-    print(result.reason)
+    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}", flush=True)
+    print(result.reason, flush=True)
     artifacts = result.details.get("artifacts", {})
     for name in ("cycle", "score"):
         if name in artifacts:
-            print(f"{out_dir}/{artifacts[name]}")
+            print(f"{out_dir}/{artifacts[name]}", flush=True)

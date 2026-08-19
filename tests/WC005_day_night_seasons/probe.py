@@ -13,6 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from llm import CycleReport, invoke_structured, load_prompt, load_templates
 
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from harness.status import log  # noqa: E402
+
 
 def strip_html(html_path: str) -> str:
     raw = Path(html_path).read_text(encoding="utf-8", errors="ignore")
@@ -22,6 +27,7 @@ def strip_html(html_path: str) -> str:
 
 
 def probe_cycle(html_path: str, model: str | None = None) -> CycleReport:
+    log("      probing  day/night + seasons  (llm)")
     js = strip_html(html_path)
     templates = load_templates()
     prompt = load_prompt().replace("{TEMPLATES}", json.dumps(templates, indent=2)).replace("{SOURCE}", js)

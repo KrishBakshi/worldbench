@@ -13,6 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from llm import BIOME_IDS, BiomeRenderReport, invoke_structured, load_prompt, load_templates
 
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from harness.status import log  # noqa: E402
+
 
 def strip_html(html_path: str) -> str:
     raw = Path(html_path).read_text(encoding="utf-8", errors="ignore")
@@ -38,9 +43,14 @@ def probe_all(
 ) -> dict[str, BiomeRenderReport | dict]:
     js = strip_html(html_path)
     reports: dict[str, BiomeRenderReport | dict] = {}
-    for biome_id in biome_ids or BIOME_IDS:
+    ids = tuple(biome_ids or BIOME_IDS)
+    n = len(ids)
+    log(f"      probing  {n} biome{'s' if n != 1 else ''}  (llm)")
+    for i, biome_id in enumerate(ids, 1):
+        log(f"      {i}/{n}  {biome_id}")
         try:
             reports[biome_id] = probe_biome(js, biome_id, model)
         except Exception as exc:
+            log(f"      {i}/{n}  {biome_id}  error: {exc}")
             reports[biome_id] = {"error": str(exc)}
     return reports

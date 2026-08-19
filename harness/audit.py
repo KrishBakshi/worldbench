@@ -3,7 +3,7 @@ per-item breakdown plus the score, not just pass/fail.
 
 This is a harness concern. Direct `uv run python tests/WC00N/...` does
 not import this module. @traceable no-ops unless LANGSMITH_TRACING=true
-and LANGSMITH_API_KEY are set.
+and LANGSMITH_API_KEY are set (loaded from .env via python-dotenv).
 """
 
 from __future__ import annotations
@@ -12,6 +12,10 @@ import inspect
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Callable
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from langsmith import traceable
 

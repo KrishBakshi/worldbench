@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import types
 from pathlib import Path
 
 import yaml
@@ -53,16 +54,60 @@ def resolve_test(name: str, tests: list[dict] | None = None) -> dict:
     raise ValueError(f"Unknown test {name!r}. Known: {known}")
 
 
+def _evict_loaded_tests() -> None:
+    """Drop modules imported from a previous WC* folder.
+
+    WC002–WC005 each ship main.py / llm.py / grade.py and do `from llm import`.
+    Loading them by filename leaves those names in sys.modules, so WC003+
+    bind WC002's copies and never reach run_audited_check (no LangSmith span).
+    """
+    tests_root = TESTS_DIR.resolve()
+    to_drop = [
+        name
+        for name, mod in sys.modules.items()
+        if name == "worldbench_checks" or name.startswith("worldbench_checks.")
+    ]
+    for name, mod in sys.modules.items():
+        file = getattr(mod, "__file__", None)
+        if not file:
+            continue
+        try:
+            resolved = Path(file).resolve()
+        except OSError:
+            continue
+        if resolved.is_relative_to(tests_root):
+            to_drop.append(name)
+    for name in to_drop:
+        sys.modules.pop(name, None)
+
+
+def _ensure_namespace(name: str) -> None:
+    if name in sys.modules:
+        return
+    pkg = types.ModuleType(name)
+    pkg.__path__ = []
+    pkg.__package__ = name
+    sys.modules[name] = pkg
+
+
 def load_check(module_path: str | Path, function_name: str):
     """Load `function_name` from the Python file at `module_path`.
 
     Registers the module in sys.modules before exec'ing it — required
     for @dataclass-decorated classes in the loaded module to work; without
     it, dataclasses' own introspection can't find the module and raises.
+
+    Each WC* folder is loaded under a unique name (not just `main`) and
+    previous test modules are evicted so llm/grade/probe do not leak.
     """
     module_path = Path(module_path)
-    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+    _evict_loaded_tests()
+    parent = f"worldbench_checks.{module_path.parent.name}"
+    qualname = f"{parent}.{module_path.stem}"
+    _ensure_namespace("worldbench_checks")
+    _ensure_namespace(parent)
+    spec = importlib.util.spec_from_file_location(qualname, module_path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
+    sys.modules[qualname] = module
     spec.loader.exec_module(module)
     return getattr(module, function_name)

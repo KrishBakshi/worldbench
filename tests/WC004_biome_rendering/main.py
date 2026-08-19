@@ -112,6 +112,7 @@ if __name__ == "__main__":
     if args.regrade:
         rendering_path = Path(args.regrade)
         out_dir = rendering_path.parent
+        print(f"WC004  regrade  {rendering_path}", file=sys.stderr, flush=True)
         result = regrade_rendering(rendering_path, out_dir, biome_ids=selected)
     else:
         if not args.world_html:
@@ -120,12 +121,19 @@ if __name__ == "__main__":
             out_dir = Path(args.out_dir) / f"{Path(args.world_html).parent.name}__WC004_biome_rendering"
         else:
             out_dir = Path(args.world_html).parent
+        _ROOT = Path(__file__).resolve().parents[2]
+        if str(_ROOT) not in sys.path:
+            sys.path.append(str(_ROOT))
+        from harness.status import log
+
+        log(f"WC004  {args.world_html}")
+        log(f"biomes {', '.join(selected)}")
         result = check_biome_rendering(args.world_html, out_dir, biome_ids=selected)
-    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
-    print(result.reason)
+    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}", flush=True)
+    print(result.reason, flush=True)
     if result.details.get("missing"):
-        print(result.details["missing"])
+        print(result.details["missing"], flush=True)
     artifacts = result.details.get("artifacts", {})
     for name in ("rendering", "score"):
         if name in artifacts:
-            print(f"{out_dir}/{artifacts[name]}")
+            print(f"{out_dir}/{artifacts[name]}", flush=True)

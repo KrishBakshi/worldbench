@@ -47,6 +47,17 @@ def write_artifacts(out_dir: Path, reports: dict, result: CheckResult) -> dict:
     return {"micro_contents": micro_path.name, "score": score_path.name}
 
 
+def load_reports_from_json(path: Path) -> dict[str, BiomeMicroReport | dict]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    reports: dict[str, BiomeMicroReport | dict] = {}
+    for biome_id, payload in raw.items():
+        if isinstance(payload, dict) and "error" in payload:
+            reports[biome_id] = payload
+        else:
+            reports[biome_id] = BiomeMicroReport.model_validate(payload)
+    return reports
+
+
 def check_biome_micro_contents(
     html_path: str,
     out_dir: Path | None = None,
@@ -61,14 +72,32 @@ def check_biome_micro_contents(
     return result
 
 
+def regrade_micro(
+    micro_path: Path,
+    out_dir: Path | None = None,
+    biome_ids: tuple[str, ...] | None = None,
+) -> CheckResult:
+    selected = biome_ids or BIOME_IDS
+    reports = load_reports_from_json(micro_path)
+    result = grade_reports(reports, selected)
+    dest = out_dir if out_dir is not None else micro_path.parent
+    result.details["artifacts"] = write_artifacts(dest, reports, result)
+    return result
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="WC003 biome micro-contents check")
-    parser.add_argument("world_html", help="path to world.html")
+    parser.add_argument("world_html", nargs="?", help="path to world.html")
     parser.add_argument("out_dir", nargs="?", help="directory to write micro_contents.json and score.json")
     parser.add_argument(
         "--biome",
         default="all",
         help="one biome id, or 'all' (default) to run every biome",
+    )
+    parser.add_argument(
+        "--regrade",
+        metavar="MICRO_JSON",
+        help="re-score an existing micro_contents.json without new LLM calls",
     )
     return parser.parse_args(argv)
 
@@ -80,17 +109,33 @@ if __name__ == "__main__":
     except ValueError as exc:
         sys.exit(str(exc))
 
-    if args.out_dir is not None:
-        out_dir = Path(args.out_dir) / f"{Path(args.world_html).parent.name}__WC003_biome_micro_contents"
-    else:
-        out_dir = Path(args.world_html).parent
+    if not args.regrade and not args.world_html:
+        sys.exit("world_html required unless --regrade is used")
 
-    result = check_biome_micro_contents(args.world_html, out_dir, biome_ids=selected)
-    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
-    print(result.reason)
+    if args.regrade:
+        micro_path = Path(args.regrade)
+        out_dir = micro_path.parent
+        print(f"WC003  regrade  {micro_path}", file=sys.stderr, flush=True)
+        result = regrade_micro(micro_path, out_dir, biome_ids=selected)
+    else:
+        if args.out_dir is not None:
+            out_dir = Path(args.out_dir) / f"{Path(args.world_html).parent.name}__WC003_biome_micro_contents"
+        else:
+            out_dir = Path(args.world_html).parent
+
+        _ROOT = Path(__file__).resolve().parents[2]
+        if str(_ROOT) not in sys.path:
+            sys.path.append(str(_ROOT))
+        from harness.status import log
+
+        log(f"WC003  {args.world_html}")
+        log(f"biomes {', '.join(selected)}")
+        result = check_biome_micro_contents(args.world_html, out_dir, biome_ids=selected)
+    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}", flush=True)
+    print(result.reason, flush=True)
     if result.details.get("missing"):
-        print(result.details["missing"])
+        print(result.details["missing"], flush=True)
     artifacts = result.details.get("artifacts", {})
     for name in ("micro_contents", "score"):
         if name in artifacts:
-            print(f"{out_dir}/{artifacts[name]}")
+            print(f"{out_dir}/{artifacts[name]}", flush=True)

@@ -10,7 +10,12 @@ run auditable.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from langsmith import traceable
 
@@ -18,6 +23,10 @@ from checks.structural import check_input_ready
 from harness.audit import run_audited_check
 from harness.loader import discover_tests, load_check, resolve_test
 from harness.score import score_records
+from harness.status import log, timed
+
+# WC003 is 10 Gemini probes; WC004 is 10 more. Free-tier RPM needs a gap.
+_GEMINI_PAUSE_AFTER_WC003_S = 20
 
 
 def validate(
@@ -56,8 +65,20 @@ def _selected_tests(
     return all_tests
 
 
+def _is_full_ladder(selected: list[dict]) -> bool:
+    return [t["dir_name"] for t in selected] == [t["dir_name"] for t in discover_tests()]
+
+
 def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
     structural = check_input_ready(output_dir)
+    existing_checks: dict = {}
+    prev_path = output_dir / "validation.json"
+    if prev_path.is_file() and not _is_full_ladder(selected):
+        try:
+            existing_checks = dict(json.loads(prev_path.read_text(encoding="utf-8")).get("checks") or {})
+        except (OSError, json.JSONDecodeError):
+            existing_checks = {}
+
     result = {
         "model": model,
         "tests": [t["dir_name"] for t in selected],
@@ -66,43 +87,57 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
             "reason": structural.reason,
             "details": structural.details,
         },
-        "checks": {},
+        "checks": existing_checks,
     }
 
     if not structural.passed:
+        log(f"structural  fail  {structural.reason}")
         result["passed"] = False
         result.update(score_records({}))
         _write(output_dir, result)
         return result
 
     world_html = str(output_dir / "world.html")
-    checks_passed = True
-    for test in selected:
+    n = len(selected)
+    for i, test in enumerate(selected, 1):
         test_out = output_dir / test["dir_name"]
         test_out.mkdir(parents=True, exist_ok=True)
+        title = test.get("title") or test["dir_name"]
+        label = f"[{i}/{n}] {test['id']}  {title}"
         for check in test["checks"]:
             key = f"{test['dir_name']}::{check['function']}"
-            try:
-                check_fn = load_check(test["path"] / check["script"], check["function"])
-                record = run_audited_check(
-                    check_fn,
-                    world_html,
-                    test_id=test["dir_name"],
-                    model=model,
-                    out_dir=test_out,
-                )
-            except Exception as exc:
-                record = {
-                    "passed": False,
-                    "reason": str(exc),
-                    "score": 0,
-                    "max_score": 0,
-                    "details": {"error": str(exc)},
-                }
+            with timed(label) as info:
+                try:
+                    check_fn = load_check(test["path"] / check["script"], check["function"])
+                    record = run_audited_check(
+                        check_fn,
+                        world_html,
+                        test_id=test["dir_name"],
+                        model=model,
+                        out_dir=test_out,
+                    )
+                except Exception as exc:
+                    record = {
+                        "passed": False,
+                        "reason": str(exc),
+                        "score": 0,
+                        "max_score": 0,
+                        "details": {"error": str(exc)},
+                    }
+                status = "pass" if record.get("passed") else "fail"
+                info["detail"] = f"{record.get('score', 0)}/{record.get('max_score', 0)}  {status}"
             result["checks"][key] = record
-            checks_passed = checks_passed and bool(record.get("passed"))
+        if test.get("id") == "WC003" and any(t.get("id") == "WC004" for t in selected[i:]):
+            log(f"waiting  {_GEMINI_PAUSE_AFTER_WC003_S}s  Gemini free-tier rate limit")
+            time.sleep(_GEMINI_PAUSE_AFTER_WC003_S)
 
-    result["passed"] = checks_passed
+    present = []
+    for test in discover_tests():
+        prefix = f"{test['dir_name']}::"
+        if any(key.startswith(prefix) for key in result["checks"]):
+            present.append(test["dir_name"])
+    result["tests"] = present or [t["dir_name"] for t in selected]
+    result["passed"] = all(bool(record.get("passed")) for record in result["checks"].values())
     result.update(score_records(result["checks"]))
     _write(output_dir, result)
     return result

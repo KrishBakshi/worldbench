@@ -74,7 +74,11 @@ def load_prompt(biome_id: str) -> str:
 
 
 def invoke_structured(schema: type[BaseModel], prompt: str, model: str | None = None):
-    llm = ChatGoogleGenerativeAI(model=model or DEFAULT_MODEL, max_retries=0)
+    llm = ChatGoogleGenerativeAI(
+        model=model or DEFAULT_MODEL,
+        google_api_key=os.environ.get("GOOGLE_API_KEY"),
+        max_retries=0,
+    )
     payload = llm.with_structured_output(schema, include_raw=True, method="json_schema").invoke(prompt)
     raw, parsed, err = payload["raw"], payload["parsed"], payload["parsing_error"]
     if parsed is not None:

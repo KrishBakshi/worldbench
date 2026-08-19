@@ -1,10 +1,7 @@
-"""Does the raw world.html text mention every one of the 10 canonical
-biomes by at least one keyword synonym?
+"""Does world.html actually *build* each of the 10 canonical biomes?
 
-Regex/keyword pass over the file, not DOM inspection — the legend text in
-these worlds is populated client-side by script, so the static HTML has
-to be searched for the biome data/names the script embeds, not the empty
-#legend element itself.
+A legend label or comment does not count. The biome has to appear in the
+executable JS (terrain branch, enum used by the generator, cell assignment).
 
     uv run python tests/WC001_trying_all_the_biomes/biome_check.py [world.html] [out_dir]
 """
@@ -35,13 +32,31 @@ BIOMES: list[dict] = [
     {"id": "jungle", "label": "Dense Jungle", "keywords": ["jungle", "rainforest", "tropical forest", "canopy"]},
     {"id": "swamp", "label": "Backwater Swamp", "keywords": ["swamp", "marsh", "bog", "wetland", "bayou"]},
     {"id": "grove", "label": "Flowering Grove", "keywords": ["grove", "orchard", "blossom", "flowering"]},
-    {"id": "grassland", "label": "Grassland Plateau", "keywords": ["grassland", "prairie", "meadow", "savanna"]},
+    {"id": "grassland", "label": "Grassland Plateau", "keywords": ["grassland", "prairie", "meadow", "savanna", "grass"]},
     {"id": "delta", "label": "Coastal Delta / Ocean", "keywords": ["estuary", "coast", "ocean", "shoreline"]},
     {"id": "desert", "label": "Desert Basin", "keywords": ["desert", "dune", "arid", "oasis"]},
     {"id": "volcano", "label": "Volcano", "keywords": ["volcano", "lava", "magma", "obsidian", "caldera"]},
 ]
 
 POINTS_PER_BIOME = 1
+
+# HUD / legend rows: `{n:'Snow Mountains',c:'#eef4fa',w:'blizzard'}`
+_LEGEND_ROW = re.compile(
+    r"\{[^{}]{0,200}(?:\bn\s*:|\blabel\s*:|\btitle\s*:)[^{}]{0,200}\}",
+    re.I,
+)
+
+
+def _executable_js(html: str) -> str:
+    no_css = re.sub(r"<style\b[^>]*>.*?</style>", "", html, flags=re.I | re.S)
+    scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", no_css, flags=re.I | re.S)
+    js = "\n\n".join(s.strip() for s in scripts if s.strip()) or no_css
+    js = re.sub(r"/\*.*?\*/", " ", js, flags=re.S)
+    js = re.sub(r"//.*?$", " ", js, flags=re.M)
+    js = _LEGEND_ROW.sub(" ", js)
+    js = re.sub(r"\blabel\s*:\s*['\"][^'\"]+['\"]", " ", js, flags=re.I)
+    js = re.sub(r"innerHTML|textContent", " ", js, flags=re.I)
+    return js
 
 
 def _keyword_pattern(keywords: list[str]) -> re.Pattern:
@@ -55,7 +70,7 @@ def has_all_biomes(
     out_dir: Path | None = None,
 ) -> CheckResult:
     biomes = biomes or BIOMES
-    text = Path(html_path).read_text(encoding="utf-8", errors="ignore")
+    text = _executable_js(Path(html_path).read_text(encoding="utf-8", errors="ignore"))
 
     found: dict[str, list[str]] = {}
     missing: list[str] = []
@@ -85,7 +100,7 @@ def has_all_biomes(
             }
         else:
             missing.append(biome["id"])
-            row = {**row, "why": "no_keyword_match"}
+            row = {**row, "why": "not_executed"}
             lost.append(row)
             biome_cards[biome["id"]] = {
                 "score": 0,
@@ -138,10 +153,16 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         out_dir = Path(sys.argv[2]) / f"{Path(html_path).parent.name}__WC001_trying_all_the_biomes"
         out_dir.mkdir(parents=True, exist_ok=True)
+    _ROOT = Path(__file__).resolve().parents[2]
+    if str(_ROOT) not in sys.path:
+        sys.path.append(str(_ROOT))
+    from harness.status import log
+
+    log(f"WC001  checking  {html_path}")
     result = has_all_biomes(html_path, out_dir=out_dir)
     dest = out_dir if out_dir is not None else Path(html_path).parent
-    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
-    print(result.reason)
+    print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}", flush=True)
+    print(result.reason, flush=True)
     if result.details.get("missing"):
-        print(result.details["missing"])
-    print(f"{dest}/score.json")
+        print(result.details["missing"], flush=True)
+    print(f"{dest}/score.json", flush=True)

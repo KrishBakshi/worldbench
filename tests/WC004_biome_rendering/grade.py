@@ -14,7 +14,7 @@ POINTS_PER_BIOME = 10
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
 _GEOM_ASSIGN = re.compile(
-    r"\b(?:h|baseH|height|heightMap|top|side|wc|color|[rgb])\s*[+\-*/]?=",
+    r"\b(?:h|baseH|height|heightMap|top|side|wc|color)\s*[+\-*/]?=(?!=)",
     re.I,
 )
 _THREE = re.compile(
@@ -35,9 +35,23 @@ _MOTION_MUTATION = re.compile(
     r"|positions\[.*?\]\s*[+\-]=",
     re.I,
 )
-_CALL = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
+_PLACE_EXEC = re.compile(
+    r"scene\.add|group\.add|setMatrixAt|InstancedMesh"
+    r"|\b(?:addBlock|placeBlock|addO|addW|addL|fadd|queue|pb|terra\.add)\s*\("
+    r"|(?:voxelData|blocks|waterBlocks|animals|fallSpots)\.push\s*\("
+    r"|\.add\s*\(",
+    re.I,
+)
 _DART_THROW = re.compile(r"Math\.random\s*\(\s*\)\s*\*\s*GRID")
 _CELL_WALK = re.compile(r"for\s*\([^;]*\bz\b")
+_CALL = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
+_BUILTIN_CALLS = {
+    "Math", "console", "document", "window", "JSON", "Object", "Array", "Number",
+    "String", "parseInt", "parseFloat", "isNaN", "isFinite", "if", "for", "while",
+    "switch", "function", "catch", "return", "typeof", "pow", "sin", "cos", "tan",
+    "floor", "ceil", "round", "abs", "min", "max", "sqrt", "random", "atan2",
+    "log", "exp", "hypot", "sign", "trunc",
+}
 _TIME_UPDATE = re.compile(
     r"\b(?:dt|delta|clock\.getDelta|\btime\b|\bnow\b|performance\.now"
     r"|requestAnimationFrame|animate\b|updateSystem|updateWeather|forEach\s*\("
@@ -53,47 +67,6 @@ _LEGEND = re.compile(
     r"|^\s*\w+\s*:\s*\{\s*id\s*:",
     re.I,
 )
-_BUILTIN_CALLS = {
-    "Math",
-    "console",
-    "document",
-    "window",
-    "JSON",
-    "Object",
-    "Array",
-    "Number",
-    "String",
-    "parseInt",
-    "parseFloat",
-    "isNaN",
-    "isFinite",
-    "if",
-    "for",
-    "while",
-    "switch",
-    "function",
-    "catch",
-    "return",
-    "typeof",
-    "pow",
-    "sin",
-    "cos",
-    "tan",
-    "floor",
-    "ceil",
-    "round",
-    "abs",
-    "min",
-    "max",
-    "sqrt",
-    "random",
-    "atan2",
-    "log",
-    "exp",
-    "hypot",
-    "sign",
-    "trunc",
-}
 
 _AXIS_ALIASES = {
     "fall": "falling",
@@ -204,7 +177,7 @@ def _has_world_call(code: str) -> bool:
 
 
 def _is_config_table(code: str) -> bool:
-    if _has_world_call(code):
+    if _has_world_call(code) or _PLACE_EXEC.search(code) or _THREE.search(code) or _MOTION_MUTATION.search(code):
         return False
     if re.search(r"\bbiome\s*:", code, re.I) and re.search(r"\b(?:count|color|spread|speed)\s*:", code, re.I):
         return True
@@ -217,13 +190,14 @@ def _is_implementing(code: str) -> bool:
     return bool(
         _THREE.search(code)
         or _GEOM_ASSIGN.search(code)
+        or _PLACE_EXEC.search(code)
         or _has_world_call(code)
         or _MOTION_MUTATION.search(code)
     )
 
 
 def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
-    """Reject keyword / hint evidence. Accept any style of world mutation."""
+    """Reject keyword / hint evidence. Placement must mutate the world."""
     code = _code_only(evidence)
     if not code:
         return "comment_only"

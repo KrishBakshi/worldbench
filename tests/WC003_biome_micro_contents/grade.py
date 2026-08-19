@@ -14,7 +14,7 @@ MAX_SCORE = POINTS_PER_BIOME * len(BIOME_IDS)
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
 _GEOM_ASSIGN = re.compile(
-    r"\b(?:h|baseH|height|heightMap|top|side|wc|color|[rgb])\s*[+\-*/]?=",
+    r"\b(?:h|baseH|height|heightMap|top|side|wc|color)\s*[+\-*/]?=(?!=)",
     re.I,
 )
 _THREE = re.compile(
@@ -24,49 +24,22 @@ _THREE = re.compile(
     r"|scene\.add",
     re.I,
 )
-_CALL = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
+_PLACE_EXEC = re.compile(
+    r"scene\.add|group\.add|setMatrixAt|InstancedMesh"
+    r"|\b(?:addBlock|placeBlock|addO|addW|addL|fadd|queue|pb|terra\.add)\s*\("
+    r"|(?:voxelData|blocks|waterBlocks|animals|fallSpots)\.push\s*\("
+    r"|\.add\s*\(",
+    re.I,
+)
 _DART_THROW = re.compile(r"Math\.random\s*\(\s*\)\s*\*\s*GRID")
 _CELL_WALK = re.compile(r"for\s*\([^;]*\bz\b")
+_CALL = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
 _BUILTIN_CALLS = {
-    "Math",
-    "console",
-    "document",
-    "window",
-    "JSON",
-    "Object",
-    "Array",
-    "Number",
-    "String",
-    "parseInt",
-    "parseFloat",
-    "isNaN",
-    "isFinite",
-    "if",
-    "for",
-    "while",
-    "switch",
-    "function",
-    "catch",
-    "return",
-    "typeof",
-    "pow",
-    "sin",
-    "cos",
-    "tan",
-    "floor",
-    "ceil",
-    "round",
-    "abs",
-    "min",
-    "max",
-    "sqrt",
-    "random",
-    "atan2",
-    "log",
-    "exp",
-    "hypot",
-    "sign",
-    "trunc",
+    "Math", "console", "document", "window", "JSON", "Object", "Array", "Number",
+    "String", "parseInt", "parseFloat", "isNaN", "isFinite", "if", "for", "while",
+    "switch", "function", "catch", "return", "typeof", "pow", "sin", "cos", "tan",
+    "floor", "ceil", "round", "abs", "min", "max", "sqrt", "random", "atan2",
+    "log", "exp", "hypot", "sign", "trunc",
 }
 
 
@@ -152,7 +125,7 @@ def _has_world_call(code: str) -> bool:
 
 
 def _is_config_table(code: str) -> bool:
-    if _has_world_call(code):
+    if _has_world_call(code) or _PLACE_EXEC.search(code) or _THREE.search(code):
         return False
     if not re.search(r"\bcount\s*:", code, re.I):
         return False
@@ -160,11 +133,16 @@ def _is_config_table(code: str) -> bool:
 
 
 def _is_implementing(code: str) -> bool:
-    return bool(_THREE.search(code) or _GEOM_ASSIGN.search(code) or _has_world_call(code))
+    return bool(
+        _THREE.search(code)
+        or _GEOM_ASSIGN.search(code)
+        or _PLACE_EXEC.search(code)
+        or _has_world_call(code)
+    )
 
 
 def _reject_reason(evidence: str) -> str | None:
-    """Reject keyword / hint evidence. Accept any style of world mutation."""
+    """Reject keyword / hint evidence. Placement must mutate the world."""
     code = _code_only(evidence)
     if not code:
         return "comment_only"

@@ -40,12 +40,12 @@ flowchart TD
 ## Run
 
 ```bash
-uv run python -m harness.run fable
-uv run python -m harness.run fable --test WC000,WC001
+uv run python -m eval.run fable
+uv run python -m eval.run fable --test WC000,WC001
 uv run python scripts/export_to_web.py --all
 ```
 
-`harness.run` copies `inputs/<model>/world.html` into `outputs/<model>/`, runs the selected tests (or the full ladder), and writes `validation.json`. Direct `uv run python tests/WC00N/...` skips LangSmith.
+`eval.run` copies `inputs/<model>/world.html` into `outputs/<model>/`, runs the selected tests (or the full ladder), and writes `validation.json`. Direct `uv run python tests/WC00N/...` skips LangSmith.
 
 WC003 and WC004 each make ten Gemini calls. There is a 20s pause between them on the full ladder.
 
@@ -55,7 +55,8 @@ WC003 and WC004 each make ten Gemini calls. There is a 20s pause between them on
 inputs/<model>/world.html   # the island under test
 outputs/<model>/            # copied world + per-test artifacts (gitignored)
 tests/WC00N_*/              # one folder per ladder step
-harness/                    # ingest, load, audit, score
+harness/                    # generation: generate (LangGraph generate/debug/fix), model_call, browser_debug
+eval/                       # grading: ingest, loader, validate, score, audit, run
 scripts/export_to_web.py    # slim scores.json into worldbench-web
 ```
 

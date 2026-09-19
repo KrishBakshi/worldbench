@@ -25,7 +25,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from harness.loader import discover_tests  # noqa: E402
+from eval.loader import discover_tests  # noqa: E402
 from harness.status import log  # noqa: E402
 
 OUTPUTS_DIR = REPO_ROOT / "outputs"

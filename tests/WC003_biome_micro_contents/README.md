@@ -36,6 +36,6 @@ uv run python scripts/regrade_probes.py --all
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC003
+uv run python -m eval.run fable --test WC003
 uv run python tests/WC003_biome_micro_contents/main.py path/to/world.html out_dir
 ```

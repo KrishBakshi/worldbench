@@ -46,6 +46,6 @@ Lattice items are 2 points each (14). Island physics is heavier (24). Max is 38.
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC000
+uv run python -m eval.run fable --test WC000
 uv run python tests/WC000_voxel_world/voxel_check.py path/to/world.html [out_dir]
 ```

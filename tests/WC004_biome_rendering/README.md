@@ -38,6 +38,6 @@ uv run python tests/WC004_biome_rendering/main.py --regrade path/to/rendering.js
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC004
+uv run python -m eval.run fable --test WC004
 uv run python tests/WC004_biome_rendering/main.py path/to/world.html out_dir
 ```

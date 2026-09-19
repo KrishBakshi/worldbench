@@ -54,6 +54,6 @@ Elevation is the extracted `elevation_order` list: earlier = higher.
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC002
+uv run python -m eval.run fable --test WC002
 uv run python tests/WC002_biome_placement/main.py path/to/world.html out_dir
 ```

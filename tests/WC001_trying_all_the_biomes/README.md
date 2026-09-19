@@ -42,6 +42,6 @@ Presence here is not placement. WC002 checks neighbors and elevation.
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC001
+uv run python -m eval.run fable --test WC001
 uv run python tests/WC001_trying_all_the_biomes/biome_check.py path/to/world.html [out_dir]
 ```

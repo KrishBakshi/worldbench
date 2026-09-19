@@ -42,7 +42,7 @@ Banned: stars, starfield, sky dome. The void stays black.
 ## Run
 
 ```bash
-uv run python -m harness.run fable --test WC005
+uv run python -m eval.run fable --test WC005
 uv run python tests/WC005_day_night_seasons/main.py path/to/world.html out_dir
 uv run python tests/WC005_day_night_seasons/main.py --regrade path/to/cycle.json
 ```

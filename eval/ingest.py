@@ -4,7 +4,7 @@
         full ladder (every WC* test against that one world)
 
     inputs/<model>__<test_dir>/world.html
-        legacy single-test folder; still valid for `harness.run model__WC00N_...`
+        legacy single-test folder; still valid for `eval.run model__WC00N_...`
 
 No generate step — see CLAUDE.md's deferred note.
 """

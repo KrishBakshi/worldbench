@@ -1,17 +1,17 @@
 """CLI: ingest a world, validate it, print the score.
 
-LangSmith is on this path only (see harness/audit.py). Direct
+LangSmith is on this path only (see eval/audit.py). Direct
 `uv run python tests/WC00N/...` does not trace.
 
 Usage:
-    uv run python -m harness.run <model>
+    uv run python -m eval.run <model>
         Full ladder: WC000 → WC005 against inputs/<model>/world.html
 
-    uv run python -m harness.run <model> --test WC000 --test WC001
-    uv run python -m harness.run <model> --test WC000,WC001
-        A subset, still through the harness. Existing scores for other tests are kept.
+    uv run python -m eval.run <model> --test WC000 --test WC001
+    uv run python -m eval.run <model> --test WC000,WC001
+        A subset, still through eval. Existing scores for other tests are kept.
 
-    uv run python -m harness.run <model>__WC001_trying_all_the_biomes
+    uv run python -m eval.run <model>__WC001_trying_all_the_biomes
         Legacy: inputs/<model>__<test_dir>/world.html, that test only.
 """
 
@@ -27,10 +27,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 load_dotenv(REPO_ROOT / ".env")
 
-from harness.ingest import ingest  # noqa: E402
-from harness.loader import resolve_test  # noqa: E402
+from eval.ingest import ingest  # noqa: E402
+from eval.loader import resolve_test  # noqa: E402
+from eval.validate import validate  # noqa: E402
 from harness.status import log  # noqa: E402
-from harness.validate import validate  # noqa: E402
 
 
 def parse_name(name: str) -> tuple[str, str | None]:

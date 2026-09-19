@@ -20,9 +20,9 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from langsmith import traceable
 
 from checks.structural import check_input_ready
-from harness.audit import run_audited_check
-from harness.loader import discover_tests, load_check, resolve_test
-from harness.score import score_records
+from eval.audit import run_audited_check
+from eval.loader import discover_tests, load_check, resolve_test
+from eval.score import score_records
 from harness.status import log, timed
 
 # WC003 is 10 Gemini probes; WC004 is 10 more. Free-tier RPM needs a gap.
@@ -78,6 +78,14 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
             existing_checks = dict(json.loads(prev_path.read_text(encoding="utf-8")).get("checks") or {})
         except (OSError, json.JSONDecodeError):
             existing_checks = {}
+        # Drop stale entries for tests being re-run this pass — otherwise a
+        # check removed from a test's own test.yaml (or renamed) lingers in
+        # validation.json forever, since nothing in this run ever overwrites
+        # it. Only checks for tests NOT selected this run should carry over.
+        selected_prefixes = tuple(f"{t['dir_name']}::" for t in selected)
+        existing_checks = {
+            key: record for key, record in existing_checks.items() if not key.startswith(selected_prefixes)
+        }
 
     result = {
         "model": model,

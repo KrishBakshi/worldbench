@@ -1,7 +1,7 @@
 """Wraps a check call so it becomes an auditable LangSmith run: the full
 per-item breakdown plus the score, not just pass/fail.
 
-This is a harness concern. Direct `uv run python tests/WC00N/...` does
+This is an eval concern. Direct `uv run python tests/WC00N/...` does
 not import this module. @traceable no-ops unless LANGSMITH_TRACING=true
 and LANGSMITH_API_KEY are set (loaded from .env via python-dotenv).
 """
@@ -19,7 +19,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from langsmith import traceable
 
-from harness.score import score_result
+from eval.score import score_result
 
 
 def _to_jsonable(result) -> dict:

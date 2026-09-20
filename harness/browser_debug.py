@@ -24,6 +24,22 @@ both cases, since the ErrorEvent/PromiseRejectionEvent carries source
 position independent of whether a stack exists. `console.error()` calls
 get their location straight from Playwright's own `msg.location`, no
 injection needed.
+
+The suffix reports the CALLER FRAMES too, not just the throw site:
+`(line 104, col 27; called from line 383, line 397)`. This is not
+cosmetic — for a whole class of JS errors the throw site is correct code
+and the bug is in the caller. Seen for real: a world.html defined
+`jit=(c,rnd)=>c*(0.9+rnd()*0.2)` on line 104 and called it as
+`jit(color, Rv())` — passing the RNG's *result* instead of the RNG
+itself — on lines 383/397/412. `rnd is not a function` was reported at
+line 104, the fix node windowed +/-40 lines around it, and the model was
+handed a perfectly correct arrow function and asked what was wrong with
+it. Three fix rounds produced zero edits, which was the only honest
+answer available to it. The caller frames were sitting in `exc.stack`
+the whole time and were being discarded here. Frames are filtered to
+this document (CDN/three.module.js frames are noise for a fix window),
+deduplicated for recursion, and capped at MAX_CALLER_FRAMES so a deep
+in-file stack can't expand the "windowed" excerpt into the whole file.
 """
 
 from __future__ import annotations
@@ -36,6 +52,14 @@ from playwright.sync_api import sync_playwright
 
 DEFAULT_TIMEOUT_MS = 5000
 DEFAULT_NAV_TIMEOUT_MS = 15000
+# How many caller frames (beyond the throw site) to report. Each one becomes
+# another +/-FIX_CONTEXT_LINES window in the fix prompt, so this is the knob
+# that keeps a "windowed" fix round actually windowed: 4 callers x 81 lines is
+# a worst case of ~405 lines before overlap-merging, still a small fraction of
+# a typical several-hundred-to-thousand-line world.html. Frames past this are
+# dropped from the deepest end — the immediate caller is where these bugs
+# overwhelmingly live, and top-level init frames add the least.
+MAX_CALLER_FRAMES = 4
 
 _LOC_MARKER = "__WB_LOC__"
 _LOCATION_INIT_SCRIPT = f"""
@@ -54,10 +78,36 @@ window.addEventListener('unhandledrejection', (e) => {{
 """
 
 
-def _loc_suffix(lineno: int | None, colno: int | None) -> str:
+def _loc_suffix(lineno: int | None, colno: int | None, callers: list[int] | None = None) -> str:
+    """Render the `(line N, col N; called from line A, line B)` suffix.
+
+    generate.py's _LOCATION_RE parses this exact shape back out, so the
+    two must change together — the whole parenthesized group is isolated
+    there and every `line N` inside it becomes a fix-context window.
+    """
     if lineno is None:
         return ""
-    return f" (line {lineno}, col {colno})" if colno is not None else f" (line {lineno})"
+    head = f"line {lineno}, col {colno}" if colno is not None else f"line {lineno}"
+    if callers:
+        head += "; called from " + ", ".join(f"line {n}" for n in callers)
+    return f" ({head})"
+
+
+def _stack_frames(stack: str, page_url: str) -> list[tuple[int, int]]:
+    """Every `(line, col)` in `stack` belonging to `page_url`, in call order.
+
+    Frames from the Three.js CDN are deliberately excluded: they're not
+    editable by the fix node, and windowing around them would waste the
+    context budget on library internals. Deduplicated because a recursive
+    or per-frame throw repeats the same frame many times over.
+    """
+    frame_re = re.compile(re.escape(page_url) + r":(\d+):(\d+)")
+    frames: dict[tuple[int, int], None] = {}
+    for line in stack.split("\n"):
+        m = frame_re.search(line)
+        if m:
+            frames.setdefault((int(m.group(1)), int(m.group(2))), None)
+    return list(frames.keys())
 
 
 def check_console_errors(
@@ -67,7 +117,9 @@ def check_console_errors(
     nav_timeout_ms: int = DEFAULT_NAV_TIMEOUT_MS,
 ) -> list[str]:
     """Load `html_path` headless and return distinct console/page errors seen,
-    each suffixed with `(line N, col N)` when a location could be found.
+    each suffixed with `(line N, col N)` when a location could be found, plus
+    `; called from line A, line B` for up to MAX_CALLER_FRAMES in-document
+    caller frames when the error carries a stack.
 
     Order-preserving de-duplication: a per-frame throw inside an animation
     loop (requestAnimationFrame) repeats the identical message every frame
@@ -76,6 +128,7 @@ def check_console_errors(
     one here since that's one bug, not six hundred.
     """
     html_path = Path(html_path).resolve()
+    page_url = f"file://{html_path}"
     seen: dict[str, None] = {}
     # window.onerror/unhandledrejection fire in the same browser-side order as
     # the pageerror events they correspond to, so a FIFO queue correlates them
@@ -99,17 +152,18 @@ def check_console_errors(
             _record(f"[console.error] {msg.text}{suffix}")
 
     def _on_pageerror(exc) -> None:
+        # Runtime errors (unlike parse-time SyntaxErrors, which V8 never
+        # builds a stack for) carry a real stack. Parse it always, not just
+        # as a fallback for a missing primary location: the frames AFTER the
+        # throw site are the point — see the module docstring's jit/rnd case.
+        frames = _stack_frames(getattr(exc, "stack", "") or "", page_url)
         lineno = colno = None
         if loc_queue:
             lineno, colno = loc_queue.pop(0)
-        if lineno is None:
-            # runtime errors (unlike parse-time SyntaxErrors) carry a real
-            # stack — pull "file:LINE:COL" off its first frame as a fallback
-            stack = getattr(exc, "stack", "") or ""
-            m = re.search(r":(\d+):(\d+)\)?\s*(?:\n|$)", stack)
-            if m:
-                lineno, colno = int(m.group(1)), int(m.group(2))
-        _record(f"[uncaught] {exc}{_loc_suffix(lineno, colno)}")
+        if lineno is None and frames:
+            lineno, colno = frames[0]
+        callers = [ln for ln, _ in frames if ln != lineno][:MAX_CALLER_FRAMES]
+        _record(f"[uncaught] {exc}{_loc_suffix(lineno, colno, callers)}")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -119,7 +173,7 @@ def check_console_errors(
         page.on("pageerror", _on_pageerror)
 
         try:
-            page.goto(f"file://{html_path}", timeout=nav_timeout_ms)
+            page.goto(page_url, timeout=nav_timeout_ms)
         except Exception as exc:  # noqa: BLE001 — navigation failure is itself a finding
             _record(f"[navigation] {exc}")
         else:

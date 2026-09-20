@@ -191,6 +191,24 @@ property of the world.
       queue (both fire for the same underlying event, in the same
       order). `console.error()` calls get their location straight from
       Playwright's own `msg.location` — no injection needed there.
+    - **The suffix reports caller frames too, not just the throw site:**
+      `(line 104, col 27; called from line 383, line 397)`. This is not
+      cosmetic. For a whole class of JS errors the throw site is correct
+      code and the defect is in the *caller*, so a fix window centered on
+      the throw site shows the model nothing wrong. Seen for real on
+      `inputs/nex-n2.5-pro`: `jit=(c,rnd)=>c*(0.9+rnd()*0.2)` on line 104
+      was called as `jit(color, Rv())` — the RNG's *result* instead of
+      the RNG — on lines 383/397/412. `rnd is not a function` reported
+      line 104, the window covered 64–144, and all 3 fix rounds made zero
+      edits, which was the only honest answer available. The frames were
+      in `exc.stack` all along and were being discarded. Now parsed
+      always (not just as a fallback for a missing primary location),
+      filtered to this document (CDN/`three.module.js` frames aren't
+      editable by `fix` and would waste the context budget), deduped for
+      recursion, capped at `MAX_CALLER_FRAMES` (4) so a deep in-file
+      stack can't quietly expand a "windowed" excerpt into the whole
+      file. `_loc_suffix()` and `generate.py`'s `_LOCATION_RE` are two
+      ends of one format — change them together.
 - `eval/` — **evaluation only**, one script per pipeline stage. Never
   imports from `harness/` (generation doesn't need eval, and eval treats
   whatever's in `inputs/<name>/world.html` as a given, however it got

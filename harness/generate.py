@@ -231,12 +231,22 @@ def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = 
     if force_full_file or any(e.startswith("[structure]") for e in errors):
         return html, True
 
-    line_numbers = _error_line_numbers(errors)
+    lines = html.split("\n")
+    total = len(lines)
+    # Drop locations that aren't in this file at all. A console.error raised
+    # from inside the Three.js CDN bundle reports ITS line number (seen for
+    # real: `computeBoundingSphere(): Computed radius is NaN` at line 10951
+    # of three.module.js, against an 806-line world.html), and Playwright's
+    # msg.location gives no way to tell which script it came from. Windowing
+    # on it yields range(10911, 807) — an empty excerpt handed to a
+    # str_replace-only round, i.e. the same "fix this, but you can't see it"
+    # dead end caller frames were added to eliminate. Out of range means the
+    # bug is somewhere in our file we can't localize, which is what the
+    # full-file fallback is for.
+    line_numbers = [n for n in _error_line_numbers(errors) if 1 <= n <= total]
     if not line_numbers:
         return html, True
 
-    lines = html.split("\n")
-    total = len(lines)
     windows = sorted([max(1, n - FIX_CONTEXT_LINES), min(total, n + FIX_CONTEXT_LINES)] for n in set(line_numbers))
     merged: list[list[int]] = []
     for w in windows:

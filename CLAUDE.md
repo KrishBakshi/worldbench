@@ -124,10 +124,20 @@ property of the world.
       a tool on a windowed round (not just discouraged by the prompt —
       physically absent from `tools=`), since calling it with only a
       window in hand would silently truncate the file to that window.
-      Falls back to the complete file in the two cases a window can't
+      Falls back to the complete file in the three cases a window can't
       cover: any `[structure]` problem in the batch (the whole document
-      is what's broken), or no error in the batch carries a location at
-      all. **"Not bound" alone isn't enough — the dispatch loop checks
+      is what's broken), no error in the batch carries a location at
+      all, or `force_full_file` — **a windowed round that called no tool
+      and applied no edit escalates the next round to the complete
+      file.** That outcome is evidence the window is pointing where the
+      bug isn't, not that the model was idle; without the escalation a
+      run re-sends the same useless excerpt until `--max-fix-rounds` is
+      exhausted, which is exactly how `inputs/nex-n2.5-pro` spent all 3
+      attempts producing zero edits. The escalation is a safety net for
+      when caller-frame windowing (see `browser_debug.py` below) still
+      misses — it is not a substitute for it, since a fix round spent
+      discovering the window was wrong is still a round spent.
+      **"Not bound" alone isn't enough — the dispatch loop checks
       `call["name"]` against `available_tools` before invoking anything**,
       returning an `ERROR:` ToolMessage instead of executing it. Not
       theoretical: a free-tier model, mid-dry-run, still emitted a

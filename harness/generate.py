@@ -89,6 +89,7 @@ class AgentState(TypedDict):
     reasoning: bool | None
     errors: list[str]
     fix_history: list[str]
+    force_full_file: bool
     _generate_reasoning: str
     _generate_html: str
     _fix_reasoning: str | None
@@ -211,7 +212,7 @@ def _error_line_numbers(errors: list[str]) -> list[int]:
     return lines
 
 
-def _build_fix_context(html: str, errors: list[str]) -> tuple[str, bool]:
+def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = False) -> tuple[str, bool]:
     """Return (text_shown_to_model, is_full_file).
 
     The common case — a runtime problem with a known `(line N)` location and
@@ -219,12 +220,15 @@ def _build_fix_context(html: str, errors: list[str]) -> tuple[str, bool]:
     (+/- FIX_CONTEXT_LINES) around each error, not the whole file: that's
     the actual point of this function, industry-standard for a coding
     harness working against files far larger than any one bug. Falls back
-    to the complete file in the two cases where a window genuinely isn't
+    to the complete file in three cases where a window genuinely isn't
     enough: any [structure] problem present (the whole document is what's
-    broken, a full rewrite needs to see all of it), or no error in this
-    batch carries a location to window around at all.
+    broken, a full rewrite needs to see all of it), no error in this batch
+    carrying a location to window around at all, or `force_full_file` — the
+    previous windowed round came back with no edits at all (see
+    _fix_node), which is evidence the window is pointing somewhere the bug
+    isn't, not that the model was idle.
     """
-    if any(e.startswith("[structure]") for e in errors):
+    if force_full_file or any(e.startswith("[structure]") for e in errors):
         return html, True
 
     line_numbers = _error_line_numbers(errors)
@@ -276,9 +280,16 @@ def _fix_node(state: AgentState) -> dict:
         edits.append((old_str, new_str))
         return "OK: edit applied."
 
-    context_text, is_full_file = _build_fix_context(current_html, state["errors"])
+    context_text, is_full_file = _build_fix_context(
+        current_html, state["errors"], force_full_file=state["force_full_file"]
+    )
     total_lines = current_html.count("\n") + 1
     if is_full_file:
+        if state["force_full_file"]:
+            log(
+                f"[fix]    round {state['round']}: escalating to the full "
+                f"{total_lines}-line file — the previous windowed round made no edits"
+            )
         file_block = f"Current world.html (complete, {total_lines} lines):\n```html\n{context_text}\n```"
         available_tools = [str_replace, write_world_html]
     else:
@@ -380,7 +391,15 @@ def _fix_node(state: AgentState) -> dict:
         _print_output_block(f"fixed output, round {state['round']}", current_html)
     else:
         note = f"round {state['round']}: no edits made (tools called: {tool_names_used or 'none'})"
+        if not is_full_file:
+            note += " — windowed excerpt evidently didn't contain the bug; next round gets the complete file"
         log(f"[fix]    {note}")
+
+    # A windowed round that called no tool and applied no edit is the signal
+    # that the excerpt was pointing at the wrong place — not that there was
+    # nothing to do. Burning the remaining rounds on the same window is how a
+    # real run spent all 3 attempts producing zero edits. Escalate instead.
+    escalate = not is_full_file and not edits and "content" not in written
 
     _tag_current_run(
         round_n=state["round"],
@@ -391,11 +410,13 @@ def _fix_node(state: AgentState) -> dict:
         tools_used=tool_names_used,
         edits_applied=len(edits),
         full_rewrite="content" in written,
+        escalate_to_full_file=escalate,
         outcome=note,
     )
     return {
         "round": state["round"] + 1,
         "fix_history": state["fix_history"] + [note],
+        "force_full_file": escalate,
         "_fix_reasoning": fix_reasoning,
     }
 
@@ -455,6 +476,7 @@ def run(
             "reasoning": reasoning,
             "errors": [],
             "fix_history": [],
+            "force_full_file": False,
         }
     )
     dest = _html_path(name)

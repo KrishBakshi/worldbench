@@ -184,15 +184,30 @@ _FIX_SYSTEM = (
     "Stop calling tools once you believe every listed problem is fixed."
 )
 
-_LOCATION_RE = re.compile(r"\(line (\d+)(?:, col \d+)?\)")
+# Two-step on purpose. _LOCATION_RE isolates the suffix browser_debug.py
+# appends (`(line 104, col 27; called from line 383, line 397)`) and nothing
+# else; _LINE_NO_RE then pulls EVERY line number out of that matched group.
+# Doing it in one pass would mean running findall over the whole error string,
+# where a model's own `console.error("line 5 failed")` would register as a
+# source location. Matches the old single-location format unchanged.
+_LOCATION_RE = re.compile(r"\(line \d+(?:, col \d+)?(?:; called from line \d+(?:, line \d+)*)?\)")
+_LINE_NO_RE = re.compile(r"line (\d+)")
 
 
 def _error_line_numbers(errors: list[str]) -> list[int]:
+    """Every source line worth windowing around, across all errors.
+
+    Includes caller frames, not just throw sites: for `X is not a function`
+    /`undefined is not an object`-class errors the throw site is usually
+    correct code and the defect is in the caller, so windowing on the throw
+    site alone shows the model nothing wrong (see browser_debug.py's
+    docstring for the run this comes from).
+    """
     lines = []
     for e in errors:
         m = _LOCATION_RE.search(e)
         if m:
-            lines.append(int(m.group(1)))
+            lines.extend(int(n) for n in _LINE_NO_RE.findall(m.group(0)))
     return lines
 
 

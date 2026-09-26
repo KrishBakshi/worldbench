@@ -1,7 +1,11 @@
 """Validate one world.html against one test, several tests, or the full WC* ladder.
 
 1. checks.structural.check_input_ready — fail fast if the file is missing/wrong.
-2. For each selected test.yaml check: load + run_audited_check (LangSmith).
+2. eval.capture.run.capture — once per world, if any selected test.yaml says
+   needs_capture: the daytime preview, fixed views and the navigator agent's
+   biome frames that every visual judge reads. A capture failure is recorded,
+   not fatal; each visual test then reports its own failure.
+3. For each selected test.yaml check: load + run_audited_check (LangSmith).
 
 Direct test scripts do not call this. Harness does — that is what makes a
 run auditable.
@@ -21,6 +25,7 @@ from langsmith import traceable
 
 from checks.structural import check_input_ready
 from eval.audit import run_audited_check
+from eval.capture.run import capture
 from eval.loader import discover_tests, load_check, resolve_test
 from eval.score import score_records
 from harness.status import log, timed
@@ -72,6 +77,11 @@ def _is_full_ladder(selected: list[dict]) -> bool:
 def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
     structural = check_input_ready(output_dir)
     existing_checks: dict = {}
+    # Keys of checks that still exist in some test.yaml. Anything else in an
+    # old validation.json (a removed test like WC001, a removed check like
+    # check_voxel_world or check_bedrock) is dropped, so totals only ever sum
+    # the current ladder.
+    live_keys = {f"{t['dir_name']}::{c['function']}" for t in discover_tests() for c in t["checks"]}
     prev_path = output_dir / "validation.json"
     if prev_path.is_file() and not _is_full_ladder(selected):
         try:
@@ -84,7 +94,9 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
         # it. Only checks for tests NOT selected this run should carry over.
         selected_prefixes = tuple(f"{t['dir_name']}::" for t in selected)
         existing_checks = {
-            key: record for key, record in existing_checks.items() if not key.startswith(selected_prefixes)
+            key: record
+            for key, record in existing_checks.items()
+            if not key.startswith(selected_prefixes) and key in live_keys
         }
 
     result = {
@@ -106,6 +118,21 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
         return result
 
     world_html = str(output_dir / "world.html")
+    if any(t.get("needs_capture") for t in selected):
+        with timed("capture  views for the visual judges") as info:
+            try:
+                manifest = capture(output_dir)
+                framed = sum(1 for b in manifest.get("biomes", {}).values() if b.get("status") == "found")
+                info["detail"] = f"{len(manifest.get('views', {}))} views, {framed}/10 biomes framed"
+                result["capture"] = {
+                    "views": len(manifest.get("views", {})),
+                    "biomes": {k: v.get("status") for k, v in manifest.get("biomes", {}).items()},
+                    "time": manifest.get("time"),
+                    "preview_ok": manifest.get("preview", {}).get("ok"),
+                }
+            except Exception as exc:
+                info["detail"] = f"failed: {exc}"
+                result["capture"] = {"error": str(exc)}
     n = len(selected)
     for i, test in enumerate(selected, 1):
         test_out = output_dir / test["dir_name"]

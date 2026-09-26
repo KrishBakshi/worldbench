@@ -17,32 +17,37 @@ property of the world.
   test looks for. Nothing content-specific is factored out preemptively.
   - `test.yaml`'s `checks:` list gives, per check, a `script:` (filename,
     relative to that test's own folder) and a `function:` name.
-  - Example: `tests/WC001_trying_all_the_biomes/biome_check.py` defines
-    `has_all_biomes()`, a regex/keyword check that the world mentions all
-    10 canonical biomes (see `BIOMES` in that file — sourced from
-    `worldbench-web/components/about/BiomeGraph.tsx`, a spoiler file never
-    shown to the model). Verified trustworthy against 12 real outputs
-    (see `dry_runs/dry_run_regex_patterns.py` below) before being
-    accepted as the check — no LLM fallback was needed.
-  - Example: `tests/WC002_biome_placement/placement_check.py` checks
-    *where* each biome sits, not just that it exists — does its
-    placement respect the water-flow/adjacency graph in
-    `BiomeGraph.tsx`. Two phases: (1) an LLM (OpenRouter via LangChain)
-    reads the raw source and extracts, per biome, its adjacent biomes +
-    a global elevation ordering, each claim cited to source evidence;
-    (2) `grade_graph()` — pure Python, no LLM — checks that extraction
-    against `RULES`, a connectivity/elevation predicate table mirroring
-    the same reference graph. A dry-run experiment first confirmed
-    regex/parsing can't do this: across the 12 real outputs, position
-    data was either completely absent (2/12) or present in a different
-    bespoke shape every time (a `regions=[{cx,cz,base}]` array, a
-    `{cam,tgt}` camera-preset list, `center`/`target`/`focus` fields,
-    etc.) — no shared schema to regex against. A rendered-screenshot
-    vision-LLM approach was tried next and abandoned after camera
-    interaction via simulated mouse drag proved unreliable across
-    independently hand-rolled control schemes. Extraction is untested
-    without `OPENROUTER_API_KEY` set; `grade_graph()` is verified
-    directly (hand-built perfect/broken graphs, not the LLM path).
+  - `test.yaml` may set `needs_capture: true`: the test reads the shared
+    capture (below), so `eval/validate.py` captures before running it.
+  - Ladder (max 280, every max fixed so totals compare across models):
+    WC000 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
+    coverage + placement 20, WC003 micro-contents 100, WC004 physics 100,
+    WC005 temporal cycles 20. **There is no WC001**: its keyword coverage
+    check was folded into WC002 and deleted — every scored model got 10/10
+    and a one-line fake (`const pine=1,...,lava=9`) got 10/10 too.
+  - **WC000's regex voxel check (`voxel_check.py`) was removed**, not tuned:
+    43 of its 83 pattern branches matched exactly one model's file, and
+    consistently renaming variables (behaviour-preserving) moved scores by
+    up to 14/38. `voxel_judge.py` asks an LLM for a probability + verbatim
+    quote per item instead. Don't reintroduce identifier-keyed regex for a
+    property of the built world.
+  - Example: `tests/WC002_biome_placement/` — coverage + placement. (1)
+    classify (LLM) slices the JS per biome; `coverage.py` counts a biome
+    covered only if marked present AND its quoted layout code is really in
+    the source; (2) extract (LLM) gives neighbors + elevation order; (3)
+    `grade_graph()` — pure Python — 1 point per covered biome + 1 if its
+    `RULES` pass. An uncovered biome is 0/2 and drawn grey "not covered"
+    (three node states in `plot.py`), and rules pointing at it are
+    *skipped*, not failed, so one absence costs 2 points, not 4–5.
+    Regex/parsing was ruled out first: across 12 real outputs position
+    data was absent (2/12) or a different bespoke shape every time.
+  - WC003/WC004/WC005 are **code probe + visual judge**: each item's points
+    are split between a verified code quote and what the captured frames
+    show (WC004 motion and WC005's cloud/weather items stay code-only —
+    stills can't show motion). WC005 measures "does X change" from pixels
+    (brightness, frame diff, chromaticity) rather than asking the VLM: on
+    kimi-k-3 the VLM called lighting "identical" across frames whose mean
+    brightness was 11.9 / 35.0 / 11.6 / 11.5.
 - `checks/` — **generic structural pre-checks only**, shared by every
   test (unlike content checks, which stay in each test's own folder — see
   **Conventions** below for the distinction).
@@ -291,7 +296,49 @@ property of the world.
 - `eval/` — **evaluation only**, one script per pipeline stage. Never
   imports from `harness/` (generation doesn't need eval, and eval treats
   whatever's in `inputs/<name>/world.html` as a given, however it got
-  there — `generate.py` or hand-placed).
+  there — `generate.py` or hand-placed). `harness/status.py` is the one
+  import both sides share.
+  - `capture/` — **the shared capture stage**, run once per world before
+    any `needs_capture` test; writes `outputs/<model>/capture/` (views +
+    `manifest.json`, reused while `world.html`'s sha256 is unchanged).
+    This reverses the earlier "avoid headless browser infra" stance on
+    purpose: visual judging was chosen, so capture is built once, well,
+    instead of each test hand-rolling Playwright.
+    - `preview.py` — an LLM patches the world's **own** clock to obey
+      `window.__WB_TIME` (filled by `hook.js` from `?wb_tod=&wb_season=`).
+      Guards: every `new_str` must read `__WB_TIME`, ≤ 600 added chars per
+      edit, ≤ 6 edits, each `old_str` unique — a patcher that added its own
+      lighting would hand WC005 a cycle the model never wrote.
+    - `run.py` — renders tod 0/.25/.5/.75 and takes the **brightest** as
+      day (`pick_day_tod`) instead of trusting the patch's phase mapping.
+      On kimi-k-3 the patch mapped noon to tod .25 (dropped a +0.6 offset);
+      the brightness pick caught it. Then overview, 4 orbit directions, 4
+      seasons, then the agent. Deterministic views before agent views.
+    - `hook.js` — init script: seeded `Math.random` (an unseeded world
+      builds a different island per reload), `window.__wb` scene/camera via
+      Three's `__THREE_DEVTOOLS__` observe hook (no edit to the model's
+      code), and `__WB_TIME`.
+    - `browser.py` — headless Chrome via the **Chrome DevTools MCP server**
+      (`npx chrome-devtools-mcp`, MCP stdio). No coordinate drag tool, so
+      orbit/pan/zoom dispatch synthetic pointer/wheel events on the canvas
+      (OrbitControls doesn't check `isTrusted`; verified on 3 models). The
+      server only writes screenshots inside declared MCP roots —
+      `_repo_roots` declares the repo.
+    - `navigator.py` — per-biome LLM agent (legend click / orbit / pan /
+      zoom / save / give_up), "caveman mode": fresh short context per
+      biome, terse prompt, one tool call per turn, only the newest frame
+      kept as an image, filtered a11y tree, 8-step budget. **Its "found"
+      is not trusted**: on kimi-k-3 it saved the volcano as "Backwater
+      Swamp" at confidence 1.0 — judges re-confirm `shows_biome`.
+    - `judge.py` — the shared per-biome visual item judge (WC003/WC004).
+    - `llm.py` — judge model (`CAPTURE_MODEL` → `WC002_MODEL`), images
+      downscaled to 896px JPEG. `gemini-3.5-flash-lite` ignores
+      `temperature` (fixed sampling), so judges are not bit-repeatable.
+  - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
+    quote must really be in the source (whitespace-insensitive, per line,
+    tolerant of a garbled line *tail* — ≥85% prefix — not of invented
+    lines). Before this, graders only checked a quote *looked* like code,
+    so a plausible invented `scene.add(new THREE.Mesh(palmGeo, …))` scored.
   - `loader.py` — `load_check(module_path, function_name)`: dynamically
     imports a check function from a test's own script by file path (not
     package import, since each test's checks live in that test's own
@@ -299,24 +346,27 @@ property of the world.
     `scripts/dry_run_regex_patterns.py` — the loading logic lives here
     once, dev scripts import it from here, never the reverse.
   - `ingest.py` — `ingest(name)` copies `inputs/<name>/world.html`
-    (`name` = `<model>__<test_dir_name>`, `test_dir_name` matching a
-    folder under `tests/` exactly, e.g.
-    `opus-5__WC001_trying_all_the_biomes`) into `outputs/<name>/world.html`.
-  - `validate.py` — `validate(output_dir, test_dir_name)`: two-stage. (1)
+    (`name` = `<model>`, or legacy `<model>__<test_dir_name>`) into
+    `outputs/<name>/world.html`.
+  - `validate.py` — `validate(output_dir, test_dir_name)`: (1)
     `checks.structural.check_input_ready()` — fail fast if the input
-    itself is missing or wrong; (2) only if that passes, reads the test's
-    `test.yaml`, loads + runs every listed check via `loader.py` +
-    `audit.py`. Writes `validation.json` into `output_dir` and returns
-    the same dict.
+    itself is missing or wrong; (2) capture, if any selected test has
+    `needs_capture` (a failure is recorded, not fatal); (3) loads + runs
+    every listed check via `loader.py` + `audit.py`. Old `validation.json`
+    entries for checks no longer in any `test.yaml` are dropped, so totals
+    only sum the current ladder. Writes `validation.json`.
   - `score.py` — **real, not a stub.** `score_result(check_result)` turns
     one `CheckResult` into points: a check earns per-item scoring by
-    putting `score`/`max_score` in its own `details` (as
-    `biome_check.has_all_biomes` does — one point per biome found, e.g.
-    9/10 if one is missing); any check that doesn't falls back to plain
+    putting `score`/`max_score` in its own `details` (every WC check
+    does); any check that doesn't falls back to plain
     1/0 pass-fail (e.g. `checks/structural.py`'s checks). `score_report()`
     aggregates several named results for one test's output into a
     `report.json`-shaped dict. `scripts/dry_run_regex_patterns.py` already
     uses this to print `score/max_score` per world, not just pass/fail.
+    `apply_island_gate()` drops the delta biome's points on **WC004 only**
+    when any WC000 check's `missing` has `water_bed`, `water_physics` or
+    `ocean_void`. WC003 is not gated: it judges the seabed from its own
+    frames and zeroes delta itself — gating both would charge it twice.
   - `run.py` — **real CLI entrypoint.** `uv run python -m eval.run
     <model>__<test_dir_name>` — ingest + validate + score for one input
     folder under `inputs/`, printing per-check pass/fail + score and

@@ -12,15 +12,28 @@ Day items (green) hang off the day clock. Season items (gold) hang off the year 
 flowchart TD
     html["world.html"]
     html --> strip["strip to inline JS"]
-    strip --> probe["one LLM probe"]
-    probe --> grade["grade look + motion + cycle rejects"]
-    grade --> score["10 items share 10 points"]
+    strip --> probe["one code probe (LLM)"]
+    html --> prev["capture: clock patched to obey ?wb_tod=&wb_season="]
+    prev --> frames["4 time-of-day frames + 4 season frames"]
+    frames --> px["pixels: brightness, frame diff, color shift"]
+    frames --> vlm["VLM: sun, moon, stars, season change"]
+    probe --> grade["2 points per item: half code, half frames"]
+    px --> grade
+    vlm --> grade
+    grade --> score["max 20"]
 ```
 
-1. Strip `world.html` to inline JS.
-2. One LLM probe against `prompts/templates.json`.
-3. Grade look and motion the same way WC004 does, plus cycle-specific rejects: HUD-only season text, starfields, atmosphere domes.
-4. Ten items share 10 points. Stars / sky dome is a leak. Max 10.
+1. The code probe works as before: one LLM call against `prompts/templates.json`, graded for look and motion plus cycle-specific rejects (HUD-only season text, starfields, atmosphere domes). Quotes must really appear in the source.
+2. The shared capture patches the world's own clock so time can be pinned from the URL, then renders four time-of-day frames. The brightest is taken as day and the darkest as night. If the world has seasons, it also renders four season frames at day.
+3. "Does X change?" is measured from pixels, not asked. On kimi-k-3 the VLM called the lighting "identical" across frames whose brightness was 11.9 / 35.0 / 11.6 / 11.5.
+   - `night_dimming`: the night frame is darker than day.
+   - `light_follows_sun`: some time frame differs visibly from day.
+   - `dusk_dawn_tint`: a twilight frame's colour shifts.
+   - `season_world_tint`: a season frame's colour shifts.
+4. Object questions go to the VLM: sun, moon, fog, a visibly changing season, and stars or a sky dome (a leak).
+5. `cloud_drift_wrap` and `season_modulates_weather` can't be seen in still frames, so they score on code alone. If the clock patch failed, every item scores on code alone.
+
+The pixel thresholds were calibrated on one world so far. Re-check them on more worlds before trusting small margins.
 
 ## Items
 

@@ -27,6 +27,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from eval.capture import judge as visual_io  # noqa: E402
+from eval.capture.llm import raise_if_mostly_failed  # noqa: E402
 from eval.evidence import normalize  # noqa: E402
 
 
@@ -84,7 +85,9 @@ def check_biome_micro_contents(
 ) -> CheckResult:
     selected = biome_ids or BIOME_IDS
     reports = probe_all(html_path, model, selected)
+    raise_if_mostly_failed(reports, "code probe")
     visual = judge_all(html_path, selected, model)
+    raise_if_mostly_failed(visual, "visual judge")
     result = grade_reports(reports, selected, visual, normalize(strip_html(html_path)))
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     result.details["artifacts"] = write_artifacts(dest, reports, result, visual)

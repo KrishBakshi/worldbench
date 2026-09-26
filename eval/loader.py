@@ -1,7 +1,7 @@
 """Shared dynamic import for test check scripts.
 
 Each test keeps its own check script(s) in its own folder (e.g.
-tests/WC001_trying_all_the_biomes/biome_check.py) rather than a shared
+tests/WC002_biome_placement/main.py) rather than a shared
 importable package, so loading one means importing by file path, not by
 package name. Both harness/validate.py (the real pipeline) and
 scripts/dry_run_regex_patterns.py (the dev tool that sanity-checks a
@@ -24,7 +24,7 @@ TESTS_DIR = REPO_ROOT / "tests"
 
 
 def discover_tests() -> list[dict]:
-    """Every WC* folder with a test.yaml, in ladder order (WC000, WC001, …)."""
+    """Every WC* folder with a test.yaml, in ladder order (WC000, WC002, …)."""
     tests = []
     for yaml_path in sorted(TESTS_DIR.glob("WC*/test.yaml")):
         data = yaml.safe_load(yaml_path.read_text()) or {}
@@ -34,6 +34,7 @@ def discover_tests() -> list[dict]:
                 "id": data.get("id", yaml_path.parent.name),
                 "title": data.get("title", ""),
                 "checks": list(data.get("checks") or []),
+                "needs_capture": bool(data.get("needs_capture")),
                 "path": yaml_path.parent,
             }
         )

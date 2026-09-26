@@ -45,7 +45,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from eval.capture.llm import invoke_structured  # noqa: E402
+from eval.capture.llm import invoke_structured, raise_if_mostly_failed  # noqa: E402
 from eval.capture.run import ensure_capture, view_paths  # noqa: E402
 
 MAX_SCORE = 20
@@ -152,6 +152,7 @@ def check_visual_bughunt(html_path: str, out_dir: Path | None = None, model: str
             per_view[view_id] = {"error": str(exc)[:300], "defects": None}
         per_view[view_id]["screenshot"] = str(path)
 
+    raise_if_mostly_failed(per_view, "visual bug-hunt")
     judged = {k: v for k, v in per_view.items() if v.get("defects") is not None}
     view_defects = {k: [d for d in v["defects"] if d in PER_VIEW_DEFECTS] for k, v in judged.items()}
     buggy = sorted(k for k, d in view_defects.items() if d)

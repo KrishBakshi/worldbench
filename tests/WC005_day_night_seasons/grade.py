@@ -7,9 +7,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from eval.evidence import in_source  # noqa: E402
 from llm import CheckResult, CycleReport, VALID_AXES, load_templates
 
-POINTS_TOTAL = 10
+POINTS_TOTAL = 20
+# Each item: half from code (verified quote, time update), half from what the
+# pinned-time frames show (visual.py). Items with no visual verdict (motion
+# that stills can't show) and runs with no usable frames score on code alone.
+CODE_SHARE = 0.5
+VISUAL_SHARE = 0.5
 
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
@@ -145,9 +154,14 @@ _AXIS_ALIASES = {
 }
 
 
-def grade_report(report: CycleReport | dict) -> CheckResult:
+def grade_report(
+    report: CycleReport | dict,
+    visual: dict | None = None,
+    source_normalized: str | None = None,
+) -> CheckResult:
+    """visual: visual.judge_cycle() output (None = code-only regrade of an old run)."""
     templates = load_templates()
-    card = _grade_one(templates, report)
+    card = _grade_one(templates, report, visual, source_normalized)
     score = card["score"]
     max_score = card["max_score"]
     passed = card["passed"]
@@ -164,6 +178,7 @@ def grade_report(report: CycleReport | dict) -> CheckResult:
         "reason": reason,
         "earned": card["earned"],
         "lost": card["lost"],
+        "visual": card.get("visual"),
     }
     return CheckResult(
         passed,
@@ -282,7 +297,7 @@ def _empty_motion(text: str) -> bool:
     return not (text or "").strip() or _not_in_scope(text)
 
 
-def _grade_entity(entity: dict, judgement, used_hashes: set[str]) -> tuple[bool, str, dict]:
+def _grade_entity(entity: dict, judgement, used_hashes: set[str], source_normalized: str | None = None) -> tuple[bool, str, dict]:
     meta = {
         "llm_looks_ok": None if judgement is None else judgement.looks_ok,
         "llm_moves_ok": None if judgement is None else judgement.moves_ok,
@@ -306,6 +321,11 @@ def _grade_entity(entity: dict, judgement, used_hashes: set[str]) -> tuple[bool,
     look_reason = _reject_reason(look, allow_config=requires_motion)
     if look_reason:
         return False, look_reason, meta
+    if source_normalized is not None and not in_source(look, source_normalized):
+        return False, "evidence_not_in_source", meta
+    if requires_motion and source_normalized is not None and motion and not _empty_motion(motion) \
+            and not in_source(motion, source_normalized):
+        return False, "evidence_not_in_source", meta
 
     if entity.get("id") == "moon":
         look_code = _code_only(look)
@@ -355,7 +375,7 @@ def _is_star_or_dome_evidence(evidence: str) -> bool:
     return False
 
 
-def _grade_leak(item: dict, judgement) -> tuple[bool, str]:
+def _grade_leak(item: dict, judgement, source_normalized: str | None = None) -> tuple[bool, str]:
     if judgement is None:
         return False, "missing_judgement"
     if _not_in_scope(judgement.evidence or ""):
@@ -365,6 +385,8 @@ def _grade_leak(item: dict, judgement) -> tuple[bool, str]:
     reason = _reject_reason(judgement.evidence or "")
     if reason:
         return False, reason
+    if source_normalized is not None and not in_source(judgement.evidence or "", source_normalized):
+        return False, "evidence_not_in_source"
     if item.get("id") == "stars_or_atmosphere_dome" and not _is_star_or_dome_evidence(
         judgement.evidence or ""
     ):
@@ -385,7 +407,7 @@ def _item_row(item: dict, kind: str, hit: bool, points: float, why: str, meta: d
     return row
 
 
-def _grade_one(templates: dict, report) -> dict:
+def _grade_one(templates: dict, report, visual: dict | None = None, source_normalized: str | None = None) -> dict:
     if not isinstance(report, CycleReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
         return {
@@ -393,58 +415,59 @@ def _grade_one(templates: dict, report) -> dict:
             "max_score": POINTS_TOTAL,
             "passed": False,
             "earned": [],
-            "lost": [
-                {
-                    "id": "probe_failed",
-                    "label": "",
-                    "kind": "probe",
-                    "points": POINTS_TOTAL,
-                    "why": "probe_failed",
-                    "look_evidence": err,
-                }
-            ],
+            "lost": [{"id": "probe_failed", "label": "", "kind": "probe", "points": POINTS_TOTAL,
+                      "why": "probe_failed", "look_evidence": err}],
         }
 
     entities = list(templates.get("entities", []))
     leak_items = list(templates.get("must_not_present", []))
-    n_entities = len(entities)
-    points = round(POINTS_TOTAL / n_entities, 2) if n_entities else 0.0
+    total_weight = sum(float(e.get("weight", 1)) for e in entities) or 1.0
+    unit = POINTS_TOTAL / total_weight
+    use_visual = bool(visual and visual.get("available"))
+    seen_items = visual.get("items", {}) if use_visual else {}
     earned, lost = [], []
-    entity_hits = 0
-    leak_count = 0
     used_hashes: set[str] = set()
+    score = 0.0
 
     for entity in entities:
         judgement = report.entities.get(entity["id"])
-        hit, why, meta = _grade_entity(entity, judgement, used_hashes)
-        if hit:
-            entity_hits += 1
-            earned.append(_item_row(entity, "entity", True, points, why, meta))
+        code_ok, why, meta = _grade_entity(entity, judgement, used_hashes, source_normalized)
+        visual_ok = seen_items.get(entity["id"]) if use_visual else None
+        points = round(unit * float(entity.get("weight", 1)), 2)
+        if visual_ok is None:
+            credit = float(code_ok)
         else:
-            lost.append(_item_row(entity, "entity", False, points, why, meta))
+            credit = CODE_SHARE * code_ok + VISUAL_SHARE * visual_ok
+        got = round(points * credit, 2)
+        score += got
+        row = _item_row(entity, "entity", got >= points, points, why or ("not_visible" if visual_ok is False else ""), meta)
+        row.update(earned=got, code=code_ok, visual=visual_ok,
+                   seen=(visual or {}).get("seen", {}).get(entity["id"], ""))
+        (earned if got >= points else lost).append(row)
 
     for item in leak_items:
         judgement = report.must_not_present.get(item["id"])
-        leak, why = _grade_leak(item, judgement)
-        if leak:
-            leak_count += 1
-            lost.append(
-                {
-                    "id": item["id"],
-                    "label": item.get("label", ""),
-                    "kind": "must_not_present",
-                    "points": points,
-                    "why": why,
-                    "look_evidence": "" if judgement is None else (judgement.evidence or ""),
-                }
-            )
+        code_leak, why = _grade_leak(item, judgement, source_normalized)
+        visual_leak = bool(use_visual and visual.get("leak"))
+        if code_leak or visual_leak:
+            points = round(unit * float(item.get("weight", 1)), 2)
+            score -= points
+            lost.append({
+                "id": item["id"],
+                "label": item.get("label", ""),
+                "kind": "must_not_present",
+                "points": points,
+                "why": "forbidden_present",
+                "code": code_leak,
+                "visual": visual_leak if use_visual else None,
+                "look_evidence": "" if judgement is None else (judgement.evidence or ""),
+            })
 
-    raw = POINTS_TOTAL * (entity_hits - leak_count) / n_entities if n_entities else 0.0
-    score = round(max(0.0, raw), 2)
     return {
-        "score": score,
+        "score": round(max(0.0, score), 2),
         "max_score": POINTS_TOTAL,
         "passed": not lost,
         "earned": earned,
         "lost": lost,
+        "visual": {"available": use_visual, "why": (visual or {}).get("why", "not_run"), "time": (visual or {}).get("time")},
     }

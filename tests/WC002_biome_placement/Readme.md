@@ -1,4 +1,6 @@
-# WC002 Placement graph
+# WC002 Coverage + placement
+
+Is each biome built at all, and does it sit where the prompt's water-flow graph puts it? (The old WC001 biome-coverage test is folded in here.)
 
 The prompt encodes a graph, not a list. Meltwater has to run in one wet corridor from the peaks to the coast. Desert and volcano stay off that corridor.
 
@@ -6,7 +8,7 @@ The prompt encodes a graph, not a list. Meltwater has to run in one wet corridor
 
 Solid grey is the required perennial corridor. Dashed blue is the grove's and/or (highland slope *or* plains). Dashed gold is a fading dry wash, related to the plains but never a through-river. Dashed outlines are isolated nodes: desert (arid) and volcano (lava, not water).
 
-At runtime the same layout is written to `graph.json` / `graph.svg` with green = the biome's rules passed, red = failed.
+At runtime the same layout is written to `graph.json` / `graph.svg` in three states: green = covered and placed right, red = covered but misplaced, grey dashed = not covered.
 
 ## Flow
 
@@ -14,7 +16,8 @@ At runtime the same layout is written to `graph.json` / `graph.svg` with green =
 flowchart TD
     html["world.html"]
     html --> classify["classify LLM: JS slices per biome"]
-    classify --> extract["extract LLM: neighbors + elevation_order"]
+    classify --> coverage["coverage: present + layout quote really in source"]
+    coverage --> extract["extract LLM: neighbors + elevation_order"]
     extract --> grade["grade: deterministic rules"]
     grade --> artifacts["graph.json / graph.svg / score.json"]
 ```
@@ -32,9 +35,22 @@ flowchart TD
 
 Grade does not look at the original HTML. It only scores the extracted graph.
 
-## Rules
+## Coverage
 
-One point per biome. All of that biome's rules must pass. Max 10.
+A biome is covered when the classify step marks it present and the layout code it quotes for that biome really appears in the source (`coverage.py`, `eval/evidence.py`).
+
+The old WC001 searched the JS for biome keywords. Every scored model got 10/10, and a one-line file with no world (`const pine=1,canopy=2,...,lava=9`) also got 10/10.
+
+## Scoring
+
+2 points per biome, max 20:
+
+- 1 point for being covered.
+- 1 point if all of its placement rules pass.
+
+An uncovered biome scores 0/2 and is drawn as "not covered". Rules that point at an uncovered biome are skipped rather than failed. That biome already lost its own two points, and failing every neighbour's rule too would charge one absence 4–5 times. An empty graph now scores 0; before this change, desert and volcano passed by default and earned 2.
+
+## Rules
 
 | Biome | Must connect | Must not connect | Higher than |
 | --- | --- | --- | --- |

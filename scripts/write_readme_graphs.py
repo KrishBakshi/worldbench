@@ -139,47 +139,40 @@ def write_wc002(path: Path) -> None:
     _write(path, _svg(w, h, body))
 
 
-def write_wc001(path: Path) -> None:
-    by_id = biome_nodes()
-    w, h = VIEWBOX["width"], VIEWBOX["height"]
-    body = [_text(16, 28, "WC001  ten biomes must appear in executable JS, not a legend", size=14, anchor="start")]
-    for n in by_id.values():
-        body.extend(_node_box(n, OK))
-    _write(path, _svg(w, h, body))
-
-
 def write_wc000(path: Path) -> None:
     w, h = 800, 520
     lattice = [
-        ("cube_primitive", "Cube primitive", 2),
-        ("bulk_placement", "Bulk placement", 2),
-        ("discrete_grid", "Discrete grid", 2),
-        ("stacked_columns", "Stacked columns", 2),
-        ("cube_terrain", "Cube terrain", 2),
-        ("grid_aligned", "Grid aligned", 2),
-        ("unit_voxels", "Unit voxels", 2),
+        ("cube_primitive", "Cube primitive", 1),
+        ("bulk_placement", "Bulk placement", 1),
+        ("discrete_grid", "Discrete grid", 1),
+        ("stacked_columns", "Stacked columns", 1),
+        ("cube_terrain", "Cube terrain", 1),
+        ("grid_aligned", "Grid aligned", 1),
+        ("unit_voxels", "Unit voxels", 1),
     ]
     physics = [
-        ("contained_water", "Water exists", 4),
-        ("water_physics", "Held or falling", 6),
-        ("water_bed", "Seafloor under still water", 10),
-        ("grounded_props", "Props on the land", 4),
+        ("contained_water", "Water exists", 2),
+        ("water_physics", "Held or falling", 3),
+        ("water_bed", "Seabed under still water", 5),
+        ("grounded_props", "Props on the land", 3),
     ]
-    body = [_text(16, 28, "WC000  lattice is 2 pts each. Island physics carries the score.", size=14, anchor="start")]
-    body.append(_text(200, 64, "Lattice  14", size=13, fill=MUTED))
-    body.append(_text(600, 64, "Island physics  24", size=13, fill=MUTED))
+    body = [_text(16, 28, "WC000  LLM reads source (20, probability x points)  +  VLM bug-hunt on frames (20)", size=14, anchor="start")]
+    body.append(_text(200, 64, "Source judge: lattice  7", size=13, fill=MUTED))
+    body.append(_text(600, 64, "Source judge: island physics  13", size=13, fill=MUTED))
     for i, (_id, label, pts) in enumerate(lattice):
-        y = 88 + i * 54
-        body.append(_rect(40, y, 320, 44, EDGE))
-        body.append(_text(200, y + 28, f"{label}  {pts}", size=13))
+        y = 80 + i * 44
+        body.append(_rect(40, y, 320, 36, EDGE))
+        body.append(_text(200, y + 23, f"{label}  {pts}", size=13))
     for i, (_id, label, pts) in enumerate(physics):
-        y = 88 + i * 78
+        y = 80 + i * 62
         stroke = OK if _id != "water_bed" else "#f1c40f"
-        body.append(_rect(440, y, 320, 62, stroke))
-        body.append(_text(600, y + 38, f"{label}  {pts}", size=13))
-    body.append(_text(400, 500, "Missing seafloor drops Coastal Delta / Ocean points on WC003 and WC004.", size=12, fill=MUTED))
-    # connector from lattice column to physics
-    body.append(_line(360, 250, 440, 250, EDGE))
+        body.append(_rect(440, y, 320, 48, stroke))
+        body.append(_text(600, y + 29, f"{label}  {pts}", size=13))
+    body.append(_rect(440, 340, 320, 70, ALT))
+    body.append(_text(600, 368, "VLM bug-hunt  20", size=13))
+    body.append(_text(600, 392, "floating / hollow / non-voxel per frame", size=11, fill=MUTED))
+    body.append(_text(400, 470, "No seabed or ocean over the void drops Coastal Delta / Ocean points on WC004.", size=12, fill=MUTED))
+    body.append(_text(400, 492, "WC003 judges the seabed from the frames itself.", size=12, fill=MUTED))
     _write(path, _svg(w, h, body))
 
 
@@ -190,7 +183,7 @@ def write_probe_flow(path: Path, title: str, grade_label: str) -> None:
     body = [_text(16, 28, title, size=14, anchor="start")]
     steps = [
         (90, 70, 140, 44, "world.html"),
-        (310, 70, 160, 44, "LLM probe / biome"),
+        (310, 70, 160, 44, "code probe + frames"),
         (540, 70, 140, 44, grade_label),
         (710, 70, 70, 44, "score"),
     ]
@@ -208,7 +201,7 @@ def write_probe_flow(path: Path, title: str, grade_label: str) -> None:
 
 def write_wc005(path: Path) -> None:
     w, h = 800, 420
-    body = [_text(16, 28, "WC005  one clock drives day and year. HUD text is not enough.", size=14, anchor="start")]
+    body = [_text(16, 28, "WC005  2 pts per item: code + frames with the clock pinned (day / night / seasons)", size=14, anchor="start")]
     for x, label in ((200, "day clock"), (600, "year clock")):
         body.append(_rect(x - 90, 66, 180, 48, ALT))
         body.append(_text(x, 95, label))
@@ -242,14 +235,14 @@ def write_wc005(path: Path) -> None:
 def write_ladder(path: Path) -> None:
     w, h = 800, 520
     rows = [
-        ("WC000", "Voxel lattice", "38", "Cubes, then a mass in a void"),
-        ("WC001", "Biome coverage", "10", "All ten biomes exist in JS"),
-        ("WC002", "Placement graph", "10", "Neighbors and elevation"),
-        ("WC003", "Micro-contents", "100", "What each biome is made of"),
-        ("WC004", "Physics", "100", "How entities look and move"),
-        ("WC005", "Temporal cycles", "10", "Day clock and seasons"),
+        ("CAP", "Capture", "", "Daytime preview + agent-framed views"),
+        ("WC000", "Voxel island", "40", "Source judge + VLM bug-hunt"),
+        ("WC002", "Coverage + placement", "20", "Covered, then neighbors and elevation"),
+        ("WC003", "Micro-contents", "100", "Code + frames: what each biome holds"),
+        ("WC004", "Physics", "100", "Code + frames: look; code: motion"),
+        ("WC005", "Temporal cycles", "20", "Code + pinned-clock frames"),
     ]
-    body = [_text(16, 28, "Ladder  268 pts  WC000 seafloor gates ocean points on WC003 and WC004", size=14, anchor="start")]
+    body = [_text(16, 28, "Ladder  280 pts  one capture feeds every visual judge", size=14, anchor="start")]
     for i, (wid, title, pts, note) in enumerate(rows):
         y = 56 + i * 74
         body.append(_rect(40, y, 720, 58, OK if i else "#f1c40f"))
@@ -265,16 +258,15 @@ def main() -> None:
     tests = REPO / "tests"
     write_ladder(REPO / "docs" / "ladder.svg")
     write_wc000(tests / "WC000_voxel_world" / "graph.svg")
-    write_wc001(tests / "WC001_trying_all_the_biomes" / "graph.svg")
     write_wc002(tests / "WC002_biome_placement" / "graph.svg")
     write_probe_flow(
         tests / "WC003_biome_micro_contents" / "graph.svg",
-        "WC003  ten biome probes, then grade presence. Delta is dropped if WC000 has no seafloor.",
+        "WC003  per biome: code probe + VLM on its frame. Ocean over the void zeroes delta.",
         "grade items",
     )
     write_probe_flow(
         tests / "WC004_biome_rendering" / "graph.svg",
-        "WC004  ten biome probes, then grade look and motion. Delta is dropped if WC000 has no seafloor.",
+        "WC004  look: code + frames. Motion: code. Delta dropped if WC000 finds no seabed.",
         "grade look/move",
     )
     write_wc005(tests / "WC005_day_night_seasons" / "graph.svg")

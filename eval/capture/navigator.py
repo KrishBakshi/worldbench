@@ -30,7 +30,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from eval.capture.browser import DevToolsBrowser  # noqa: E402
-from eval.capture.llm import chat, image_part  # noqa: E402
+from eval.capture.llm import acall_with_retry, chat, image_part  # noqa: E402
 from harness.status import log  # noqa: E402
 
 MAX_STEPS = 8
@@ -128,7 +128,7 @@ async def frame_biome(
 
     for step in range(1, MAX_STEPS + 1):
         outcome["steps"] = step
-        ai: AIMessage = await llm.ainvoke(messages)
+        ai: AIMessage = await acall_with_retry(lambda: llm.ainvoke(messages))
         messages.append(ai)
         calls = ai.tool_calls[:1]
         if not calls:

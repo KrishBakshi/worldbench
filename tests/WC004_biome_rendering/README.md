@@ -12,20 +12,21 @@ Same ten-biome map as WC002. The strip is the check: probe look and motion per b
 flowchart TD
     html["world.html"]
     html --> strip["strip to inline JS"]
-    strip --> probe["LLM probe x 10 biomes"]
-    probe --> look["grade look: constructor, not a legend"]
-    look --> motion["if requires_motion: time update + axis"]
-    motion --> score["10 points per biome, max 100"]
-    score --> gate["no seafloor: drop delta points"]
+    strip --> probe["code probe (LLM) x 10 biomes: look + motion + axis"]
+    html --> cap["shared capture: same frames WC000 judged"]
+    cap --> vis["visual judge (VLM): does it look like looks_like?"]
+    probe --> grade["still entity: half code look, half seen\nmoving entity: half code motion, half look"]
+    vis --> grade
+    grade --> score["10 points per biome, max 100"]
+    score --> gate["WC000 no seabed: drop delta points"]
 ```
 
-1. Strip `world.html` to inline JS.
-2. For each biome, send `prompts/<id>/prompt.md` plus `templates.json` (entities with `looks_like`, `expected_axis`, `requires_motion`).
-3. The model returns look evidence, motion evidence, and an axis.
-4. Grade requires a real constructor for look. Motion items also need a time update (not spawn-only), a compatible axis, and no duplicate evidence reused across entities.
-5. Ten points per biome. Forbidden entities subtract. Max 100.
+1. The code probe works as before: each biome's `prompts/<id>/prompt.md` plus `templates.json` returns look evidence, motion evidence and an axis. Both quotes must really appear in the source.
+2. The visual judge checks each entity against its `looks_like` on the biome's frame and the overview.
+3. A still entity's points are split: half for the code's look, half for being seen. A moving entity puts half on motion from the code (a time update on a compatible axis, not spawn-only, not evidence reused from another entity). The other half is split between the code's look and the frames. A still frame can't show which way rain falls, so motion is never judged visually.
+4. Forbidden entities found by either the code or the frames subtract. A biome absent from both scores 0. An entity may carry a `weight`; the default is 1.
 
-If WC000 lost `water_bed` or `water_physics`, Coastal Delta / Ocean points are removed from this total.
+If WC000's source judge puts `water_bed` or `water_physics` below 0.5, or its bug-hunt sees `ocean_void`, the Coastal Delta / Ocean points are removed from this total.
 
 Axes the grader accepts: falling, blowing, rising, still, flowing, grounded, pulsing, n/a. Close aliases map (down → falling, wind → blowing).
 

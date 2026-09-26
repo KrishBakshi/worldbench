@@ -74,17 +74,13 @@ def load_prompt(biome_id: str) -> str:
 
 
 def invoke_structured(schema: type[BaseModel], prompt: str, model: str | None = None):
-    llm = ChatGoogleGenerativeAI(
-        model=model or DEFAULT_MODEL,
-        google_api_key=os.environ.get("GOOGLE_API_KEY"),
-        max_retries=0,
-    )
-    payload = llm.with_structured_output(schema, include_raw=True, method="json_schema").invoke(prompt)
-    raw, parsed, err = payload["raw"], payload["parsed"], payload["parsing_error"]
-    if parsed is not None:
-        return parsed
-    text = raw.content if isinstance(raw.content, str) else str(raw.content)
-    start, end = text.find("{"), text.rfind("}")
-    if start == -1 or end <= start:
-        raise ValueError(f"parse failed: {err}\n{text[:1000]}")
-    return schema.model_validate(json.loads(text[start : end + 1]))
+    """Shared judge client: same model setup, client-side throttle and 429 backoff
+    for every test (eval/capture/llm.py)."""
+    import sys as _sys
+
+    _root = str(Path(__file__).resolve().parents[2])
+    if _root not in _sys.path:
+        _sys.path.append(_root)
+    from eval.capture.llm import invoke_structured as _shared
+
+    return _shared(schema, prompt, model=model or DEFAULT_MODEL)

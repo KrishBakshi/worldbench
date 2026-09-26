@@ -17,13 +17,21 @@ from eval.evidence import in_source  # noqa: E402
 
 POINTS_PER_BIOME = 10
 
-# Credit per entity. A still frame can confirm a look but never a motion, so:
-#   still entity:  half code look (verified quote), half visual look
-#   moving entity: half code motion (time update on the right axis),
-#                  the other half split between code look and visual look
-# Without a visual report (regrading an old run), code carries it all.
+# Credit per entity:
+#   still entity:  look = half code look (verified quote), half visual look
+#   moving entity: half look (as above) + half motion, where motion is half
+#                  code (time update on the right axis) and half the capture's
+#                  motion bursts (VLM on near/far frames + changed-pixel overlay)
+# Without a visual / motion report (regrading an old run), code carries it.
 LOOK_CODE, LOOK_VISUAL = 0.5, 0.5
 MOTION_SHARE = 0.5
+MOTION_CODE, MOTION_VISUAL = 0.5, 0.5
+# A VLM "it moves" only counts if at least this share of a burst's pixels
+# changed; a model can read motion into three identical frames.
+MIN_MOTION_FRACTION = 0.001
+# Expected axes where "present and on the right axis" is enough; nothing has
+# to visibly travel (hanging mist, idle fauna).
+_NO_TRAVEL_AXES = {"still", "n/a", "grounded"}
 
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
@@ -109,8 +117,10 @@ def grade_reports(
     biome_ids: tuple[str, ...] | None = None,
     visual: dict[str, VisualReport | dict] | None = None,
     source_normalized: str | None = None,
+    motion: dict | None = None,
 ) -> CheckResult:
     """visual: per-biome VisualReport (None = code-only regrade of an old run).
+    motion: per-biome visual.MotionReport (or an unavailable/error dict); None = code-only motion.
     source_normalized: eval.evidence.normalize(js); None skips the quote check."""
     found, missing = {}, {}
     item_hits, item_misses = {}, {}
@@ -125,6 +135,7 @@ def grade_reports(
         card = _grade_one(
             biome_id, templates, reports.get(biome_id), (visual or {}).get(biome_id),
             source_normalized, visual is not None,
+            (motion or {}).get(biome_id), motion is not None,
         )
         biome_scores[biome_id] = card["score"]
         total += card["score"]
@@ -371,6 +382,17 @@ def _failed(why: str, detail: str) -> dict:
     }
 
 
+def _visual_motion_ok(entity: dict, sighting, fractions: dict) -> bool:
+    if sighting is None or "not visible" in (sighting.seen or "").lower():
+        return False
+    expected = _normalize_axis(entity.get("expected_axis", "n/a"))
+    if not _axes_compatible(expected, sighting.axis):
+        return False
+    if expected in _NO_TRAVEL_AXES:
+        return True
+    return bool(sighting.moving) and max(fractions.values(), default=0.0) >= MIN_MOTION_FRACTION
+
+
 def _grade_one(
     biome_id: str,
     templates: dict,
@@ -378,6 +400,8 @@ def _grade_one(
     visual=None,
     source_normalized: str | None = None,
     use_visual: bool = False,
+    motion=None,
+    use_motion: bool = False,
 ) -> dict:
     if not isinstance(report, BiomeRenderReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
@@ -393,6 +417,11 @@ def _grade_one(
     seen = {x.id: x for x in visual.items} if use_visual else {}
     seen_leaks = {x.id: x for x in visual.leaks} if use_visual else {}
     look_code, look_visual = (LOOK_CODE, LOOK_VISUAL) if use_visual else (1.0, 0.0)
+    motion_code, motion_visual = (MOTION_CODE, MOTION_VISUAL) if use_motion else (1.0, 0.0)
+    # An unavailable/errored motion report leaves every sighting missing, so the
+    # visual half of motion is lost, like the look half for an unframed biome.
+    moved = {x.id: x for x in motion.items} if use_motion and hasattr(motion, "items") else {}
+    fractions = dict(getattr(motion, "motion_fraction", {}) or {}) if use_motion else {}
 
     earned, lost = [], []
     used_hashes: set[str] = set()
@@ -403,10 +432,13 @@ def _grade_one(
         sighting = seen.get(entity["id"])
         visual_ok = bool(sighting and sighting.visible)
         look_credit = look_code * v["look_ok"] + look_visual * visual_ok
+        motion_seen = None
         if v["motion_ok"] is None:
             credit = look_credit
         else:
-            credit = (1 - MOTION_SHARE) * look_credit + MOTION_SHARE * v["motion_ok"]
+            motion_seen = _visual_motion_ok(entity, moved.get(entity["id"]), fractions) if use_motion else None
+            motion_credit = motion_code * v["motion_ok"] + motion_visual * bool(motion_seen)
+            credit = (1 - MOTION_SHARE) * look_credit + MOTION_SHARE * motion_credit
         any_code = any_code or v["look_ok"]
         points = round(unit * float(entity.get("weight", 1)), 2)
         got = round(points * credit, 2)
@@ -420,13 +452,20 @@ def _grade_one(
             "code_look": v["look_ok"],
             "visual_look": visual_ok if use_visual else None,
             "code_motion": v["motion_ok"],
+            "visual_motion": motion_seen,
+            "motion_seen": moved[entity["id"]].seen if entity["id"] in moved else "",
+            "motion_axis_seen": moved[entity["id"]].axis if entity["id"] in moved else "",
             "seen": sighting.seen if sighting else "",
             **v["meta"],
         }
         if got >= points:
             earned.append(row)
         else:
-            row["why"] = v["look_why"] or v["motion_why"] or ("not_visible" if use_visual and not visual_ok else "")
+            row["why"] = (
+                v["look_why"] or v["motion_why"]
+                or ("not_visible" if use_visual and not visual_ok else "")
+                or ("motion_not_seen" if motion_seen is False else "")
+            )
             lost.append(row)
 
     for item in leak_items:

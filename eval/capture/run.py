@@ -16,7 +16,15 @@ Order:
                phase offset is caught instead of trusted.
   3. fixed     overview + four orbit directions at day (the bug-hunt and the
                ocean-underside judgement use these), four seasons at day.
-  4. biomes    navigator.py, one agent episode per biome.
+  4. biomes    navigator.py, one agent episode per biome, then two motion
+               bursts from where the agent left the camera (capture_bursts):
+               "near" (the agent's framing) and "far" (zoomed out), each
+               BURST_FRAMES frames BURST_GAP_S apart, plus an overlay marking
+               changed pixels. Still frames cannot show motion; WC004 judges
+               motion from these. Bursts use the daytime preview on purpose:
+               at night most moving things (rain, fauna, rivers) are not
+               visible at all. Kept deliberately small: one zoom-out, no
+               pivots, no waiting for weather cycles.
 
 Deterministic steps run before the agent so a view is only ever an LLM's
 choice when it has to be. The manifest records the world's sha256; a later
@@ -42,7 +50,12 @@ from eval.capture.navigator import frame_biome  # noqa: E402
 from eval.capture.preview import build_preview  # noqa: E402
 from harness.status import log  # noqa: E402
 
-MANIFEST_VERSION = 1
+MANIFEST_VERSION = 2  # 2: biome views carry motion bursts
+BURST_FRAMES = 3
+BURST_GAP_S = 2.0
+ZOOM_OUT_STEPS = -3
+# A pixel counts as changed when its grey level moves by more than this.
+CHANGE_THRESHOLD = 24
 TOD_PROBES = (0.0, 0.25, 0.5, 0.75)
 SEASONS = ("spring", "summer", "autumn", "winter")
 # A day frame must be at least this much brighter than the darkest probe for
@@ -96,6 +109,51 @@ def pick_day_tod(lumas: dict[float, float]) -> tuple[float, float, bool]:
     day = max(lumas, key=lumas.get)
     night = min(lumas, key=lumas.get)
     return day, night, (lumas[day] - lumas[night]) >= MIN_DAY_NIGHT_GAP
+
+
+def _changed_mask(a: Path, b: Path):
+    from PIL import Image, ImageChops
+
+    diff = ImageChops.difference(Image.open(a).convert("L"), Image.open(b).convert("L"))
+    return diff.point(lambda v: 255 if v > CHANGE_THRESHOLD else 0)
+
+
+def motion_overlay(frames: list[Path], out: Path) -> float:
+    """Write the first frame dimmed with changed pixels in red; return the changed share."""
+    from PIL import Image, ImageChops
+
+    mask = None
+    for a, b in zip(frames, frames[1:]):
+        m = _changed_mask(a, b)
+        mask = m if mask is None else ImageChops.lighter(mask, m)
+    base = Image.open(frames[0]).convert("RGB")
+    if mask is None:
+        base.save(out)
+        return 0.0
+    dim = base.point(lambda v: v // 2)
+    red = Image.new("RGB", base.size, (255, 40, 40))
+    Image.composite(red, dim, mask).save(out)
+    hist = mask.histogram()
+    return round(hist[255] / sum(hist), 5)
+
+
+async def capture_bursts(browser: DevToolsBrowser, views_dir: Path, view_id: str, first: Path) -> dict:
+    """Near burst from the current camera, then zoom out once and a far burst."""
+    out: dict = {"bursts": {}, "overlays": {}, "motion_fraction": {}}
+    for label in ("near", "far"):
+        if label == "far":
+            await browser.zoom(ZOOM_OUT_STEPS)
+            await asyncio.sleep(1.0)
+        frames = [first] if label == "near" else []
+        while len(frames) < BURST_FRAMES + (1 if label == "near" else 0):
+            if frames:
+                await asyncio.sleep(BURST_GAP_S)
+            frames.append(await browser.screenshot(views_dir / f"{view_id}_{label}_{len(frames)}.png"))
+        overlay = views_dir / f"{view_id}_{label}_motion.png"
+        out["bursts"][label] = frames
+        out["overlays"][label] = overlay
+        out["motion_fraction"][label] = motion_overlay(frames, overlay)
+    return out
 
 
 def _url(preview: Path, tod: float | None = None, season: int | None = None) -> str:
@@ -160,8 +218,21 @@ async def _capture(world_html: Path, cap_dir: Path, model: str | None) -> dict:
             except Exception as exc:  # one broken episode must not lose the other nine
                 outcome = {"status": "error", "reason": str(exc)[:300]}
             if out.is_file() and outcome.get("status") in ("found", "uncertain"):
-                add_view(f"biome_{biome['id']}", out, "biome", biome=biome["id"], tod=day_tod)
-                outcome["view"] = f"biome_{biome['id']}"
+                view_id = f"biome_{biome['id']}"
+                log(f"      burst     {view_id}  near + far, {BURST_FRAMES} x {BURST_GAP_S}s")
+                try:
+                    b = await capture_bursts(browser, views_dir, view_id, out)
+                    rel = lambda p: str(p.relative_to(cap_dir))  # noqa: E731
+                    extra = {
+                        "bursts": {k: [rel(p) for p in v] for k, v in b["bursts"].items()},
+                        "overlays": {k: rel(p) for k, p in b["overlays"].items()},
+                        "motion_fraction": b["motion_fraction"],
+                        "burst_gap_s": BURST_GAP_S,
+                    }
+                except Exception as exc:  # no burst is a missing motion view, not a lost biome
+                    extra = {"burst_error": str(exc)[:300]}
+                add_view(view_id, out, "biome", biome=biome["id"], tod=day_tod, **extra)
+                outcome["view"] = view_id
             manifest["biomes"][biome["id"]] = outcome
     return manifest
 

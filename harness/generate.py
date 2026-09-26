@@ -79,6 +79,25 @@ DEFAULT_MAX_FIX_ROUNDS = 3
 MAX_ERRORS_IN_PROMPT = 15  # dedup already collapses per-frame spam; cap for prompt size
 MAX_TOOL_CALLS_PER_FIX_ROUND = 4  # bound on how many str_replace/write_world_html calls one round may make
 FIX_CONTEXT_LINES = 40  # lines of context on each side of an error location, for the windowed fix prompt
+# A stack trace is control flow ("who called this"), never data flow ("where
+# did this bad value come from"). inputs/nex-n2.5-mini hit the gap: `Cannot
+# read properties of undefined (reading 'color')` threw at line 350 on
+# `terrainGeo.attributes.color`, with a caller frame at 1037 — but the defect
+# is at line 996, `terrainGeo=buildTerrain(0);`, assigning a Mesh to something
+# used as a Geometry. Windows were 310-390 and 997-1077: the fix site missed
+# by ONE line, and no stack frame would ever have pointed at it. So the
+# identifiers on a throw line get their own definition/assignment sites
+# windowed in too. Smaller span than an error window — the point is to see
+# what a name was bound to, not to tour its neighbourhood.
+DEF_CONTEXT_LINES = 12
+# Selectivity gate, and the whole reason this doesn't blow the prompt up. An
+# identifier assigned all over the file localizes nothing: the same scan run
+# for bug 1's `z` returns 21 hits (loop counters, destructured coords) and
+# would drag in most of the document, while `terrainGeo` returns exactly
+# [572, 996]. More hits than this means the name isn't a useful lookup key.
+DEF_SITE_MAX_HITS = 3
+DEF_SITE_MIN_IDENT_LEN = 3  # `z`, `i`, `dx` are loop noise, never a useful definition lookup
+MAX_DEFINITION_SITES = 6  # hard cap across all errors, so a pathological line can't unwind the windowing
 
 
 class AgentState(TypedDict):
@@ -212,6 +231,68 @@ def _error_line_numbers(errors: list[str]) -> list[int]:
     return lines
 
 
+# Identifiers that are never a useful definition lookup: language keywords,
+# globals the model can't have mis-assigned, and the Three.js surface. Without
+# this, `const`/`new`/`THREE` are scanned on every throw line for nothing.
+_JS_NOISE = frozenset(
+    """
+    const let var function class return new this true false null undefined void delete
+    typeof instanceof in of if else for while do switch case break continue
+    try catch finally throw yield await async export import from default extends super
+    Math JSON Object Array String Number Boolean Date RegExp Error Promise Map Set Symbol
+    console window document requestAnimationFrame setTimeout setInterval
+    THREE scene camera renderer geometry material mesh position attributes length
+    """.split()
+)
+_IDENT_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
+# `X is not defined` / `X is not a function` name the identifier outright; the
+# throw line may not even contain it (a bare call `foo()` does, but a callback
+# invoked by name from elsewhere may not), so both sources are scanned.
+_NAMED_IDENT_RE = re.compile(r"\b([A-Za-z_$][A-Za-z0-9_$]*) is not (?:defined|a function|a constructor)")
+
+
+def _definition_sites(lines: list[str], errors: list[str], throw_lines: list[int]) -> list[int]:
+    """Lines that bind an identifier involved in one of these errors.
+
+    A stack trace answers "who called this", never "where did this value come
+    from" — see DEF_CONTEXT_LINES' comment for the run that exposed the
+    difference. This closes that gap statically: take the identifiers on each
+    throw line (plus any the error message names outright), and find where
+    each one is declared or assigned.
+
+    Selectivity is the whole design. An identifier bound in many places
+    localizes nothing, so anything over DEF_SITE_MAX_HITS is dropped rather
+    than windowed — that's what keeps a common name like `z` (21 hits in the
+    file this was built against) from dragging in the whole document while
+    `terrainGeo` (2 hits) resolves exactly.
+    """
+    candidates: list[str] = []
+    for e in errors:
+        candidates.extend(_NAMED_IDENT_RE.findall(e))
+    for n in throw_lines:
+        candidates.extend(_IDENT_RE.findall(lines[n - 1]))
+
+    seen: dict[str, None] = {}
+    for ident in candidates:
+        if len(ident) >= DEF_SITE_MIN_IDENT_LEN and ident not in _JS_NOISE:
+            seen.setdefault(ident, None)
+
+    sites: list[int] = []
+    for ident in seen:
+        # A binding: `let/const/var/function/class NAME`, or `NAME =` (but not
+        # `==`/`===`/`=>`, and not `!=`/`<=`/`>=` via the lookbehind).
+        pattern = re.compile(
+            rf"\b(?:let|const|var|function|class)\s+{re.escape(ident)}\b"
+            rf"|(?<![=!<>])\b{re.escape(ident)}\s*=(?![=>])"
+        )
+        hits = [i + 1 for i, line in enumerate(lines) if pattern.search(line)]
+        if 0 < len(hits) <= DEF_SITE_MAX_HITS:
+            sites.extend(hits)
+    # Deterministic order, and a hard cap so one pathological throw line can't
+    # quietly turn a windowed round into a full-file one.
+    return sorted(set(sites))[:MAX_DEFINITION_SITES]
+
+
 def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = False) -> tuple[str, bool]:
     """Return (text_shown_to_model, is_full_file).
 
@@ -247,7 +328,20 @@ def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = 
     if not line_numbers:
         return html, True
 
-    windows = sorted([max(1, n - FIX_CONTEXT_LINES), min(total, n + FIX_CONTEXT_LINES)] for n in set(line_numbers))
+    # The throw site is the first location in each error's suffix; caller
+    # frames follow it. Only throw lines are scanned for identifiers — a
+    # caller frame's own locals are a different scope and would just add noise.
+    throw_lines = []
+    for e in errors:
+        m = _LOCATION_RE.search(e)
+        if m:
+            first = _LINE_NO_RE.search(m.group(0))
+            if first and 1 <= int(first.group(1)) <= total:
+                throw_lines.append(int(first.group(1)))
+
+    spans = [(n, FIX_CONTEXT_LINES) for n in set(line_numbers)]
+    spans += [(n, DEF_CONTEXT_LINES) for n in _definition_sites(lines, errors, throw_lines)]
+    windows = sorted([max(1, n - span), min(total, n + span)] for n, span in spans)
     merged: list[list[int]] = []
     for w in windows:
         if merged and w[0] <= merged[-1][1] + 1:

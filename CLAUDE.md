@@ -137,7 +137,37 @@ property of the world.
       when caller-frame windowing (see `browser_debug.py` below) still
       misses — it is not a substitute for it, since a fix round spent
       discovering the window was wrong is still a round spent.
-      **"Not bound" alone isn't enough — the dispatch loop checks
+    - **Windows also cover where the identifiers on a throw line were
+      bound, not only where execution went** (`_definition_sites()`,
+      `DEF_CONTEXT_LINES` 12). A stack trace is control flow ("who called
+      this"); it never answers "where did this bad value come from."
+      `inputs/nex-n2.5-mini` is the case: `Cannot read properties of
+      undefined (reading 'color')` threw at line 350 on
+      `terrainGeo.attributes.color` with a caller frame at 1037, but the
+      defect is line 996, `terrainGeo=buildTerrain(0);` — assigning a
+      **Mesh** to something used as a **Geometry** (`buildTerrain` ends
+      `return m`). Windows were 310–390 and 997–1077: the fix site missed
+      **by one line**, and no stack frame would ever have pointed at it.
+      Scanning the throw line's identifiers for their declaration/
+      assignment sites now pulls in 996 and 572, at 205 of 1170 lines —
+      still windowed, not a full-file fallback.
+      - **`DEF_SITE_MAX_HITS` (3) is what makes this safe, not a nicety.**
+        An identifier bound all over the file localizes nothing: the same
+        scan for that file's *other* bug (`z is not defined`) returns 21
+        hits — loop counters, destructured coords — and would drag in most
+        of the document. Over the cap, the identifier is dropped rather
+        than windowed. With `DEF_SITE_MIN_IDENT_LEN` (3) and `_JS_NOISE`
+        (keywords, globals, the Three.js surface) this keeps worst-case
+        context at ~8–30% across the whole real `inputs/` corpus. Only the
+        throw line is scanned, never caller frames — a caller's locals are
+        a different scope and add noise.
+      - Note what this deliberately does **not** fix: that same file's
+        other bug is dead scaffolding
+        (`const b1=[...,z]; // placeholder, rebuilt below`) whose correct
+        repair is *deletion*, and it was already fully visible in its own
+        window. Not every give-up is a context problem — check whether the
+        model could see the bug before widening anything.
+    - **"Not bound" alone isn't enough — the dispatch loop checks
       `call["name"]` against `available_tools` before invoking anything**,
       returning an `ERROR:` ToolMessage instead of executing it. Not
       theoretical: a free-tier model, mid-dry-run, still emitted a

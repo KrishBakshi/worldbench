@@ -84,6 +84,36 @@ property of the world.
     what lets `generate.py`'s `fix` node be exactly as visible as a
     generation turn, not a quieter code path. Both are called only from
     `generate.py`'s graph nodes; there's no standalone one-shot command.
+    - **A streamed turn has two phases and both are now visible.**
+      `_ReasoningPrinter` echoes the reasoning stream; `_ContentProgress`
+      reports the content phase as size/elapsed/rate rather than echoing it
+      (the full file is already printed once the turn ends — echoing would
+      double it). The reasoning→content boundary prints one line,
+      `reasoning ended (N chars) — writing content now`.
+      **This exists because the boundary reads as a hang.** Reported against
+      Nemotron 3 Ultra: "the reasoning stops streaming, but the completion
+      tokens are still coming." That is a reasoning model behaving
+      normally — it finished thinking and started writing — but the stream
+      loop fed *only* `reasoning_content` to the printer and accumulated
+      content silently, so the terminal went dark from that moment until
+      the whole turn finished. On a 550B model writing a ~50KB
+      `world.html`, that silent stretch is the longest phase of the run and
+      is indistinguishable from a wedged stream. Nothing was wrong with the
+      model or the provider; the harness just wasn't reporting the phase it
+      had entered.
+      - `_ContentProgress` also records the **largest gap between chunks**
+        and warns on any gap over `_STALL_WARN_S` (20s). That is the one
+        number separating "this model is slow" from "this stream is
+        wedged" — the question a silent terminal cannot answer.
+      - In-place repainting is skipped when stderr isn't a TTY, so a
+        redirected or teed run gets clean milestone lines (every
+        `_PROGRESS_LOG_EVERY_CHARS`, via `log()`) instead of carriage
+        returns in the transcript file.
+      - `_ReasoningPrinter.close()` resets `opened`, so a provider that
+        **interleaves** reasoning and content re-prints the badge and
+        re-arms the style instead of emitting unstyled stray text. The
+        printer is now closed at each transition, not only at end of
+        stream, which is what makes this matter.
   - `generate.mmd` — hand-authored Mermaid diagram of this loop,
     including the `debug` node's two checks and the `fix` node's
     internal bounded tool loop (neither shows up in LangGraph's own

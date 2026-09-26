@@ -125,6 +125,7 @@ class _ReasoningPrinter:
     def __init__(self) -> None:
         self._buffer = ""
         self.opened = False
+        self.total = 0  # reasoning chars seen, reported at the phase transition
         self._in_fence = False
         self._in_code = False
         self._in_bold = False
@@ -164,6 +165,7 @@ class _ReasoningPrinter:
             return
         if not self.opened:
             self._open()
+        self.total += len(delta)
         self._buffer += delta
         # A trailing run of 1-2 backticks might still grow into a ``` fence
         # once more of the stream arrives (e.g. "``" then "`js" in the next
@@ -190,6 +192,118 @@ class _ReasoningPrinter:
             self._buffer = ""
         if self.opened:
             print(f"{_RESET}\n", file=sys.stderr)
+        # Reset `opened` so a later feed() re-prints the badge and re-arms the
+        # style. Some providers interleave reasoning and content rather than
+        # emitting one clean phase each, and this printer is now closed at the
+        # reasoning->content transition (see invoke_turn) rather than only at
+        # end of stream — without this, resumed reasoning would print as
+        # unstyled text with no badge, reading like stray output.
+        self.opened = False
+
+
+# In-place refresh rate for the live content counter. Fast enough to look
+# alive, slow enough not to spend the turn writing escape codes.
+_PROGRESS_MIN_INTERVAL_S = 0.5
+# Coarse milestones go through log(), so the teed transcript records progress
+# without carriage-return spam (status.log_to_file writes every log() line).
+_PROGRESS_LOG_EVERY_CHARS = 8192
+# A gap this long between chunks is worth naming. It is the one number that
+# distinguishes "this model is slow" from "this stream is wedged", which is
+# exactly the question a silent terminal cannot answer.
+_STALL_WARN_S = 20.0
+
+
+def _chunk_text(content: object) -> str:
+    """Text out of a chunk's content, whether it's a plain string or blocks."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+        return "".join(parts)
+    return ""
+
+
+class _ContentProgress:
+    """Live progress for the *content* phase of a streamed turn.
+
+    The reasoning stream had a printer from the start; content never did. It
+    accumulated silently into the chunk aggregate and was printed only once
+    the whole turn finished, so a run went completely dark from the moment
+    the model stopped thinking until the file was done — on a large model
+    writing a 50KB world.html, that is the longest phase of the run, and it
+    is indistinguishable from a hang.
+
+    The full file is still printed at the end, so this deliberately does not
+    echo content: it reports size, elapsed, rate, and the largest gap between
+    chunks. In-place repainting is skipped when stderr isn't a TTY, so a
+    redirected run gets clean milestone lines instead of escape codes.
+    """
+
+    def __init__(self) -> None:
+        self.chars = 0
+        self.chunks = 0
+        self.max_gap = 0.0
+        self._t0: float | None = None
+        self._last_chunk: float | None = None
+        self._last_paint = 0.0
+        self._next_milestone = _PROGRESS_LOG_EVERY_CHARS
+        self._painted = False
+
+    def feed(self, delta: str) -> None:
+        if not delta:
+            return
+        now = time.monotonic()
+        if self._t0 is None:
+            self._t0 = now
+        elif self._last_chunk is not None:
+            gap = now - self._last_chunk
+            self.max_gap = max(self.max_gap, gap)
+            if gap >= _STALL_WARN_S:
+                self.clear()
+                log(f"warn     {gap:.0f}s with no stream data, then it resumed (connection held)")
+        self._last_chunk = now
+        self.chars += len(delta)
+        self.chunks += 1
+        if self.chars >= self._next_milestone:
+            self.clear()
+            log(f"[stream]  content {self.chars:,} chars · {now - self._t0:.0f}s")
+            while self._next_milestone <= self.chars:
+                self._next_milestone += _PROGRESS_LOG_EVERY_CHARS
+        elif now - self._last_paint >= _PROGRESS_MIN_INTERVAL_S:
+            self._paint(now)
+
+    def _paint(self, now: float) -> None:
+        if not _USE_COLOR:  # not a TTY: no in-place repainting, milestones carry it
+            return
+        elapsed = now - (self._t0 or now)
+        rate = self.chars / elapsed if elapsed > 0 else 0.0
+        print(
+            f"\r\033[K[stream]  content {self.chars:,} chars · {elapsed:.0f}s · {rate:.0f} ch/s",
+            end="",
+            file=sys.stderr,
+            flush=True,
+        )
+        self._painted = True
+        self._last_paint = now
+
+    def clear(self) -> None:
+        """Erase the in-place line so another writer's output isn't appended to it."""
+        if self._painted:
+            print("\r\033[K", end="", file=sys.stderr, flush=True)
+            self._painted = False
+
+    def close(self) -> None:
+        self.clear()
+        if not self.chars:
+            return
+        elapsed = (self._last_chunk or 0.0) - (self._t0 or 0.0)
+        gap = f" · longest gap {self.max_gap:.0f}s" if self.max_gap >= 1 else ""
+        log(f"[stream]  content done: {self.chars:,} chars in {elapsed:.0f}s over {self.chunks} chunk(s){gap}")
 
 
 _PREFIX_OK_RE = re.compile(r"<!DOCTYPE\s+html\b|<html\b|<head\b", re.I)
@@ -414,13 +528,31 @@ def invoke_turn(
             if tools:
                 llm = llm.bind_tools(tools)
             printer = _ReasoningPrinter()
+            progress = _ContentProgress()
             # AIMessageChunk accumulated via __add__, which merges content/reasoning/tool_call_chunks/metadata for us
             try:
                 for chunk in llm.stream(messages):
-                    printer.feed(chunk.additional_kwargs.get("reasoning_content") or "")
+                    reasoning_delta = chunk.additional_kwargs.get("reasoning_content") or ""
+                    if reasoning_delta:
+                        progress.clear()  # don't append the badge to a half-written progress line
+                        printer.feed(reasoning_delta)
+                    content_delta = _chunk_text(chunk.content)
+                    if content_delta:
+                        # The reasoning->content transition, announced. A model
+                        # that stops streaming reasoning while completion tokens
+                        # keep arriving isn't stuck — it finished thinking and
+                        # started writing. Naming that boundary is what turns a
+                        # silent stretch into a phase you can watch.
+                        if printer.opened:
+                            printer.close()
+                            log(f"[stream]  reasoning ended ({printer.total:,} chars) — writing content now")
+                        progress.feed(content_delta)
                     full = chunk if full is None else full + chunk
             finally:
-                printer.close()  # always reset the terminal style, even if the stream dies mid-word
+                # Always reset the terminal style and drop the in-place line,
+                # even if the stream dies mid-word.
+                printer.close()
+                progress.close()
             content = full.content if isinstance(full.content, str) else str(full.content)
             return TurnResult(
                 content,

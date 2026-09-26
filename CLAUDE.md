@@ -62,6 +62,15 @@ property of the world.
     `harness.model_call`, `eval.validate`, `eval.run`, every test's
     `probe.py`/`main.py`) — a leaf logging utility, not generation logic,
     so it stays put rather than duplicating or relocating it.
+    - `log_to_file(path)` — a context manager that tees everything `log()`
+      prints into `path` as well as stderr. **Teeing lives at the sink, not
+      in `generate.py`**, because `log()` is already the one choke point
+      every node prints through: capturing here makes a transcript complete
+      by construction (including output added later) instead of a second
+      thing each new node must remember to write to. Flushed per line, so a
+      run killed mid-way still leaves a usable transcript; a closed or
+      broken sink is swallowed rather than taking down the run it was only
+      meant to record.
   - `model_call.py` — **shared OpenRouter invocation machinery, no CLI of
     its own.** `generate(name, model)` does one full completion of
     `prompts/prompt.md` — up to 3 turns of "continue where you left off"
@@ -311,6 +320,19 @@ property of the world.
   never dry-run data (see `dry_runs/` below). Written by `harness/`
   (`generate.py`) or by hand; read by `eval/` (`ingest.py`) — the seam
   between the two halves.
+  - `inputs/<name>/logs/<UTC-timestamp>.log` + `.json` — **written by
+    `generate.py`'s `run()`, one pair per invocation.** The `.log` is the
+    complete stderr transcript (reasoning streams, every generated/fixed
+    file, every debug error). The `.json` is the trajectory: per-round
+    `debug_rounds` errors, `fix_history` notes, status, rounds used,
+    timings. Timestamped rather than overwritten so reruns accumulate
+    instead of destroying the previous attempt's evidence. This exists
+    because diagnosing `nex-n2.5-mini`'s give-up was guesswork without it
+    — the run was over, nothing on disk said what the three fix rounds had
+    tried, and `outputs/<name>/` didn't exist either. LangSmith had it, but
+    a trace you can't open offline (or after the project's retention
+    window) isn't a record. Alongside `world.html` deliberately: the
+    artifact and the account of how it got there stay together.
 - `outputs/` — gitignored, per-run/per-model/per-test results.
 - `scripts/`
   - `export_to_web.py` — copies a passing output + writes `meta.mdx` into

@@ -41,8 +41,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypedDict
 
@@ -59,7 +61,7 @@ from langsmith import get_current_run_tree, traceable  # noqa: E402
 
 from harness.model_call import detect_reasoning, generate as generate_completion, invoke_turn  # noqa: E402
 from harness.world_lint import check_world  # noqa: E402
-from harness.status import log, timed  # noqa: E402
+from harness.status import log, log_to_file, timed  # noqa: E402
 
 INPUTS_DIR = REPO_ROOT / "inputs"
 # A dry run against nex-n2.5-mini:free needed 3 fix attempts to genuinely
@@ -108,6 +110,10 @@ class AgentState(TypedDict):
     reasoning: bool | None
     errors: list[str]
     fix_history: list[str]
+    # Per-round record of what debug saw, kept for the same reason fix_history
+    # exists: so the saved run trajectory reads as a sequence of rounds rather
+    # than just a final verdict. Scoped to one run() call, like fix_history.
+    debug_history: list[dict]
     force_full_file: bool
     _generate_reasoning: str
     _generate_html: str
@@ -177,7 +183,10 @@ def _debug_node(state: AgentState) -> dict:
         errors=errors,
         extra_tags=["clean" if not errors else "has-errors"],
     )
-    return {"errors": errors}
+    return {
+        "errors": errors,
+        "debug_history": state["debug_history"] + [{"round": state["round"], "errors": errors}],
+    }
 
 
 _FIX_SYSTEM = (
@@ -566,35 +575,67 @@ def run(
     (`generate::run`) with every node's run nested under it, so the whole
     attempt — not just one step of it — is visible as a single trace tree.
     """
-    if reasoning is None:
-        reasoning = detect_reasoning(model)
-        log(f"[reasoning] auto-detected {model}: {'capable' if reasoning else 'not reasoning-capable'}")
+    started = datetime.now(timezone.utc)
+    stamp = started.strftime("%Y%m%d-%H%M%S")
+    log_dir = INPUTS_DIR / name / "logs"
+    with log_to_file(log_dir / f"{stamp}.log") as log_path:
+        log(f"[run]    {name} | model={model} | max_fix_rounds={max_rounds} | started {started.isoformat()}")
+        log(f"[run]    transcript -> {log_path}")
+        if reasoning is None:
+            reasoning = detect_reasoning(model)
+            log(f"[reasoning] auto-detected {model}: {'capable' if reasoning else 'not reasoning-capable'}")
 
-    app = build_graph()
-    final_state = app.invoke(
-        {
+        app = build_graph()
+        final_state = app.invoke(
+            {
+                "name": name,
+                "model": model,
+                "round": 1,
+                "max_rounds": max_rounds,
+                "reasoning": reasoning,
+                "errors": [],
+                "fix_history": [],
+                "debug_history": [],
+                "force_full_file": False,
+            }
+        )
+        dest = _html_path(name)
+        fix_rounds_used = final_state["round"] - 1
+        status = "clean" if not final_state["errors"] else "gave_up"
+        if final_state["errors"]:
+            log(
+                f"warn     gave up after {max_rounds} fix round(s); "
+                f"{len(final_state['errors'])} error(s) still present in {dest}"
+            )
+            for e in final_state["errors"]:
+                log(f"         {e}")
+        else:
+            log(f"clean    no console errors after {fix_rounds_used} round(s)")
+
+        # Structured sibling of the transcript. The .log is the full story
+        # (every reasoning stream, every generated file); this is the part you
+        # actually read when coming back to a run days later — what each round
+        # saw and did, in order. Written inside the `with` so the transcript
+        # records that it was written, and so a crash before this point still
+        # leaves the .log behind.
+        trajectory = {
             "name": name,
             "model": model,
-            "round": 1,
-            "max_rounds": max_rounds,
+            "started_at": started.isoformat(),
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "status": status,
             "reasoning": reasoning,
-            "errors": [],
-            "fix_history": [],
-            "force_full_file": False,
+            "max_fix_rounds": max_rounds,
+            "fix_rounds_used": fix_rounds_used,
+            "debug_rounds": final_state["debug_history"],
+            "fix_history": final_state["fix_history"],
+            "remaining_errors": final_state["errors"],
+            "world_html": str(dest),
+            "transcript": str(log_path),
         }
-    )
-    dest = _html_path(name)
-    fix_rounds_used = final_state["round"] - 1
-    status = "clean" if not final_state["errors"] else "gave_up"
-    if final_state["errors"]:
-        log(
-            f"warn     gave up after {max_rounds} fix round(s); "
-            f"{len(final_state['errors'])} error(s) still present in {dest}"
-        )
-        for e in final_state["errors"]:
-            log(f"         {e}")
-    else:
-        log(f"clean    no console errors after {fix_rounds_used} round(s)")
+        json_path = log_dir / f"{stamp}.json"
+        json_path.write_text(json.dumps(trajectory, indent=2) + "\n", encoding="utf-8")
+        log(f"[run]    trajectory -> {json_path}")
 
     # The parent run's own outputs, not just its return value (a bare Path) —
     # opening `generate::run` in LangSmith should show the whole loop's

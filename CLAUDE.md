@@ -231,21 +231,40 @@ property of the world.
       attempt already happened and not blindly repeat it. Scoped to one
       `run()` invocation only, never persisted — see `model_call.py`'s
       `invoke_turn` note above on the same principle.
-  - `world_lint.py` — `check_world(html_path)`: static, no browser.
-    Catches the failure class browser console errors *can't* diagnose:
-    a model that hit its length cap, panicked, and restarted mid-file
-    still often closes with a real `</html>`, so `model_call`'s own
-    completeness check (`_looks_complete`) sees it as finished — but
-    what's actually on disk is two drafts glued together (an unfinished
-    statement jammed into a stray ` ``` ` fence, then a second
-    `<!DOCTYPE html>`). A browser reports that as a generic syntax error
-    or import failure, which then gets handed to the `fix` node as if it
-    were a small runtime bug — asking it to patch surgically, which
-    cannot unglue two documents. `check_world()` names this class of
-    failure directly (leftover markdown fences, unclosed `<script>`,
-    leaked commentary like "Let me provide a clean continuation", a
-    truncated last statement) and tags it `[structure]`, so `fix` knows
-    to call `write_world_html` (full rewrite) instead of `str_replace`.
+  - `world_lint.py` — `check_world(html_path)`: static lint, then the
+    browser — **skipped when a script doesn't parse** (nothing past a
+    parse failure runs; the console would only restate it). Two tags:
+    - `[structure]` — the *document* is damaged: a model that hit its
+      length cap and restarted mid-file still often closes with a real
+      `</html>`, so `_looks_complete` passes it, but on disk are two drafts
+      glued together (leftover ` ``` ` fence, second `<!DOCTYPE html>`,
+      leaked commentary like "Let me provide a clean continuation",
+      unbalanced `<script>`). Patching can't unglue that → `fix` rewrites.
+    - `[syntax]` — a script doesn't parse, per a **real parser**
+      (`node --check`, `.mjs`/`.cjs` by script type), always with a
+      `(line N; see also line …)` location → `fix` patches it.
+      **Never reintroduce character counting here.** The old
+      `_unbalanced()` counted braces without understanding comments; an
+      apostrophe in `// Swamp on jungle's far side` made it report
+      `1 extra '{'` for three rounds against a script that parsed — which
+      forced full-file context, told the model to rewrite, and led straight
+      to the 504 above. A false finding costs every round it survives.
+    - The parser's line is exact except for brace errors (`Unexpected end
+      of input` points at the last line; inside a class a missing `}`
+      surfaces at the next method header, 58 lines late on nemotron). A
+      comment/string/template/regex-aware lexer yields candidate sites from
+      the code's own intent — a `}` less indented than its `{`
+      (missing), more indented (extra), a `function`/`class` one brace
+      level deeper than earlier ones at its indent (flat code: fable,
+      glm-5-turbo) — and each candidate's one-brace repair is **re-parsed
+      before it's reported** (`_confirmed_location`), so sloppy-but-valid
+      indentation can't produce a false lead. Measured on 193 synthetic
+      single-brace breakages of the 17 real worlds: 90/91 missing-`}` and
+      97/102 extra-`}` land inside a fix window. Earliest-first beat
+      nearest-to-error-first (tried; it moved the nemotron-shaped case
+      from its true line 393 to 444).
+    - Without `node` on PATH, `[syntax]` falls back to the lexer's bracket
+      balance (hint-worded); the browser's SyntaxError is the backstop.
   - `browser_debug.py` — `check_console_errors(html_path)`: loads a
     world.html in headless Chromium and collects distinct
     `console.error`/uncaught-exception messages. Deliberately does

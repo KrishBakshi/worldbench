@@ -188,6 +188,21 @@ def capture(output_dir: Path, *, force: bool = False, model: str | None = None) 
     return manifest
 
 
+def ensure_capture(html_path: str | Path, model: str | None = None) -> dict:
+    """For a test given outputs/<model>/world.html: the manifest, capturing first if needed."""
+    return capture(Path(html_path).parent, model=model)
+
+
+def view_paths(html_path: str | Path, manifest: dict, *kinds: str) -> dict[str, Path]:
+    """{view_id: absolute png path} for every view of the given kinds."""
+    cap_dir = Path(html_path).parent / "capture"
+    return {
+        view_id: cap_dir / view["path"]
+        for view_id, view in manifest.get("views", {}).items()
+        if not kinds or view.get("kind") in kinds
+    }
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Capture views of outputs/<model>/world.html for the visual judges")
     parser.add_argument("output_dir")

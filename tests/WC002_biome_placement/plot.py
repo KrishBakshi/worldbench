@@ -1,7 +1,9 @@
 """graph.json for the website + graph.svg for a local click-to-open preview.
 
 Same node positions as worldbench-web/components/about/BiomeGraph.tsx.
-Outlines use the NetworkX colors: green = ok, red = fail.
+Three node states: green = covered and placed right, red = covered but
+misplaced, grey dashed = not covered (the biome is not built at all, so it is
+shown absent rather than flattened into an ordinary fail).
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from llm import CheckResult, ExtractedGraph
 OK = "#2ecc71"
 FAIL = "#e74c3c"
 EDGE = "#95a5a6"
+UNCOVERED = "#5f6570"
 
 # cx, cy, w, h — copied from BiomeGraph.tsx
 LAYOUT = {
@@ -41,22 +44,28 @@ VIEWBOX = {"width": 800, "height": 560}
 def graph_payload(graph: ExtractedGraph, result: CheckResult) -> dict:
     found = result.details.get("found", {})
     missing = result.details.get("missing", {})
+    cards = result.details.get("scorecard", {}).get("biomes", {})
+    covered = {bid: cards.get(bid, {}).get("covered", True) for bid in BIOME_LABELS}
     by_id = {n.id: n for n in graph.nodes}
 
     nodes = []
     seen = set()
     for bid, label in BIOME_LABELS.items():
-        node = by_id.get(bid)
-        neighbors = list(node.neighbors) if node else []
+        node = by_id.get(bid) if covered[bid] else None
+        neighbors = [n for n in (node.neighbors if node else []) if covered.get(n)]
         for n in neighbors:
             seen.add(tuple(sorted((bid, n))))
         passed = bid in found
+        state = "ok" if passed else ("fail" if covered[bid] else "not_covered")
         nodes.append({
             "id": bid,
             "label": label,
             "neighbors": neighbors,
             "evidence": node.evidence if node else "",
             "passed": passed,
+            "covered": covered[bid],
+            "state": state,
+            "score": cards.get(bid, {}).get("score", 0),
             "reason": found.get(bid) or missing.get(bid) or "missing from graph",
             **LAYOUT[bid],
         })
@@ -92,7 +101,7 @@ def write_svg(payload: dict, path: str | Path) -> Path:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">',
         '<rect width="100%" height="100%" fill="#0b0b0c"/>',
         f'<text x="16" y="28" fill="#f0f0f2" font-size="14" font-family="system-ui,sans-serif">'
-        f'WC002  {score}/{max_score}  green=ok  red=fail</text>',
+        f'WC002  {score}/{max_score}  green=placed  red=misplaced  grey=not covered</text>',
     ]
     for edge in payload["edges"]:
         a, b = by_id.get(edge["from"]), by_id.get(edge["to"])
@@ -106,16 +115,24 @@ def write_svg(payload: dict, path: str | Path) -> Path:
         )
     for n in payload["nodes"]:
         x, y = n["cx"] - n["w"] / 2, n["cy"] - n["h"] / 2
-        dash = ' stroke-dasharray="4 4"' if n.get("isolated") else ""
-        stroke = OK if n["passed"] else FAIL
+        state = n.get("state", "ok" if n["passed"] else "fail")
+        dash = ' stroke-dasharray="4 4"' if n.get("isolated") or state == "not_covered" else ""
+        stroke = {"ok": OK, "fail": FAIL, "not_covered": UNCOVERED}[state]
+        text_fill = "#f0f0f2" if state != "not_covered" else "#8a9099"
         lines.append(
             f'<rect x="{x}" y="{y}" width="{n["w"]}" height="{n["h"]}" rx="8" '
             f'fill="#060607" stroke="{stroke}" stroke-width="2.5"{dash}/>'
         )
+        label_y = n["cy"] + (0 if state == "not_covered" else 5)
         lines.append(
-            f'<text x="{n["cx"]}" y="{n["cy"] + 5}" text-anchor="middle" fill="#f0f0f2" '
+            f'<text x="{n["cx"]}" y="{label_y}" text-anchor="middle" fill="{text_fill}" '
             f'font-size="13" font-family="system-ui,sans-serif">{escape(n["label"])}</text>'
         )
+        if state == "not_covered":
+            lines.append(
+                f'<text x="{n["cx"]}" y="{n["cy"] + 15}" text-anchor="middle" fill="{UNCOVERED}" '
+                f'font-size="10" font-family="system-ui,sans-serif">not covered</text>'
+            )
     lines.append("</svg>")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

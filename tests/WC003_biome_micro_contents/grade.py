@@ -8,8 +8,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from llm import BIOME_IDS, BiomeMicroReport, CheckResult, load_requirements
 
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from eval.capture.judge import VisualReport  # noqa: E402
+from eval.evidence import in_source  # noqa: E402
+
 POINTS_PER_BIOME = 10
 MAX_SCORE = POINTS_PER_BIOME * len(BIOME_IDS)
+
+# Each item's points split between what the code builds (quote checked
+# against the source) and what the daytime frames show. Either half alone
+# is partial credit: code that never renders, or a render the probe missed.
+CODE_SHARE = 0.5
+VISUAL_SHARE = 0.5
 
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
@@ -46,7 +58,11 @@ _BUILTIN_CALLS = {
 def grade_reports(
     reports: dict[str, BiomeMicroReport | dict],
     biome_ids: tuple[str, ...] | None = None,
+    visual: dict[str, VisualReport | dict] | None = None,
+    source_normalized: str | None = None,
 ) -> CheckResult:
+    """visual: per-biome VisualReport (None = code-only regrade of an old run).
+    source_normalized: eval.evidence.normalize(js); None skips the quote check."""
     found, missing = {}, {}
     item_hits, item_misses = {}, {}
     biome_scores = {}
@@ -58,7 +74,7 @@ def grade_reports(
     for biome_id in selected:
         req = load_requirements(biome_id)
         report = reports.get(biome_id)
-        card = _grade_one(biome_id, req, report)
+        card = _grade_one(biome_id, req, report, (visual or {}).get(biome_id), source_normalized, visual is not None)
         biome_scores[biome_id] = card["score"]
         total += card["score"]
         hits = [row["id"] for row in card["earned"]]
@@ -170,7 +186,7 @@ def _not_in_scope(judgement) -> bool:
     return "not in " in evidence and "scope" in evidence
 
 
-def _presence(judgement) -> tuple[bool, str]:
+def _presence(judgement, source_normalized: str | None = None) -> tuple[bool, str]:
     if judgement is None:
         return False, "missing_judgement"
     if _not_in_scope(judgement):
@@ -180,76 +196,118 @@ def _presence(judgement) -> tuple[bool, str]:
     reason = _reject_reason(judgement.evidence or "")
     if reason:
         return False, reason
+    if source_normalized is not None and not in_source(judgement.evidence or "", source_normalized):
+        return False, "evidence_not_in_source"
     return True, ""
 
 
-def _item_row(item: dict, kind: str, judgement, hit: bool, points: float, why: str) -> dict:
-    row = {
-        "id": item["id"],
-        "label": item.get("label", ""),
-        "kind": kind,
-        "points": points,
-        "llm_found": None if judgement is None else bool(judgement.found),
-        "evidence": "" if judgement is None else (judgement.evidence or ""),
+def _weight(item: dict) -> float:
+    return float(item.get("weight", 1))
+
+
+def _failed(biome_id: str, why: str, detail: str = "") -> dict:
+    return {
+        "score": 0.0,
+        "max_score": POINTS_PER_BIOME,
+        "passed": False,
+        "earned": [],
+        "lost": [{"id": why, "label": "", "kind": "biome", "points": POINTS_PER_BIOME, "why": why, "evidence": detail}],
     }
-    if not hit:
-        row["why"] = why
-    return row
 
 
-def _grade_one(biome_id: str, req: dict, report) -> dict:
+def _grade_one(
+    biome_id: str,
+    req: dict,
+    report,
+    visual,
+    source_normalized: str | None,
+    use_visual: bool,
+) -> dict:
     if not isinstance(report, BiomeMicroReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
-        return {
-            "score": 0.0,
-            "max_score": POINTS_PER_BIOME,
-            "passed": False,
-            "earned": [],
-            "lost": [
-                {
-                    "id": "probe_failed",
-                    "label": "",
-                    "kind": "probe",
-                    "points": POINTS_PER_BIOME,
-                    "why": "probe_failed",
-                    "llm_found": None,
-                    "evidence": err,
-                }
-            ],
-        }
+        return _failed(biome_id, "probe_failed", err)
+    if use_visual and not isinstance(visual, VisualReport):
+        err = visual.get("error", "no visual report") if isinstance(visual, dict) else "no visual report"
+        return _failed(biome_id, "visual_failed", err)
 
     present_items = list(req.get("must_present", []))
     leak_items = list(req.get("must_not_present", []))
-    n_present = len(present_items)
-    points = round(POINTS_PER_BIOME / n_present, 2) if n_present else 0.0
-    earned, lost = [], []
-    present_hits = 0
-    leak_count = 0
+    total_weight = sum(_weight(i) for i in present_items) or 1.0
+    unit = POINTS_PER_BIOME / total_weight
+    seen = {s.id: s for s in visual.items} if use_visual else {}
+    seen_leaks = {s.id: s for s in visual.leaks} if use_visual else {}
+    code_share, visual_share = (CODE_SHARE, VISUAL_SHARE) if use_visual else (1.0, 0.0)
 
+    earned, lost = [], []
+    code_hits = 0
+    score = 0.0
     for item in present_items:
         judgement = report.must_present.get(item["id"])
-        implemented, why = _presence(judgement)
-        if implemented:
-            present_hits += 1
-            earned.append(_item_row(item, "must_present", judgement, True, points, why))
+        code_ok, why = _presence(judgement, source_normalized)
+        sighting = seen.get(item["id"])
+        visual_ok = bool(sighting and sighting.visible)
+        code_hits += code_ok
+        points = round(unit * _weight(item), 2)
+        got = round(points * (code_share * code_ok + visual_share * visual_ok), 2)
+        score += got
+        row = {
+            "id": item["id"],
+            "label": item.get("label", ""),
+            "kind": "must_present",
+            "points": points,
+            "earned": got,
+            "code": code_ok,
+            "visual": visual_ok if use_visual else None,
+            "seen": sighting.seen if sighting else "",
+            "evidence": "" if judgement is None else (judgement.evidence or ""),
+        }
+        if got >= points:
+            earned.append(row)
         else:
-            lost.append(_item_row(item, "must_present", judgement, False, points, why))
+            # Partial credit rows stay in `lost` (with their `earned`) so the
+            # scorecard shows which half was missing.
+            row["why"] = why if not code_ok else "not_visible"
+            lost.append(row)
 
     for item in leak_items:
         judgement = report.must_not_present.get(item["id"])
-        implemented, why = _presence(judgement)
-        if implemented:
-            leak_count += 1
-            lost.append(
-                _item_row(item, "must_not_present", judgement, False, points, "forbidden_present")
-            )
+        code_leak, _ = _presence(judgement, source_normalized)
+        sighting = seen_leaks.get(item["id"])
+        visual_leak = bool(sighting and sighting.visible)
+        if code_leak or visual_leak:
+            points = round(unit * _weight(item), 2)
+            score -= points
+            lost.append({
+                "id": item["id"],
+                "label": item.get("label", ""),
+                "kind": "must_not_present",
+                "points": points,
+                "why": "forbidden_present",
+                "code": code_leak,
+                "visual": visual_leak if use_visual else None,
+                "seen": sighting.seen if sighting else "",
+                "evidence": "" if judgement is None else (judgement.evidence or ""),
+            })
 
-    raw = POINTS_PER_BIOME * (present_hits - leak_count) / n_present if n_present else 0.0
-    biome_score = round(max(0.0, raw), 2)
-    return {
-        "score": biome_score,
+    # Absent biome: nothing built for it in code and nothing seen in the frames.
+    biome_seen = bool(use_visual and (visual.shows_biome or visual.biome_visible))
+    if code_hits == 0 and not report.aliases and not biome_seen:
+        return _failed(biome_id, "biome_absent", "no code evidence and not visible in any frame")
+
+    card = {
+        "score": round(max(0.0, score), 2),
         "max_score": POINTS_PER_BIOME,
         "passed": not lost,
         "earned": earned,
         "lost": lost,
     }
+    if use_visual:
+        card["shows_biome"] = visual.shows_biome
+        card["biome_visible"] = visual.biome_visible
+    # The ocean has to sit on a seabed. A sheet running out over the void
+    # zeroes the delta biome (what the old island gate did from regex).
+    if use_visual and biome_id == "delta" and visual.extra.get("ocean_over_void"):
+        card.update(score=0.0, passed=False, ocean_over_void=True)
+        card["lost"].append({"id": "ocean_over_void", "kind": "physics", "why": "ocean_over_void",
+                             "points": POINTS_PER_BIOME, "evidence": "ocean sheet extends over the void with no blocks beneath"})
+    return card

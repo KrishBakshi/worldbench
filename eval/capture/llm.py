@@ -11,6 +11,7 @@ import base64
 import io
 import json
 import os
+import warnings
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+# gemini-3.5-flash-lite (the current WC002_MODEL) has fixed sampling and warns
+# on every call that `temperature` is ignored. The warning is true but says
+# nothing new per call; re-votes on that model still differ.
+warnings.filterwarnings("ignore", message=r".*uses fixed sampling defaults.*")
 
 # Views go to the judge downscaled: 1280px wide costs ~2x the tokens of 896px
 # and the judges are asked about biome-scale features, not single pixels.
@@ -51,14 +57,24 @@ def image_part(path: Path, width: int = JUDGE_IMAGE_WIDTH) -> dict:
     return {"type": "image_url", "image_url": f"data:image/jpeg;base64,{b64}"}
 
 
-def invoke_structured(schema: type[BaseModel], prompt: str, images: list[Path] | None = None, model: str | None = None):
-    """Text (+ optional images) in, a validated `schema` out."""
+def invoke_structured(
+    schema: type[BaseModel],
+    prompt: str,
+    images: list[Path] | None = None,
+    model: str | None = None,
+    temperature: float = 0.0,
+):
+    """Text (+ optional images) in, a validated `schema` out.
+
+    Judges run at temperature 0 so a re-grade of the same frame agrees with
+    itself; a caller that re-votes on purpose passes a higher temperature.
+    """
     content: list[dict] = [{"type": "text", "text": prompt}]
     for path in images or []:
         content.append({"type": "text", "text": f"[image: {Path(path).stem}]"})
         content.append(image_part(Path(path)))
     payload = (
-        chat(model)
+        chat(model, temperature)
         .with_structured_output(schema, include_raw=True, method="json_schema")
         .invoke([HumanMessage(content=content)])
     )

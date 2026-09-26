@@ -145,29 +145,46 @@ property of the world.
     (reasoning stream, the full generated/fixed HTML, every debug error)
     — terminal and LangSmith see the same information, nothing is only
     in one or the other.
-    - **`fix` is a small bounded tool-calling agent, not one tool call.**
-      Two tools, chosen per problem tag: `write_world_html(content)` — a
-      full-file rewrite, only for `[structure]` problems (the document
-      itself isn't valid — a full rewrite is the only fix that can work,
-      see `world_lint.py` below); `str_replace(old_str, new_str)` — one
-      exact, unique in-place edit, for `[uncaught]`/`[console.error]`/
-      `[navigation]` runtime problems, so a fix round edits the specific
-      broken lines instead of re-transcribing the entire file (cheaper,
-      faster, and doesn't risk silently mangling unrelated code the way
-      a full rewrite can). `str_replace` reports back `ERROR: not
-      found`/`not unique` rather than failing silently, so the model can
-      retry with more context — up to `MAX_TOOL_CALLS_PER_FIX_ROUND` (4)
-      tool calls in one turn, since one bug can need more than one edit.
+    - **`fix` has two modes, routed by problem tag.** `[structure]`
+      (document damage: glued drafts, leaked fence/prose, unbalanced
+      `<script>`) → `_rewrite_round`: the model writes the whole file as
+      **streamed content** via `model_call.complete_document()` (continued
+      across turns if cut off), never as a tool argument. Everything else
+      (`[syntax]`, `[uncaught]`, `[console.error]`, `[navigation]`) →
+      `_patch_round`: small `str_replace(old_str, new_str)` edits, up to
+      `MAX_TOOL_CALLS_PER_FIX_ROUND` (4) per round. There is no
+      `write_world_html` tool any more — **that is the 504 fix.** Providers
+      buffer tool-call arguments until the call is complete, so on
+      `nemotron-3-ultra` a 54KB rewrite-as-tool-argument left the
+      connection silent until OpenRouter's "Upstream idle timeout exceeded
+      (504)" killed it — three times, 521s, then a crash. Content streams;
+      the connection is never idle.
+    - **Every `str_replace` is verified the moment it's made**, not a debug
+      round later: the result says whether all scripts still parse
+      (`world_lint.syntax_findings`, ~30ms), with a numbered snippet if
+      not. An edit that would break a file that currently parses is
+      **refused** and the file left unchanged — the "fix one bug, introduce
+      another" pattern from `nex-n2.5-mini` used to cost a full round to
+      surface. A refused edit doesn't trigger the full-file escalation
+      below (it proves the model found the spot).
+    - **`str_replace` is built to land on the first try** — a failed edit
+      burns one of only 4 turns (`nemotron-3-ultra` round 2 lost 2 of 4 to
+      `old_str not found`). Excerpt `  393: ` prefixes copied into old_str
+      are stripped; a whitespace-only mismatch with exactly one match is
+      applied; otherwise the error shows the closest matching file text
+      (`difflib`, line-aligned) to copy from, or the line numbers of every
+      match when it isn't unique.
+    - **A provider failure forfeits the round, not the run.** Edits already
+      applied are kept and `run()` still writes its trajectory `.json`
+      (the nemotron 504 crashed `run()` and lost it).
     - **The fix prompt itself doesn't send the whole file for runtime
       problems — `_build_fix_context()` sends only a windowed excerpt
       (+/- `FIX_CONTEXT_LINES`, 40) around each error's source line.**
       That location comes from `browser_debug.py` (below), not a guess —
       confirmed against a real broken `world.html` that this cut a
       52KB file down to a 3.5KB excerpt for a real bug, still centered
-      exactly on the right line. `write_world_html` isn't even bound as
-      a tool on a windowed round (not just discouraged by the prompt —
-      physically absent from `tools=`), since calling it with only a
-      window in hand would silently truncate the file to that window.
+      exactly on the right line. `[syntax]` findings carry the same
+      kind of location suffix, so a parse error is windowed too.
       Falls back to the complete file in the three cases a window can't
       cover: any `[structure]` problem in the batch (the whole document
       is what's broken), no error in the batch carries a location at
@@ -211,17 +228,12 @@ property of the world.
         repair is *deletion*, and it was already fully visible in its own
         window. Not every give-up is a context problem — check whether the
         model could see the bug before widening anything.
-    - **"Not bound" alone isn't enough — the dispatch loop checks
-      `call["name"]` against `available_tools` before invoking anything**,
-      returning an `ERROR:` ToolMessage instead of executing it. Not
-      theoretical: a free-tier model, mid-dry-run, still emitted a
-      `write_world_html` tool_call on a windowed (`str_replace`-only)
-      round — read about it in the system prompt text despite never
-      being offered it via the API — and with a malformed argument shape
-      (`{"value": ...}` instead of `{"content": ...}`) that would have
-      crashed the whole node via an uncaught pydantic error. Both the
-      unbound-tool call and a malformed-args call are now caught and
-      reported back to the model as a normal tool result, not a crash.
+    - **The dispatch loop rejects any tool name but `str_replace`**,
+      returning an `ERROR:` ToolMessage instead of executing it, and a
+      malformed-args call is reported back rather than crashing the node.
+      Not theoretical: a free-tier model once emitted a call for a tool it
+      had only read about in the prompt text, with a malformed argument
+      shape that would have crashed the node via an uncaught pydantic error.
     - **A short note per fix round is carried forward within the same
       `run()` call** (`AgentState.fix_history`, e.g. `"round 2: 1
       str_replace edit(s) applied"`) and shown to the next fix round —

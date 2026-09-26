@@ -6,17 +6,20 @@ handing off to `debug`.
     generate  -- one call to the model under test (harness.model_call),
                  writes inputs/<name>/world.html. Reasoning tokens stream
                  live to stderr; the full generated file is printed too.
-    debug     -- static structure lint (harness.world_lint: leftover
-                 markdown fences, unclosed <script>, leaked commentary,
-                 truncated last statement) then headless console capture
-                 (harness.browser_debug). No rendering check.
-    fix       -- only runs when debug found errors. A tool-calling agent
-                 (same model under test, same live reasoning stream as
-                 generate) reads the current file + the error list and
-                 calls write_world_html with the complete corrected file.
-                 Loops back to debug. [structure] errors mean the model
-                 glued two drafts together or cut off mid-JS — rewrite
-                 the whole document, don't patch the fence.
+    debug     -- static lint (harness.world_lint: [structure] document
+                 damage — leftover markdown fences, unclosed <script>,
+                 leaked commentary — and [syntax]: a real JS parser, with a
+                 missing/extra brace localized and parser-verified) then
+                 headless console capture (harness.browser_debug), skipped
+                 when a script doesn't parse. No rendering check.
+    fix       -- only runs when debug found errors. Same model under test,
+                 same live reasoning stream as generate. Two modes:
+                 [structure] -> rewrite the whole document, streamed as
+                 content (model_call.complete_document), never as a tool
+                 argument; everything else -> small str_replace edits
+                 against a windowed excerpt, each one parse-checked the
+                 moment it's made and refused if it would break parsing.
+                 Loops back to debug.
 
 Stops when a debug pass comes back clean, or after --max-fix-rounds fix
 attempts — whichever comes first. The file on disk at inputs/<name>/world.html
@@ -41,6 +44,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import re
 import sys
@@ -48,6 +52,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypedDict
 
+import httpx
 from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -59,8 +64,14 @@ from langchain_core.tools import tool  # noqa: E402
 from langgraph.graph import END, StateGraph  # noqa: E402
 from langsmith import get_current_run_tree, traceable  # noqa: E402
 
-from harness.model_call import detect_reasoning, generate as generate_completion, invoke_turn  # noqa: E402
-from harness.world_lint import check_world  # noqa: E402
+from harness.model_call import (  # noqa: E402
+    SilentToolCallTimeout,
+    complete_document,
+    detect_reasoning,
+    generate as generate_completion,
+    invoke_turn,
+)
+from harness.world_lint import check_world, syntax_findings  # noqa: E402
 from harness.status import log, log_to_file, timed  # noqa: E402
 
 INPUTS_DIR = REPO_ROOT / "inputs"
@@ -79,7 +90,7 @@ INPUTS_DIR = REPO_ROOT / "inputs"
 # evidence a specific class of bug needs more layers, not preemptively.
 DEFAULT_MAX_FIX_ROUNDS = 3
 MAX_ERRORS_IN_PROMPT = 15  # dedup already collapses per-frame spam; cap for prompt size
-MAX_TOOL_CALLS_PER_FIX_ROUND = 4  # bound on how many str_replace/write_world_html calls one round may make
+MAX_TOOL_CALLS_PER_FIX_ROUND = 4  # bound on how many str_replace calls one round may make
 FIX_CONTEXT_LINES = 40  # lines of context on each side of an error location, for the windowed fix prompt
 # A stack trace is control flow ("who called this"), never data flow ("where
 # did this bad value come from"). inputs/nex-n2.5-mini hit the gap: `Cannot
@@ -190,36 +201,49 @@ def _debug_node(state: AgentState) -> dict:
 
 
 _FIX_SYSTEM = (
-    "You are fixing a self-contained Three.js world.html file. You will be "
-    "given a list of problems and either the complete current file or, for "
-    "runtime problems with a known source location, only a windowed excerpt "
-    "around each one (the file may be hundreds of lines; you don't need the "
-    "whole thing to fix a specific throw). Each problem is tagged:\n"
-    "  [structure] — generation artifact: truncated JS, leftover markdown "
-    "fences (```html), two drafts glued together, unclosed <script>, or "
-    "prose leaked into the file. The document is not valid and cannot be "
-    "fixed by patching around the damage. You'll be shown the complete file "
-    "for this case. Call write_world_html with ONE complete HTML file from "
-    "<!DOCTYPE html> to </html>.\n"
+    "You are fixing a self-contained Three.js world.html file by editing it "
+    "in place with the str_replace tool. You'll get a list of problems and "
+    "either the complete file or, when every problem has a known source "
+    "location, only excerpts around those locations (the file may be "
+    "hundreds of lines; you don't need all of it to fix a specific error). "
+    "Problem tags:\n"
+    "  [syntax] — a script doesn't parse, found by a real JS parser. The "
+    "message says where the fix goes (often a missing or extra '}' — and "
+    "says so when the parser has verified that one change makes the script "
+    "parse). Make exactly that small edit.\n"
     "  [uncaught] / [console.error] / [navigation] — browser runtime error. "
-    "Call str_replace with the exact old text and the corrected replacement. "
-    "If you were shown a windowed excerpt, its lines are prefixed with "
-    "`NNNNN: ` for your own orientation only — old_str/new_str must be the "
-    "exact source text WITHOUT that line-number prefix. Prefer several small "
-    "str_replace calls over one large rewrite — you may call it up to "
-    f"{MAX_TOOL_CALLS_PER_FIX_ROUND} times in this turn if the fix needs more "
-    "than one edit. If str_replace reports old_str wasn't found or wasn't "
-    "unique, look again and retry with more context.\n"
-    "Stop calling tools once you believe every listed problem is fixed."
+    "The location is the throw site; `called from` lines are callers, and the "
+    "bug is often in the caller or where a value was assigned, not at the "
+    "throw.\n"
+    "Excerpt lines are prefixed `NNNNN: ` for orientation only — old_str/"
+    "new_str must be the exact source text WITHOUT that prefix. Keep each "
+    "edit small: a few lines of old_str, never a whole function or the file. "
+    f"You may call str_replace up to {MAX_TOOL_CALLS_PER_FIX_ROUND} times. "
+    "Every result tells you immediately whether the edit applied and whether "
+    "all scripts still parse; an edit that would break parsing is refused and "
+    "the file is left unchanged, so read the result and adjust. If old_str "
+    "isn't found, the result shows the closest matching text — copy from it.\n"
+    "Stop calling tools once every listed problem is fixed."
+)
+
+_REWRITE_SYSTEM = (
+    "You are repairing a self-contained Three.js world.html file whose "
+    "document structure is broken: a generation artifact such as two drafts "
+    "glued together, a leaked markdown fence, prose in the file, or a missing "
+    "</html>. Patching around that damage can't work, so write the complete "
+    "corrected file: ONE HTML document from <!DOCTYPE html> to </html>, "
+    "keeping everything that works in the current file. Output only the raw "
+    "file — no markdown fences, no commentary before or after it."
 )
 
 # Two-step on purpose. _LOCATION_RE isolates the suffix browser_debug.py
-# appends (`(line 104, col 27; called from line 383, line 397)`) and nothing
-# else; _LINE_NO_RE then pulls EVERY line number out of that matched group.
+# appends (`(line 104, col 27; called from line 383, line 397)`), or
+# world_lint's `[syntax]` equivalent (`(line 393; see also line 391, line
+# 451)`), and nothing else; _LINE_NO_RE then pulls EVERY line number out of that matched group.
 # Doing it in one pass would mean running findall over the whole error string,
 # where a model's own `console.error("line 5 failed")` would register as a
 # source location. Matches the old single-location format unchanged.
-_LOCATION_RE = re.compile(r"\(line \d+(?:, col \d+)?(?:; called from line \d+(?:, line \d+)*)?\)")
+_LOCATION_RE = re.compile(r"\(line \d+(?:, col \d+)?(?:; (?:called from|see also) line \d+(?:, line \d+)*)?\)")
 _LINE_NO_RE = re.compile(r"line (\d+)")
 
 
@@ -312,7 +336,7 @@ def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = 
     harness working against files far larger than any one bug. Falls back
     to the complete file in three cases where a window genuinely isn't
     enough: any [structure] problem present (the whole document is what's
-    broken, a full rewrite needs to see all of it), no error in this batch
+    broken; _rewrite_round sends it whole anyway), no error in this batch
     carrying a location to window around at all, or `force_full_file` — the
     previous windowed round came back with no edits at all (see
     _fix_node), which is evidence the window is pointing somewhere the bug
@@ -365,58 +389,126 @@ def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = 
     return "\n\n".join(parts), False
 
 
+# ---------------------------------------------------------------------------
+# str_replace, made to land on the first try.
+#
+# A failed edit costs a whole model turn, and the loop has only
+# MAX_TOOL_CALLS_PER_FIX_ROUND of them: nemotron-3-ultra's round 2 spent 2 of
+# its 4 on `old_str not found` and hit the cap. Every refusal below therefore
+# says exactly what to do next, and the two mismatches that are unambiguous
+# (excerpt line-number prefixes copied into old_str; whitespace-only
+# differences with a single match) are resolved instead of refused.
+# ---------------------------------------------------------------------------
+_EXCERPT_PREFIX_RE = re.compile(r"^ *\d+: ?", re.M)
+CLOSEST_MATCH_MIN_RATIO = 0.5
+CLOSEST_MATCH_MAX_LINES = 30
+SNIPPET_LINES = 4  # context on each side of a [syntax] location shown in a tool result
+
+
+def _strip_excerpt_prefixes(text: str) -> str:
+    """Drop `  393: ` prefixes if EVERY non-blank line carries one — the
+    signature of text copied from a windowed excerpt, not of real code."""
+    body = [line for line in text.split("\n") if line.strip()]
+    if body and all(_EXCERPT_PREFIX_RE.match(line) for line in body):
+        return _EXCERPT_PREFIX_RE.sub("", text)
+    return text
+
+
+def _line_of(html: str, offset: int) -> int:
+    return html.count("\n", 0, offset) + 1
+
+
+def _closest_match(html: str, old_str: str) -> str:
+    """The file text most similar to a not-found old_str, line-aligned."""
+    want_lines = [line.strip() for line in old_str.strip("\n").split("\n")]
+    want = "\n".join(want_lines)
+    file_lines = html.split("\n")
+    stripped = [line.strip() for line in file_lines]
+    k = max(1, len(want_lines))
+    best_ratio, best_at = 0.0, None
+    for i in range(0, max(1, len(file_lines) - k + 1)):
+        sm = difflib.SequenceMatcher(None, want, "\n".join(stripped[i : i + k]), autojunk=False)
+        if sm.real_quick_ratio() <= best_ratio or sm.quick_ratio() <= best_ratio:
+            continue
+        ratio = sm.ratio()
+        if ratio > best_ratio:
+            best_ratio, best_at = ratio, i
+    if best_at is None or best_ratio < CLOSEST_MATCH_MIN_RATIO:
+        return "No similar text found — the code you're targeting may not exist in this file."
+    end = min(best_at + k, best_at + CLOSEST_MATCH_MAX_LINES)
+    exact = "\n".join(file_lines[best_at:end])
+    return (
+        f"Closest text in the file (lines {best_at + 1}-{end}, {best_ratio:.0%} similar) — "
+        f"copy old_str exactly from here:\n{exact}"
+    )
+
+
+def _resolve_old_str(html: str, old_str: str) -> tuple[int, int, str] | str:
+    """(start, end, note) of old_str's one occurrence, or an `ERROR: …` string."""
+    count = html.count(old_str) if old_str else 0
+    if count == 1:
+        start = html.index(old_str)
+        return start, start + len(old_str), ""
+    if count > 1:
+        lines = [_line_of(html, m.start()) for m in re.finditer(re.escape(old_str), html)]
+        return (
+            f"ERROR: old_str matches {count} places (lines {', '.join(map(str, lines[:8]))}), not 1. "
+            "Add a neighbouring line to old_str so it matches exactly one of them."
+        )
+    if not old_str.strip():
+        return "ERROR: old_str is empty."
+
+    unprefixed = _strip_excerpt_prefixes(old_str)
+    if unprefixed != old_str:
+        resolved = _resolve_old_str(html, unprefixed)
+        if not isinstance(resolved, str):
+            return resolved[0], resolved[1], " (ignored the excerpt line-number prefixes in old_str)"
+        return resolved
+
+    # Same tokens, different whitespace/indentation, one match: unambiguous.
+    pattern = r"\s+".join(re.escape(tok) for tok in old_str.split())
+    matches = list(re.finditer(pattern, html))
+    if len(matches) == 1:
+        return matches[0].start(), matches[0].end(), " (matched ignoring whitespace differences)"
+    if len(matches) > 1:
+        lines = [_line_of(html, m.start()) for m in matches]
+        return (
+            f"ERROR: old_str not found exactly; ignoring whitespace it matches {len(matches)} places "
+            f"(lines {', '.join(map(str, lines[:8]))}). Copy it exactly, with a neighbouring line to make it unique."
+        )
+    return "ERROR: old_str not found in the current file. " + _closest_match(html, old_str)
+
+
+def _snippet(html: str, finding: str) -> str:
+    """Numbered lines around a finding's primary location, so a tool result
+    shows the model the problem instead of making it ask for it."""
+    m = _LOCATION_RE.search(finding)
+    first = _LINE_NO_RE.search(m.group(0)) if m else None
+    if not first:
+        return ""
+    lines = html.split("\n")
+    center = int(first.group(1))
+    lo, hi = max(1, center - SNIPPET_LINES), min(len(lines), center + SNIPPET_LINES)
+    return "\n" + "\n".join(f"{n:>5}: {lines[n - 1]}" for n in range(lo, hi + 1))
+
+
+def _provider_failure_note(round_n: int, exc: Exception) -> str:
+    note = f"round {round_n}: model call failed, round forfeited ({type(exc).__name__}: {exc})"
+    log(f"error    {note}")
+    return note
+
+
 @traceable(name="generate::fix_node", run_type="chain")
 def _fix_node(state: AgentState) -> dict:
-    html_path = _html_path(state["name"])
-    current_html = html_path.read_text(encoding="utf-8")
-    errors_text = "\n".join(f"- {e}" for e in state["errors"][:MAX_ERRORS_IN_PROMPT])
+    """Route by what's broken. [structure] -> the model rewrites the whole
+    document as streamed content (_rewrite_round); anything else -> small
+    parse-verified str_replace edits (_patch_round)."""
+    if any(e.startswith("[structure]") for e in state["errors"]):
+        return _rewrite_round(state)
+    return _patch_round(state)
 
-    written: dict[str, str] = {}
-    edits: list[tuple[str, str]] = []
 
-    @tool
-    def write_world_html(content: str) -> str:
-        """Replace the entire file — only for [structure] problems (a document that isn't valid HTML/JS at all)."""
-        written["content"] = content
-        return "OK: file replaced."
-
-    @tool
-    def str_replace(old_str: str, new_str: str) -> str:
-        """Replace one exact, unique occurrence of old_str with new_str — for [uncaught]/[console.error]/[navigation] problems."""
-        nonlocal current_html
-        count = current_html.count(old_str)
-        if count == 0:
-            return "ERROR: old_str not found in the current file. Check exact text/whitespace and retry."
-        if count > 1:
-            return f"ERROR: old_str matches {count} places, not 1. Include more surrounding context to make it unique."
-        current_html = current_html.replace(old_str, new_str, 1)
-        edits.append((old_str, new_str))
-        return "OK: edit applied."
-
-    context_text, is_full_file = _build_fix_context(
-        current_html, state["errors"], force_full_file=state["force_full_file"]
-    )
-    total_lines = current_html.count("\n") + 1
-    if is_full_file:
-        if state["force_full_file"]:
-            log(
-                f"[fix]    round {state['round']}: escalating to the full "
-                f"{total_lines}-line file — the previous windowed round made no edits"
-            )
-        file_block = f"Current world.html (complete, {total_lines} lines):\n```html\n{context_text}\n```"
-        available_tools = [str_replace, write_world_html]
-    else:
-        shown_lines = context_text.count("\n") + 1
-        file_block = (
-            f"Current world.html is {total_lines} lines — showing only the excerpt(s) "
-            f"below, around each reported error location:\n\n{context_text}"
-        )
-        available_tools = [str_replace]  # a windowed round physically cannot rewrite the whole file
-        log(
-            f"[fix]    round {state['round']}: sending {shown_lines} context line(s) "
-            f"instead of the full {total_lines}-line file"
-        )
-
+def _problems_text(state: AgentState) -> str:
     history_note = ""
     if state["fix_history"]:
         history_note = (
@@ -425,25 +517,151 @@ def _fix_node(state: AgentState) -> dict:
             + "\n".join(state["fix_history"])
             + "\n\n"
         )
+    errors_text = "\n".join(f"- {e}" for e in state["errors"][:MAX_ERRORS_IN_PROMPT])
+    return f"{history_note}Problems:\n{errors_text}"
+
+
+def _rewrite_round(state: AgentState) -> dict:
+    """Full rewrite as streamed content, never as a tool-call argument.
+
+    The tool-call version is what failed on nemotron-3-ultra: the provider
+    buffers tool arguments, so a 54KB write_world_html call left the
+    connection silent until OpenRouter's idle timeout killed it (504), three
+    times. Content streams — progress is visible, the connection is never
+    idle — and complete_document continues a cut-off rewrite the same way
+    generate() continues a cut-off generation.
+    """
+    round_n = state["round"]
+    html_path = _html_path(state["name"])
+    current_html = html_path.read_text(encoding="utf-8")
+    total_lines = current_html.count("\n") + 1
+    log(f"[fix]    round {round_n}: [structure] problem — full rewrite, streamed as content")
+    messages = [
+        SystemMessage(content=_REWRITE_SYSTEM),
+        HumanMessage(
+            content=f"{_problems_text(state)}\n\nCurrent world.html (complete, {total_lines} lines):\n"
+            f"```html\n{current_html}\n```"
+        ),
+    ]
+    reasoning_text = None
+    try:
+        doc = complete_document(
+            state["model"],
+            messages,
+            temperature=0.2,
+            reasoning=bool(state["reasoning"]),
+            label=f"fix round {round_n} rewrite",
+        )
+        reasoning_text = doc.reasoning_content
+        if doc.complete:
+            html_path.write_text(doc.html, encoding="utf-8")
+            note = f"round {round_n}: full rewrite ({len(doc.html)} chars, {doc.turns} turn(s)) for a [structure] problem"
+            _print_output_block(f"fixed output, round {round_n}", doc.html)
+        else:
+            note = f"round {round_n}: rewrite still incomplete after {doc.turns} turn(s) — discarded, file unchanged"
+        log(f"[fix]    {note}")
+    except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
+        note = _provider_failure_note(round_n, exc)
+    _tag_current_run(round_n=round_n, context_mode="rewrite", outcome=note)
+    return {
+        "round": round_n + 1,
+        "fix_history": state["fix_history"] + [note],
+        "force_full_file": False,
+        "_fix_reasoning": reasoning_text,
+    }
+
+
+def _patch_round(state: AgentState) -> dict:
+    round_n = state["round"]
+    html_path = _html_path(state["name"])
+    current_html = html_path.read_text(encoding="utf-8")
+    current_syntax = syntax_findings(current_html)
+    edits: list[tuple[str, str]] = []
+    refused = 0  # edits the parser turned away — proof the model found the spot, so no escalation
+
+    @tool
+    def str_replace(old_str: str, new_str: str) -> str:
+        """Replace one exact, unique occurrence of old_str with new_str. Keep both small."""
+        nonlocal current_html, current_syntax, refused
+        resolved = _resolve_old_str(current_html, old_str)
+        if isinstance(resolved, str):
+            return resolved
+        start, end, how = resolved
+        replacement = _strip_excerpt_prefixes(new_str) if how.startswith(" (ignored the excerpt") else new_str
+        candidate = current_html[:start] + replacement + current_html[end:]
+
+        # Verify on the spot rather than a debug round later. Parsing takes
+        # tens of ms; a debug round costs a Chromium launch, a CDN fetch and
+        # a fresh model turn — and it's how edits that broke something new
+        # used to surface (nex-n2.5-mini's round 1).
+        after = syntax_findings(candidate)
+        if after and not current_syntax:
+            refused += 1
+            return (
+                "ERROR: edit NOT applied — the file parses now and this edit would break it:\n"
+                f"{after[0]}{_snippet(candidate, after[0])}\nFix old_str/new_str and retry."
+            )
+        fixed_syntax = bool(current_syntax) and not after
+        current_html, current_syntax = candidate, after
+        edits.append((old_str, replacement))
+        first, last = _line_of(current_html, start), _line_of(current_html, start + len(replacement))
+        result = f"OK: edit applied{how}; it now spans lines {first}-{last}."
+        if after:
+            return f"{result} The script still does not parse:\n{after[0]}{_snippet(current_html, after[0])}"
+        if fixed_syntax:
+            return f"{result} Every script parses now — the [syntax] problem is fixed."
+        return f"{result} Every script still parses. (Runtime errors are re-checked in the browser after this round.)"
+
+    context_text, is_full_file = _build_fix_context(
+        current_html, state["errors"], force_full_file=state["force_full_file"]
+    )
+    total_lines = current_html.count("\n") + 1
+    if is_full_file:
+        if state["force_full_file"]:
+            log(
+                f"[fix]    round {round_n}: escalating to the full "
+                f"{total_lines}-line file — the previous windowed round made no edits"
+            )
+        file_block = f"Current world.html (complete, {total_lines} lines):\n```html\n{context_text}\n```"
+    else:
+        shown_lines = context_text.count("\n") + 1
+        file_block = (
+            f"Current world.html is {total_lines} lines — showing only the excerpt(s) "
+            f"below, around each reported error location:\n\n{context_text}"
+        )
+        log(
+            f"[fix]    round {round_n}: sending {shown_lines} context line(s) "
+            f"instead of the full {total_lines}-line file"
+        )
 
     messages = [
         SystemMessage(content=_FIX_SYSTEM),
-        HumanMessage(content=f"{history_note}Problems:\n{errors_text}\n\n{file_block}"),
+        HumanMessage(content=f"{_problems_text(state)}\n\n{file_block}"),
     ]
 
     reasoning_chunks: list[str] = []
     tool_names_used: list[str] = []
+    failure_note = None
     hit_cap = True
+    call_n = 0
     for call_n in range(MAX_TOOL_CALLS_PER_FIX_ROUND):
-        with timed(f"fix round {state['round']} · turn {call_n + 1}/{MAX_TOOL_CALLS_PER_FIX_ROUND}"):
-            turn = invoke_turn(
-                state["model"],
-                messages,
-                temperature=0.2,
-                max_tokens=None,
-                reasoning=bool(state["reasoning"]),
-                tools=available_tools,
-            )
+        try:
+            with timed(f"fix round {round_n} · turn {call_n + 1}/{MAX_TOOL_CALLS_PER_FIX_ROUND}"):
+                turn = invoke_turn(
+                    state["model"],
+                    messages,
+                    temperature=0.2,
+                    max_tokens=None,
+                    reasoning=bool(state["reasoning"]),
+                    tools=[str_replace],
+                )
+        except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
+            # A provider failure forfeits this round, not the run: edits
+            # already applied are kept, and the trajectory still gets written.
+            # (nemotron-3-ultra's 504 used to crash run() and lose its .json.)
+            failure_note = _provider_failure_note(round_n, exc)
+            hit_cap = False
+            break
         if turn.reasoning_content:
             reasoning_chunks.append(turn.reasoning_content)
         if not turn.tool_calls:
@@ -452,85 +670,65 @@ def _fix_node(state: AgentState) -> dict:
 
         ai_kwargs = {"reasoning_content": turn.reasoning_content} if turn.reasoning_content else {}
         messages.append(AIMessage(content=turn.text, tool_calls=turn.tool_calls, additional_kwargs=ai_kwargs))
-        available_names = {t.name for t in available_tools}
         for call in turn.tool_calls:
             tool_names_used.append(call["name"])
-            # Not just a lookup table — an actual gate. A windowed round only
-            # binds str_replace (see is_full_file above), but nothing stops a
-            # model from emitting a tool_call for a tool it read about in the
-            # system prompt text yet was never bound this round (seen for
-            # real on a free-tier model). Dispatching by name alone would
-            # silently defeat that guarantee; reject it here instead.
-            if call["name"] not in available_names:
-                result = (
-                    f"ERROR: {call['name']} is not available this round "
-                    f"(only {sorted(available_names)} are bound) — you were shown a windowed "
-                    "excerpt, not the full file, so a full rewrite isn't possible here."
-                )
-            elif call["name"] == "str_replace":
+            # An actual gate, not a lookup table: a model can emit a call for a
+            # tool it was never bound (seen for real on a free-tier model).
+            if call["name"] != "str_replace":
+                result = f"ERROR: {call['name']} is not available — only str_replace is bound. Make small edits."
+            else:
                 try:
                     result = str_replace.invoke(call["args"])
                 except Exception as exc:  # noqa: BLE001 — a malformed tool call shouldn't kill the round
                     result = f"ERROR: str_replace call was malformed ({exc}); retry with old_str/new_str string args."
-            elif call["name"] == "write_world_html":
-                try:
-                    result = write_world_html.invoke(call["args"])
-                except Exception as exc:  # noqa: BLE001 — a malformed tool call shouldn't kill the round
-                    result = f"ERROR: write_world_html call was malformed ({exc}); retry with a content string arg."
-            else:
-                result = f"ERROR: unknown tool {call['name']!r}"
-            log(f"[fix]    round {state['round']}: {call['name']}() -> {result}")
+            log(f"[fix]    round {round_n}: {call['name']}() -> {result}".replace("\n", "\n         "))
             messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
-
-        if "content" in written:
-            hit_cap = False
-            break  # a full rewrite makes further str_replace calls against stale content meaningless
     if hit_cap:
-        log(f"[fix]    round {state['round']}: hit the {MAX_TOOL_CALLS_PER_FIX_ROUND}-tool-call cap without the model stopping on its own")
+        log(f"[fix]    round {round_n}: hit the {MAX_TOOL_CALLS_PER_FIX_ROUND}-tool-call cap without the model stopping on its own")
 
-    fix_reasoning = "\n".join(reasoning_chunks)
-
-    if "content" in written:
-        html_path.write_text(written["content"], encoding="utf-8")
-        note = f"round {state['round']}: full rewrite (write_world_html) for a [structure] problem"
-        log(f"[fix]    {note}")
-        _print_output_block(f"fixed output, round {state['round']}", written["content"])
-    elif edits:
+    if edits:
         html_path.write_text(current_html, encoding="utf-8")
-        note = f"round {state['round']}: {len(edits)} str_replace edit(s) applied"
+        note = f"round {round_n}: {len(edits)} str_replace edit(s) applied"
         log(f"[fix]    {note} to {html_path}")
         for old, new in edits:
             log(f"         - {len(old)} chars -> {len(new)} chars")
-        _print_output_block(f"fixed output, round {state['round']}", current_html)
+        _print_output_block(f"fixed output, round {round_n}", current_html)
     else:
-        note = f"round {state['round']}: no edits made (tools called: {tool_names_used or 'none'})"
-        if not is_full_file:
+        note = f"round {round_n}: no edits made (tools called: {tool_names_used or 'none'})"
+        if not is_full_file and failure_note is None and not refused:
             note += " — windowed excerpt evidently didn't contain the bug; next round gets the complete file"
         log(f"[fix]    {note}")
+    if refused:
+        note += f"; {refused} edit(s) refused because they would have broken parsing"
+    if failure_note:
+        note = f"{note}; {failure_note}"
 
     # A windowed round that called no tool and applied no edit is the signal
     # that the excerpt was pointing at the wrong place — not that there was
     # nothing to do. Burning the remaining rounds on the same window is how a
     # real run spent all 3 attempts producing zero edits. Escalate instead.
-    escalate = not is_full_file and not edits and "content" not in written
+    # A provider failure says nothing about the window, and a parser-refused
+    # edit proves the model found the spot — neither escalates.
+    escalate = not is_full_file and not edits and failure_note is None and not refused
 
     _tag_current_run(
-        round_n=state["round"],
+        round_n=round_n,
         context_mode="full_file" if is_full_file else "windowed",
         tool_call_turns=call_n + 1,  # LLM turns spent inside this one fix round, not to be confused with the outer round count
         max_tool_call_turns=MAX_TOOL_CALLS_PER_FIX_ROUND,
         hit_tool_call_cap=hit_cap,
         tools_used=tool_names_used,
         edits_applied=len(edits),
-        full_rewrite="content" in written,
+        edits_refused=refused,
         escalate_to_full_file=escalate,
+        provider_failure=failure_note,
         outcome=note,
     )
     return {
-        "round": state["round"] + 1,
+        "round": round_n + 1,
         "fix_history": state["fix_history"] + [note],
         "force_full_file": escalate,
-        "_fix_reasoning": fix_reasoning,
+        "_fix_reasoning": "\n".join(reasoning_chunks),
     }
 
 

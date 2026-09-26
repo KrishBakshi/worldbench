@@ -415,6 +415,11 @@ property of the world.
     `invoke_turn()` call, deliberately — nothing is written to disk or
     carried past the process; a run that ultimately gives up is meant to
     be discarded, not resumed later.
+    - **One 504 is not retried: an idle timeout on a tool-bound turn that
+      streamed no content** (`_is_silent_tool_call_stall` →
+      `SilentToolCallTimeout`). That's the provider buffering a large
+      tool-call argument; a retry replays the same reasoning to the same
+      decision and the same silence (3 × ~170s on nemotron-3-ultra).
 - `inputs/` — gitignored drop zone. **Real harness/eval input only** —
   never dry-run data (see `dry_runs/` below). Written by `harness/`
   (`generate.py`) or by hand; read by `eval/` (`ingest.py`) — the seam

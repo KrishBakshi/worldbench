@@ -13,6 +13,10 @@ caller of both public functions here:
   node so a tool-calling fix round is exactly as visible on stderr as a
   generation round — no separate, quieter code path for "the model is
   fixing something" vs. "the model is generating something".
+- `complete_document(model, messages, ...)` — a whole HTML file written as
+  streamed content, continued across turns if cut off. The fix node's full
+  rewrite goes through this, never through a tool-call argument (see
+  `_is_silent_tool_call_stall` for why).
 
 No fixed request timeout is imposed here — every model paces differently,
 so we let each request run to completion and instead report what OpenRouter
@@ -441,6 +445,28 @@ def _is_transient_stream_error(exc: Exception) -> bool:
     return isinstance(exc, ValueError) and bool(_TRANSIENT_STREAM_ERROR_RE.search(str(exc)))
 
 
+class SilentToolCallTimeout(RuntimeError):
+    """The provider went idle while the model built a tool call, and it will
+    again: not a transient error, so invoke_turn doesn't retry it."""
+
+
+def _is_silent_tool_call_stall(exc: Exception, full, tools: list | None) -> bool:
+    """An idle timeout on a tool-bound turn that streamed no content.
+
+    Many providers don't stream tool-call arguments — they hold the whole
+    call until it's complete. A model that decides to emit a large argument
+    (a 54KB file rewrite, on nemotron-3-ultra) leaves the connection silent
+    for minutes, and OpenRouter kills it with "Upstream idle timeout
+    exceeded (504)". Retrying replays the same reasoning to the same decision
+    and the same silence: that run spent 3 x ~170s on it. Only this exact
+    shape fails fast; an idle timeout on a plain content stream, or after
+    content had started arriving, is still retried as transient.
+    """
+    if not tools or "idle timeout" not in str(exc).lower():
+        return False
+    return full is None or not _chunk_text(full.content)
+
+
 # When a transient error kills a stream partway through, a long-reasoning
 # model may already have spent 5-10 minutes thinking before the connection
 # dropped. Blindly resending the original request throws that thinking away
@@ -577,6 +603,11 @@ def invoke_turn(
             )
             messages = _splice_partial_turn(messages, full)
         except ValueError as exc:
+            if _is_silent_tool_call_stall(exc, full, tools):
+                raise SilentToolCallTimeout(
+                    f"{exc} — the provider went silent while the model built a tool call "
+                    "(tool arguments aren't streamed); not retried, a retry reproduces it"
+                ) from exc
             if not _is_transient_stream_error(exc) or attempt >= _MAX_RETRIES:
                 raise
             carried = full is not None and (full.content or full.additional_kwargs.get("reasoning_content"))
@@ -612,6 +643,55 @@ def _looks_complete(html: str, finish_reason: str | None) -> bool:
     if finish_reason == "length":
         return False
     return "</html>" in html[-2000:].lower()
+
+
+@dataclass
+class DocumentResult:
+    html: str
+    reasoning_content: str
+    turns: int
+    complete: bool
+
+
+def complete_document(
+    model: str,
+    messages: list,
+    *,
+    temperature: float,
+    reasoning: bool,
+    label: str,
+    max_turns: int = _MAX_ROUNDS,
+) -> DocumentResult:
+    """Have the model write one complete HTML file as streamed *content*,
+    continuing across turns if it's cut off — the same completion rule and
+    continue-instruction generate() uses, minus the checkpointing (a fix
+    rewrite that fails is discarded, not resumed).
+
+    This is how the fix node does a full rewrite, instead of a tool call:
+    content streams token by token (visible via _ContentProgress, never idle
+    long enough for an upstream timeout), while a tool-call argument is
+    often buffered by the provider until the whole call is done — see
+    _is_silent_tool_call_stall for the run that cost.
+    """
+    content, reasoning_parts, finish_reason = "", [], None
+    for turn_n in range(1, max_turns + 1):
+        turn_messages = messages
+        if content:
+            ai_kwargs = {"reasoning_content": "\n".join(reasoning_parts)} if reasoning_parts else {}
+            turn_messages = messages + [
+                AIMessage(content=content, additional_kwargs=ai_kwargs),
+                HumanMessage(content=_CONTINUE_INSTRUCTION),
+            ]
+        with timed(f"{label} · turn {turn_n}/{max_turns}{' [reasoning]' if reasoning else ''}"):
+            turn = invoke_turn(model, turn_messages, temperature=temperature, max_tokens=None, reasoning=reasoning)
+        content += turn.text
+        if turn.reasoning_content:
+            reasoning_parts.append(turn.reasoning_content)
+        finish_reason = turn.finish_reason
+        if _looks_complete(content, finish_reason):
+            return DocumentResult(_extract_html(content), "\n".join(reasoning_parts), turn_n, True)
+        log(f"round    {label}: +{len(turn.text)} chars, finish_reason={finish_reason}, incomplete — continuing")
+    return DocumentResult(_extract_html(content), "\n".join(reasoning_parts), max_turns, False)
 
 
 def _state_path(name: str) -> Path:
@@ -795,8 +875,8 @@ def generate(
     structure = lint_world_html(html)
     if structure:
         log(
-            f"warn     generated file has {len(structure)} structure finding(s); "
-            "debug/fix will try to rewrite it"
+            f"warn     generated file has {len(structure)} static finding(s); "
+            "debug/fix will repair it"
         )
         for finding in structure[:5]:
             log(f"         {finding}")

@@ -34,6 +34,20 @@ def log(message: str = "") -> None:
             pass
 
 
+def tee(text: str) -> None:
+    """Write raw text to the transcript sinks only — for output that paints
+    the terminal itself (the styled reasoning stream) but must still land in
+    the transcript. Without this, a run's .log recorded how long the model
+    reasoned and never what it reasoned, so reading its planning meant
+    re-running the model."""
+    for sink in _sinks:
+        try:
+            sink.write(text)
+            sink.flush()
+        except (ValueError, OSError):
+            pass
+
+
 @contextmanager
 def log_to_file(path: Path) -> Iterator[Path]:
     """Tee everything log() prints into `path` for the duration of the block.

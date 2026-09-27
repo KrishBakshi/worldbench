@@ -449,7 +449,11 @@ property of the world.
   - `inputs/<name>/logs/<UTC-timestamp>.log` + `.json` — **written by
     `generate.py`'s `run()`, one pair per invocation.** The `.log` is the
     complete stderr transcript (reasoning streams, every generated/fixed
-    file, every debug error). The `.json` is the trajectory: per-round
+    file, every debug error). Reasoning is styled on the terminal outside
+    `log()`, so `_ReasoningPrinter` also writes it raw via `status.tee()`
+    between `[reasoning]`/`[/reasoning]` markers — before that, the
+    transcript recorded how long a model reasoned and never what it
+    reasoned. The `.json` is the trajectory: per-round
     `debug_rounds` errors, `fix_history` notes, status, rounds used,
     timings. Timestamped rather than overwritten so reruns accumulate
     instead of destroying the previous attempt's evidence. This exists

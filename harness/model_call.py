@@ -68,7 +68,7 @@ from langsmith import traceable  # noqa: E402
 from openrouter import OpenRouter as OpenRouterClient  # noqa: E402
 from openrouter import errors as openrouter_errors  # noqa: E402
 
-from harness.status import log, timed  # noqa: E402
+from harness.status import log, tee, timed  # noqa: E402
 
 PROMPT_PATH = REPO_ROOT / "prompts" / "prompt.md"
 INPUTS_DIR = REPO_ROOT / "inputs"
@@ -135,6 +135,7 @@ class _ReasoningPrinter:
         self._in_bold = False
 
     def _open(self) -> None:
+        tee("\n[reasoning]\n")
         print(f"\n{_REASONING_BADGE}", file=sys.stderr)
         print(_REASONING_STYLE, end="", file=sys.stderr, flush=True)
         self.opened = True
@@ -169,6 +170,7 @@ class _ReasoningPrinter:
             return
         if not self.opened:
             self._open()
+        tee(delta)  # raw, unstyled: the transcript gets the reasoning verbatim, markdown and all
         self.total += len(delta)
         self._buffer += delta
         # A trailing run of 1-2 backticks might still grow into a ``` fence
@@ -196,6 +198,7 @@ class _ReasoningPrinter:
             self._buffer = ""
         if self.opened:
             print(f"{_RESET}\n", file=sys.stderr)
+            tee("\n[/reasoning]\n")
         # Reset `opened` so a later feed() re-prints the badge and re-arms the
         # style. Some providers interleave reasoning and content rather than
         # emitting one clean phase each, and this printer is now closed at the

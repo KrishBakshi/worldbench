@@ -1,14 +1,18 @@
 """Per-biome visual pass for WC004: does each entity look and move as it should?
 
-Look: same shared frames and judge as WC003 (eval/capture/judge.py), fed
-this test's templates.json, where `looks_like` is what the judge checks.
+One VLM call per biome (eval/capture/judge.py) judges both:
+  - look: every entity against its `looks_like`, on the blind-confirmed biome
+    frame and the overview;
+  - motion: the capture's near/far bursts of that frame (a couple of seconds
+    apart, camera still) plus overlays marking changed pixels in red.
 
-Motion: the capture takes two bursts of each biome from the daytime preview,
-"near" (the navigator's framing) and "far" (zoomed out), frames a couple of
-seconds apart with the camera still, plus an overlay marking changed pixels
-in red. judge_motion() asks the VLM, per moving entity, whether it moves
-between frames and on which axis. grade.py only believes a "moving" answer
-when the burst's pixels really changed.
+Motion is only judged from frames for entities big enough to see move
+(VISUAL_MOTION_KINDS: weather, water, and terrain such as lava/glow). Fauna
+and other small movers were "not visible" in most bursts (off-screen or a few
+pixels), and a VLM also invented motion for them ("bird perched or
+hovering"), so their motion is scored on code alone (grade.py).
+
+grade.py only believes a "moving" answer when the burst's pixels changed.
 """
 
 from __future__ import annotations
@@ -16,71 +20,28 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from pydantic import BaseModel
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from pydantic import BaseModel  # noqa: E402
-
-from eval.capture.judge import VisualReport, biome_images, judge_biome  # noqa: E402
-from eval.capture.llm import invoke_structured  # noqa: E402
+from eval.capture.judge import (  # noqa: E402
+    MotionSighting,
+    VisualReport,
+    biome_images,
+    burst_images,
+    confirm,
+    judge_biome,
+)
 from eval.capture.run import BIOMES, ensure_capture  # noqa: E402
 from harness.status import log  # noqa: E402
 from llm import load_templates  # noqa: E402
 
 LABELS = {b["id"]: b["label"] for b in BIOMES}
-
-
-def judge_all(html_path: str, biome_ids: tuple[str, ...], model: str | None = None) -> dict[str, VisualReport | dict]:
-    manifest = ensure_capture(html_path, model)
-    out: dict[str, VisualReport | dict] = {}
-    for i, biome_id in enumerate(biome_ids, 1):
-        templates = load_templates(biome_id)
-        images = biome_images(html_path, manifest, biome_id)
-        log(f"      {i}/{len(biome_ids)}  {biome_id}  (vlm, {len(images)} frames)")
-        try:
-            out[biome_id] = judge_biome(
-                LABELS[biome_id],
-                images,
-                templates.get("entities", []),
-                templates.get("must_not_present", []),
-                model=model,
-            )
-        except Exception as exc:
-            log(f"      {i}/{len(biome_ids)}  {biome_id}  error: {exc}")
-            out[biome_id] = {"error": str(exc)[:500]}
-    return out
-
-
-MOTION_PROMPT = """Frames of one voxel floating island, biome under test: {label}.
-The camera does not move within a burst; frames are {gap}s apart.
-- near_*: zoomed in on {label}, in time order.
-- far_*: zoomed out, in time order.
-- *_motion: the first frame of that burst, dimmed, with every pixel that changed
-  during the burst painted RED. Red marks where something changed:
-  small scattered red specks are usually moving particles (rain, snow, ash);
-  large flat red patches over terrain are usually light, cloud-shadow or fog
-  changes, NOT an entity moving. Judge motion from the frames, using red only
-  as a hint where to look.
-
-For every ENTITY, judge only what you can see in {label}:
-- moving: does it visibly move or change between frames?
-- axis: how it moves, one of: falling, blowing, rising, flowing, pulsing, still, grounded.
-  still = present but hanging in place (mist, fog). grounded = walks/idles on the ground.
-- seen: <= 15 words.
-If an entity is not visible at all, moving=false, axis="still", seen="not visible".
-
-ENTITIES:
-{entities}"""
-
-
-class MotionSighting(BaseModel):
-    id: str
-    moving: bool
-    axis: str = "still"
-    seen: str = ""
+VISUAL_MOTION_KINDS = frozenset({"weather", "water", "terrain"})
 
 
 class MotionReport(BaseModel):
@@ -88,38 +49,51 @@ class MotionReport(BaseModel):
     motion_fraction: dict[str, float] = {}
 
 
-def judge_motion(html_path: str, biome_ids: tuple[str, ...], model: str | None = None) -> dict[str, MotionReport | dict]:
+def visual_motion_entities(templates: dict) -> list[dict]:
+    return [
+        e for e in templates.get("entities", [])
+        if e.get("requires_motion") and e.get("kind") in VISUAL_MOTION_KINDS
+    ]
+
+
+def judge_all(
+    html_path: str, biome_ids: tuple[str, ...], model: str | None = None
+) -> tuple[dict[str, VisualReport | dict], dict[str, MotionReport | dict]]:
+    """(look reports, motion reports), from one call per biome."""
     manifest = ensure_capture(html_path, model)
-    cap_dir = Path(html_path).parent / "capture"
-    out: dict[str, MotionReport | dict] = {}
+    looks: dict[str, VisualReport | dict] = {}
+    motions: dict[str, MotionReport | dict] = {}
     for i, biome_id in enumerate(biome_ids, 1):
-        moving = [e for e in load_templates(biome_id).get("entities", []) if e.get("requires_motion")]
-        view = manifest.get("views", {}).get(f"biome_{biome_id}") or {}
-        if not moving:
-            continue
-        if not view.get("bursts"):
-            out[biome_id] = {"unavailable": "no motion burst for this biome (not framed, or burst failed)"}
-            continue
-        images: dict[str, Path] = {}
-        for label, frames in view["bursts"].items():
-            for n, rel in enumerate(frames):
-                images[f"{label}_{n}"] = cap_dir / rel
-            images[f"{label}_motion"] = cap_dir / view["overlays"][label]
-        entities = "\n".join(f"- {e['id']}: {e.get('looks_like') or e.get('label','')} (expected: {e.get('expected_axis')})" for e in moving)
-        log(f"      {i}/{len(biome_ids)}  {biome_id}  motion (vlm, {len(images)} frames)")
+        templates = load_templates(biome_id)
+        images = biome_images(html_path, manifest, biome_id)
+        movers = visual_motion_entities(templates)
+        bursts, gap = burst_images(html_path, manifest, biome_id)
+        log(f"      {i}/{len(biome_ids)}  {biome_id}  (vlm, {len(images) + len(bursts)} frames)")
         try:
-            report = invoke_structured(
-                MotionReport,
-                MOTION_PROMPT.format(label=LABELS[biome_id], gap=view.get("burst_gap_s", "?"), entities=entities),
-                list(images.values()),
-                model,
+            report = judge_biome(
+                LABELS[biome_id],
+                images,
+                templates.get("entities", []),
+                templates.get("must_not_present", []),
+                model=model,
+                motion_items=movers or None,
+                bursts=bursts or None,
+                burst_gap=gap,
             )
-            report.motion_fraction = dict(view.get("motion_fraction") or {})
-            out[biome_id] = report
+            looks[biome_id] = confirm(report, manifest, biome_id)
         except Exception as exc:
-            log(f"      {i}/{len(biome_ids)}  {biome_id}  motion error: {exc}")
-            out[biome_id] = {"error": str(exc)[:500]}
-    return out
+            log(f"      {i}/{len(biome_ids)}  {biome_id}  error: {exc}")
+            looks[biome_id] = {"error": str(exc)[:500]}
+            motions[biome_id] = {"error": str(exc)[:500]}
+            continue
+        if not movers:
+            continue
+        if not bursts:
+            motions[biome_id] = {"unavailable": "no confirmed biome frame with a motion burst"}
+            continue
+        view = manifest["views"].get(f"biome_{biome_id}", {})
+        motions[biome_id] = MotionReport(items=report.motion, motion_fraction=dict(view.get("motion_fraction") or {}))
+    return looks, motions
 
 
 def dump_motion(report) -> dict:

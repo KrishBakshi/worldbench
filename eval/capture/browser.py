@@ -142,6 +142,26 @@ class DevToolsBrowser:
         await self.js(_WHEEL_JS, steps)
         await asyncio.sleep(0.6)
 
+    async def hide_hud(self, hidden: bool = True) -> None:
+        """Hide every page element except the WebGL canvas (or undo it).
+
+        Biome frames are judged blind (which biome is this?). With the HUD
+        visible the answer is printed on screen: the clicked legend entry is
+        highlighted, so the "blind" check read the label, not the terrain.
+        visibility is inherited but a child can override it, so the canvas
+        stays visible inside hidden containers, whatever the HUD looks like.
+        """
+        if hidden:
+            await self.js(
+                "() => { if (document.getElementById('__wb_hide')) return 'ok';"
+                " const s = document.createElement('style'); s.id = '__wb_hide';"
+                " s.textContent = 'body *{visibility:hidden !important} canvas{visibility:visible !important}';"
+                " document.head.appendChild(s); return 'ok'; }"
+            )
+        else:
+            await self.js("() => { const s = document.getElementById('__wb_hide'); if (s) s.remove(); return 'ok'; }")
+        await asyncio.sleep(0.3)
+
     async def snapshot(self) -> str:
         return await self.call("take_snapshot", self._page())
 

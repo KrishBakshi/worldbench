@@ -16,8 +16,9 @@ comparing 8 frames in one call is not a reliable differ; a pixel diff is.
   season_world_tint   a season frame's land chromaticity shifts >= SEASON_CHROMA_SHIFT
 Thresholds are calibrated on one world (kimi-k-3) so far; re-check them on
 more worlds before trusting small margins.
-Object questions (sun, moon, stars, a visibly changing season) go to one VLM
-call, which is what vision models are good at.
+Object questions (fog, stars, a visibly changing season) go to one VLM call,
+which is what vision models are good at. The sun and moon are code-only (the
+default camera does not frame them).
 
 cloud_drift_wrap and season_modulates_weather cannot be seen in stills, so
 they have no visual verdict (None) and grade.py scores them on code alone.
@@ -43,9 +44,7 @@ from eval.capture.run import ensure_capture, view_paths  # noqa: E402
 from harness.status import log  # noqa: E402
 
 QUESTIONS = {
-    "sun_orbit": "Is a sun (square or disc) visible, and is it in a different place (or gone) between the time frames?",
     "sky_or_fog_day_cycle": "Does fog or haze over the island change color or density between times of day? (The background void itself should stay black.)",
-    "moon": "Is a moon visible in the darkest time frame?",
     "season_cycle": "Across the season frames, does the season visibly change (season HUD text or the world itself)?",
 }
 MEASURED = ("night_dimming", "light_follows_sun", "dusk_dawn_tint", "season_world_tint")
@@ -55,7 +54,10 @@ SEASON_CHROMA_SHIFT = 0.015
 _HUD_CROP = (0.2, 0.0, 1.0, 1.0)  # drop the left fifth, where legends usually sit
 LEAK_QUESTION = "Are stars, a starfield, or a sky/atmosphere dome visible in any frame, especially the darkest?"
 SEASON_ITEMS = ("season_cycle",)
-CODE_ONLY = ("cloud_drift_wrap", "season_modulates_weather")
+# sun_orbit and moon: the default camera never framed the sun or moon on any
+# of the first three models, so every model lost the same visual points; they
+# are scored on code alone rather than handing out a uniform penalty.
+CODE_ONLY = ("cloud_drift_wrap", "season_modulates_weather", "sun_orbit", "moon")
 
 PROMPT = """These are frames of one voxel floating island, captured with its clock pinned.
 Time frames: {time_frames} (tod: 0 = midnight, .25 = sunrise, .5 = noon, .75 = sunset

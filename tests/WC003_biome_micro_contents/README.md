@@ -22,8 +22,8 @@ flowchart TD
     vis --> void["delta: ocean over the void? zero delta"]
 ```
 
-1. The code probe works as before: each biome's `prompts/<id>/prompt.md` plus `requirements.json` is run against the source, and returns `found` plus evidence per `must_present` / `must_not_present` item. Evidence must really appear in the source.
-2. The visual judge (`visual.py`, `eval/capture/judge.py`) gets that biome's frame (saved by the navigator agent) and the overview. It confirms the frame shows the biome, then reports which items and leaks it can see.
+1. The code probe works as before: each biome's `prompts/<id>/prompt.md` plus `requirements.json` is run against the source, and returns `found` plus evidence per `must_present` / `must_not_present` item. Evidence must really appear in the source. Only hints are rejected (comments, bare tokens, lone waypoints, legend/HUD rows). Checks on how the code is written (`config_table`, `no_constructor`, `dart_throw`) were removed: they rejected data-driven worlds such as opus-5's wholesale.
+2. The visual judge (`visual.py`, `eval/capture/judge.py`) gets that biome's frame and the overview, and reports which items and leaks it can see. The biome frame is only used if the capture's blind check confirmed it.
 3. Each item's points are split: half for code that builds it, half for being seen. An item may carry a `weight` in `requirements.json`; the default is 1.
 4. A leak found by either the code or the frames subtracts that item's points.
 5. A biome with no code evidence that also isn't visible in any frame is absent and scores 0.

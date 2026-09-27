@@ -32,6 +32,9 @@ MIN_MOTION_FRACTION = 0.001
 # Expected axes where "present and on the right axis" is enough; nothing has
 # to visibly travel (hanging mist, idle fauna).
 _NO_TRAVEL_AXES = {"still", "n/a", "grounded"}
+# Only these kinds get a frames verdict on motion (see visual.py); others,
+# mainly fauna, are scored on code motion alone.
+VISUAL_MOTION_KINDS = frozenset({"weather", "water", "terrain"})
 
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
@@ -228,7 +231,16 @@ def _is_implementing(code: str) -> bool:
 
 
 def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
-    """Reject keyword / hint evidence. Placement must mutate the world."""
+    """Reject evidence that is a hint, not code: comments, bare tokens, lone
+    waypoints, legend or HUD rows."""
+    # Only hints are rejected here (comments, bare tokens, lone waypoints,
+    # legend/HUD rows). Checks on *how* code is written (config_table,
+    # no_constructor, dart_throw) were removed: they were keyed to helper
+    # names like addBlock/pb/terra.add and rejected data-driven worlds
+    # wholesale (opus-5: 45 of its WC004 losses were no_constructor on
+    # entries like `{t:'deer',n:9,...}` consumed by a generic builder).
+    # Whether something is really built is what the frames judge; the quote
+    # must still be in the source (eval/evidence.py).
     code = _code_only(evidence)
     if not code:
         return "comment_only"
@@ -237,16 +249,9 @@ def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
         return "bare_token"
     if _WAYPOINT.match(compact):
         return "waypoint_only"
-    if _LEGEND.search(compact):
+    low = compact.lower()
+    if "label:" in low and ("weather:" in low or "color:" in low) and not _has_world_call(code):
         return "legend_or_enum"
-    if _DART_THROW.search(code) and not _CELL_WALK.search(code):
-        return "dart_throw"
-    if _is_config_table(code):
-        if allow_config:
-            return None
-        return "config_table"
-    if not _is_implementing(code):
-        return "no_constructor"
     return None
 
 
@@ -436,8 +441,12 @@ def _grade_one(
         if v["motion_ok"] is None:
             credit = look_credit
         else:
-            motion_seen = _visual_motion_ok(entity, moved.get(entity["id"]), fractions) if use_motion else None
-            motion_credit = motion_code * v["motion_ok"] + motion_visual * bool(motion_seen)
+            if use_motion and entity.get("kind") in VISUAL_MOTION_KINDS:
+                motion_seen = _visual_motion_ok(entity, moved.get(entity["id"]), fractions)
+                motion_credit = motion_code * v["motion_ok"] + motion_visual * motion_seen
+            else:
+                motion_seen = None
+                motion_credit = float(v["motion_ok"])
             credit = (1 - MOTION_SHARE) * look_credit + MOTION_SHARE * motion_credit
         any_code = any_code or v["look_ok"]
         points = round(unit * float(entity.get("weight", 1)), 2)

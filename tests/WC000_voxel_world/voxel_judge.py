@@ -10,8 +10,9 @@ The judge returns a probability per item plus a verbatim quote. Points are
 probability-weighted, and a quote that is not in the source (eval/evidence.py)
 earns nothing, so the judge cannot talk a world into points.
 
-`water_bed` / `water_physics` below 0.5 are reported in `missing`, which is
-what the island gate in eval/score.py reads.
+`water_bed` / `water_physics` below 0.5 are reported in `missing` but no
+longer drive the island gate in eval/score.py: the frames decide that
+(visual_check.py's ocean_void).
 
     uv run python tests/WC000_voxel_world/voxel_judge.py [world.html] [out_dir]
 """

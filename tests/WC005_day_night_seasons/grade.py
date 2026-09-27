@@ -244,6 +244,16 @@ def _is_implementing(code: str) -> bool:
 
 
 def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
+    """Reject evidence that is a hint, not code: comments, bare tokens, lone
+    waypoints, legend or HUD rows."""
+    # Only hints are rejected here (comments, bare tokens, lone waypoints,
+    # legend/HUD rows). Checks on *how* code is written (config_table,
+    # no_constructor, dart_throw) were removed: they were keyed to helper
+    # names like addBlock/pb/terra.add and rejected data-driven worlds
+    # wholesale (opus-5: 45 of its WC004 losses were no_constructor on
+    # entries like `{t:'deer',n:9,...}` consumed by a generic builder).
+    # Whether something is really built is what the frames judge; the quote
+    # must still be in the source (eval/evidence.py).
     code = _code_only(evidence)
     if not code:
         return "comment_only"
@@ -252,18 +262,11 @@ def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
         return "bare_token"
     if _WAYPOINT.match(compact):
         return "waypoint_only"
-    if _LEGEND.search(compact):
+    low = compact.lower()
+    if "label:" in low and ("weather:" in low or "color:" in low) and not _has_world_call(code):
         return "legend_or_enum"
     if _is_hud_only(code):
         return "hud_only"
-    if _DART_THROW.search(code) and not _CELL_WALK.search(code):
-        return "dart_throw"
-    if _is_config_table(code):
-        if allow_config:
-            return None
-        return "config_table"
-    if not _is_implementing(code):
-        return "no_constructor"
     return None
 
 

@@ -9,7 +9,7 @@ A model gets one natural-language prompt and has to emit a single self-contained
 | Id | Test | Max | What it asks | Judged by |
 | --- | --- | --- | --- | --- |
 | WC000 | [Voxel island](tests/WC000_voxel_world/README.md) | 40 | A cube-built island in a void, water on a seabed, no visual defects | LLM on source (20) + VLM on frames (20) |
-| WC002 | [Coverage + placement](tests/WC002_biome_placement/Readme.md) | 20 | Each biome is built, then sits by the right neighbors at the right height | LLM on source, deterministic rules |
+| WC002 | [Coverage + placement](tests/WC002_biome_placement/Readme.md) | 20 | Each biome is built, then sits by the right neighbors at the right height | LLM on source or a confirmed frame, deterministic rules |
 | WC003 | [Micro-contents](tests/WC003_biome_micro_contents/README.md) | 100 | Characteristic stuff in each biome | Code probe + VLM on the biome's frame |
 | WC004 | [Physics](tests/WC004_biome_rendering/README.md) | 100 | Entities look right and move on the right axis | Look: code + VLM. Motion: code |
 | WC005 | [Temporal cycles](tests/WC005_day_night_seasons/README.md) | 20 | Day clock and seasons change the world, not just HUD text | Code + frames with the clock pinned |
@@ -18,7 +18,7 @@ Total is 280. Every maximum is fixed, so totals compare across models. There is 
 
 Two cross-test rules:
 - WC003 zeroes the Coastal Delta / Ocean biome when its frames show the ocean running out over the void with no seabed.
-- WC004 drops the delta biome's points when WC000 finds no seabed (`water_bed` / `water_physics` below 0.5, or the bug-hunt's `ocean_void`).
+- WC004 drops the delta biome's points when WC000's bug-hunt sees the ocean over the void (`ocean_void`). Only the frames decide this; the source judge keeps its own points but no longer drives the penalty.
 
 ## Capture
 
@@ -26,7 +26,10 @@ Every visual judge reads the same frames, captured once per world by `eval/captu
 
 1. **Daytime preview.** An LLM patches the world's own clock to obey `?wb_tod=&wb_season=` (guarded: edits may only read `__WB_TIME`, stay small, and match the source exactly once). The brightest of four pinned times is taken as day, so a wrong phase mapping is caught, not trusted.
 2. **Fixed views.** Four time-of-day frames, the daytime overview, four orbit directions, and four season frames.
-3. **Navigator agent.** One short episode per biome drives headless Chrome through the Chrome DevTools MCP server (legend click, orbit, pan, zoom) and saves a frame of that biome, or gives up with a reason.
+3. **Navigator agent.** One short episode per biome drives headless Chrome through the Chrome DevTools MCP server (legend click, orbit, pan, zoom) and saves a frame of that biome, or gives up with a reason. Then a near and a far motion burst of that frame.
+4. **Blind check.** One call shows the judge every biome frame, shuffled and unnamed, and asks which biome each shows. Only frames that match count as that biome's frame anywhere in the ladder.
+
+A reused capture redoes any biome episode that failed.
 
 `Math.random` is seeded before the page runs, so every reload builds the same island.
 

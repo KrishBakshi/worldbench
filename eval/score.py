@@ -58,13 +58,17 @@ def score_report(results: dict[str, object]) -> dict:
 
 
 # A hovering ocean is not a sea. WC004 still counts inland biomes, but Coastal
-# Delta / Ocean (delta) points are removed when WC000 finds the water has no
-# bed or never holds (voxel_judge: water_bed / water_physics below 0.5) or
-# the bug-hunt sees an ocean sheet over the void (ocean_void).
+# Delta / Ocean (delta) points are removed when WC000's bug-hunt sees an ocean
+# sheet over the void (ocean_void, >= 2 orbit views agree).
+# Only the frames decide this. The source judge's water_bed / water_physics
+# used to gate too, and the two disagreed both ways (fable: source said no
+# seabed, frames showed none over the void; kimi-k-3: the reverse). What
+# renders is the thing being graded, so the source judge keeps its own points
+# and no longer drives the penalty.
 # WC003 is no longer gated here: it judges the seabed itself from the frames
 # and zeroes delta directly (tests/WC003_*/grade.py), so gating it too would
 # charge the same defect twice.
-SEA_GATE_IDS = frozenset({"water_physics", "water_bed", "ocean_void"})
+SEA_GATE_IDS = frozenset({"ocean_void"})
 SEA_BIOME_ID = "delta"
 CONTENT_PREFIXES = ("WC004_",)
 

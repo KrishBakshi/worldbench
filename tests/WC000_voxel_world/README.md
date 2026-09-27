@@ -14,12 +14,10 @@ flowchart TD
     judge --> verify["quote must be in the source (eval/evidence.py)"]
     verify --> s1["points x probability  (20)"]
     html --> cap["shared capture: daytime overview, 4 orbit views, agent-framed biome views"]
-    cap --> hunt["visual_check: VLM describes, then hunts defects per frame"]
+    cap --> hunt["visual_check: one VLM call per frame, weather/clouds ignored"]
     hunt --> s2["20 x clean frames / judged frames  (20)"]
     hunt --> void["ocean_void once per world"]
-    judge --> gate["water_bed / water_physics < 0.5"]
-    void --> gate
-    gate --> w4["drop delta points on WC004"]
+    void --> w4["drop delta points on WC004"]
 ```
 
 ## Source judge (`voxel_judge.py`, 20)
@@ -44,12 +42,14 @@ This replaces a regex check (`voxel_check.py`, removed). 43 of its 83 pattern br
 
 ## Visual bug-hunt (`visual_check.py`, 20)
 
-Judges the shared capture frames (see the top-level README): the daytime overview, four orbit directions, and each biome frame the navigator agent saved. Per frame, the VLM first describes the scene, then hunts:
+Judges the shared capture frames (see the top-level README): the daytime overview, four orbit directions, and each biome frame the navigator agent saved. One call per frame lists the entities, then hunts:
 
 - `floating_blocks`: a block detached from what should hold it
 - `hollow_mass`: a solid-looking volume with holes into the void
 - `non_voxel`: smooth or curved terrain instead of chunky cubes
 - `water_void`: a water sheet running out over the void with nothing under it
+
+Weather, particles, clouds, mist, the sun and moon, and UI are never defects. On opus-5, most flagged views were clouds called `non_voxel` and falling particles called `floating_blocks`.
 
 A first-pass flag is re-voted twice and kept only on a majority. The score is `20 x clean / judged`, so the maximum doesn't depend on how many frames were captured.
 

@@ -30,8 +30,8 @@ flowchart TD
    - `light_follows_sun`: some time frame differs visibly from day.
    - `dusk_dawn_tint`: a twilight frame's colour shifts.
    - `season_world_tint`: a season frame's colour shifts.
-4. Object questions go to the VLM: sun, moon, fog, a visibly changing season, and stars or a sky dome (a leak).
-5. `cloud_drift_wrap` and `season_modulates_weather` can't be seen in still frames, so they score on code alone. If the clock patch failed, every item scores on code alone.
+4. Object questions go to the VLM: fog, a visibly changing season, and stars or a sky dome (a leak).
+5. `cloud_drift_wrap` and `season_modulates_weather` can't be seen in still frames, so they score on code alone. So do `sun_orbit` and `moon`: the default camera never framed the sun or moon on any model. If the clock patch failed, every item scores on code alone.
 
 The pixel thresholds were calibrated on one world so far. Re-check them on more worlds before trusting small margins.
 

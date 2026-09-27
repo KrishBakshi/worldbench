@@ -17,7 +17,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from eval.capture.judge import VisualReport, biome_images, judge_biome  # noqa: E402
+from eval.capture.judge import VisualReport, biome_images, confirm, judge_biome  # noqa: E402
 from eval.capture.run import BIOMES, ensure_capture  # noqa: E402
 from harness.status import log  # noqa: E402
 from llm import load_requirements  # noqa: E402
@@ -41,13 +41,17 @@ def judge_all(html_path: str, biome_ids: tuple[str, ...], model: str | None = No
         images = biome_images(html_path, manifest, biome_id, *extra_views)
         log(f"      {i}/{len(biome_ids)}  {biome_id}  (vlm, {len(images)} frames)")
         try:
-            out[biome_id] = judge_biome(
-                LABELS[biome_id],
-                images,
-                req.get("must_present", []),
-                req.get("must_not_present", []),
-                OCEAN_QUESTION if biome_id == "delta" else None,
-                model,
+            out[biome_id] = confirm(
+                judge_biome(
+                    LABELS[biome_id],
+                    images,
+                    req.get("must_present", []),
+                    req.get("must_not_present", []),
+                    OCEAN_QUESTION if biome_id == "delta" else None,
+                    model,
+                ),
+                manifest,
+                biome_id,
             )
         except Exception as exc:
             log(f"      {i}/{len(biome_ids)}  {biome_id}  error: {exc}")

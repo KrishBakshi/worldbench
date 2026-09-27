@@ -4,10 +4,14 @@ Shared by WC003 (micro-contents) and WC004 (look). Each test brings its own
 item list (requirements.json / templates.json) and its own weighting; this
 only asks the vision model and returns per-item sightings.
 
-The first question is always whether the frame shows the biome at all. The
-navigator agent's own "found" is not trusted for this: on kimi-k-3 it saved
-a frame of the volcano and green plains as "Backwater Swamp" at confidence
-1.0. A biome frame that does not show the biome counts for nothing.
+Which frame shows which biome is decided before this, blind, by the capture
+(run.identify_biome_frames): only a confirmed biome frame is passed in, and
+callers overwrite `shows_biome` with that blind result. Asked directly
+("does this show the swamp?") the judge said yes on all 30 frames across
+three models, including kimi-k-3's volcano saved as the swamp.
+
+With `motion_items` + `bursts`, the same call also judges motion from the
+burst frames (WC004), instead of a second call per biome.
 """
 
 from __future__ import annotations
@@ -32,17 +36,36 @@ Images: {image_list}
    a snowy biome does not imply visible snowfall.
 4. For every LEAK (things that must NOT be in {label}), visible = true if you see it
    there.
-{extra}
+{extra}{motion}
 ITEMS:
 {items}
 
 LEAKS:
 {leaks}"""
 
+MOTION_SECTION = """
+MOTION: burst frames (near_*, far_*) are {gap}s apart with the camera still; *_motion
+images are the first burst frame dimmed with every changed pixel painted RED (small
+scattered red specks are usually moving particles; large flat red patches over
+terrain are usually light, shadow or fog changes, NOT an entity moving). For every
+MOTION ITEM report in `motion`: moving (visibly moves between frames?), axis (one of
+falling, blowing, rising, flowing, pulsing, still, grounded), seen (<= 15 words; "not
+visible" if you cannot see it).
+MOTION ITEMS:
+{motion_items}
+"""
+
 
 class Sighting(BaseModel):
     id: str
     visible: bool
+    seen: str = ""
+
+
+class MotionSighting(BaseModel):
+    id: str
+    moving: bool
+    axis: str = "still"
     seen: str = ""
 
 
@@ -52,6 +75,7 @@ class VisualReport(BaseModel):
     items: list[Sighting]
     leaks: list[Sighting] = Field(default_factory=list)
     extra: dict[str, bool] = Field(default_factory=dict)
+    motion: list[MotionSighting] = Field(default_factory=list)
 
 
 def _lines(entries: list[dict]) -> str:
@@ -69,29 +93,73 @@ def judge_biome(
     leaks: list[dict],
     extra_questions: dict[str, str] | None = None,
     model: str | None = None,
+    motion_items: list[dict] | None = None,
+    bursts: dict[str, Path] | None = None,
+    burst_gap: float | str = "?",
 ) -> VisualReport:
-    """images: {name: png}. extra_questions: {key: yes/no question} -> report.extra[key]."""
+    """images: {name: png}. extra_questions: {key: yes/no question} -> report.extra[key].
+    motion_items + bursts: also judge motion from the burst frames -> report.motion."""
     extra = ""
     if extra_questions:
         extra = "5. Also answer these yes/no in `extra`:\n" + "\n".join(
             f"   - {k}: {q}" for k, q in extra_questions.items()
         ) + "\n"
+    motion = ""
+    all_images = dict(images)
+    if motion_items and bursts:
+        motion = MOTION_SECTION.format(
+            gap=burst_gap,
+            motion_items="\n".join(
+                f"- {e['id']}: {e.get('looks_like') or e.get('label', '')} (expected: {e.get('expected_axis')})"
+                for e in motion_items
+            ),
+        )
+        all_images.update(bursts)
     prompt = PROMPT.format(
         label=label,
-        image_list=", ".join(images) or "(none)",
+        image_list=", ".join(all_images) or "(none)",
         items=_lines(items),
         leaks=_lines(leaks),
         extra=extra,
+        motion=motion,
     )
-    return invoke_structured(VisualReport, prompt, list(images.values()), model)
+    return invoke_structured(VisualReport, prompt, list(all_images.values()), model)
 
 
 def biome_images(html_path: str | Path, manifest: dict, biome_id: str, *extra_views: str) -> dict[str, Path]:
-    """The agent's biome frame (if any), the overview, and any named extra views."""
+    """The biome frame (only if the blind check confirmed it), the overview, and extra views."""
+    from eval.capture.run import confirmed_biome_view
+
     cap_dir = Path(html_path).parent / "capture"
     views = manifest.get("views", {})
-    names = [f"biome_{biome_id}", "overview", *extra_views]
+    names = [n for n in (confirmed_biome_view(manifest, biome_id), "overview", *extra_views) if n]
     return {n: cap_dir / views[n]["path"] for n in names if n in views}
+
+
+def burst_images(html_path: str | Path, manifest: dict, biome_id: str) -> tuple[dict[str, Path], float | str]:
+    """Near/far burst frames + overlays for a confirmed biome frame ({} if none)."""
+    from eval.capture.run import confirmed_biome_view
+
+    view_id = confirmed_biome_view(manifest, biome_id)
+    view = manifest.get("views", {}).get(view_id or "", {})
+    if not view.get("bursts"):
+        return {}, "?"
+    cap_dir = Path(html_path).parent / "capture"
+    out: dict[str, Path] = {}
+    for label, frames in view["bursts"].items():
+        for n, rel in enumerate(frames):
+            out[f"{label}_{n}"] = cap_dir / rel
+        out[f"{label}_motion"] = cap_dir / view["overlays"][label]
+    return out, view.get("burst_gap_s", "?")
+
+
+def confirm(report: VisualReport | dict, manifest: dict, biome_id: str) -> VisualReport | dict:
+    """Overwrite the judge's own shows_biome with the capture's blind result."""
+    from eval.capture.run import confirmed_biome_view
+
+    if isinstance(report, VisualReport):
+        report.shows_biome = confirmed_biome_view(manifest, biome_id) is not None
+    return report
 
 
 def dump(report: VisualReport | dict) -> dict:
@@ -104,4 +172,7 @@ def load(payload: dict) -> VisualReport | dict:
     return VisualReport.model_validate(payload)
 
 
-__all__ = ["VisualReport", "Sighting", "judge_biome", "biome_images", "dump", "load", "json"]
+__all__ = [
+    "VisualReport", "Sighting", "MotionSighting", "judge_biome", "biome_images", "burst_images",
+    "confirm", "dump", "load", "json",
+]

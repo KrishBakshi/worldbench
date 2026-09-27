@@ -29,6 +29,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from harness.status import log  # noqa: E402
+from eval.capture.run import confirmed_biome_view, ensure_capture  # noqa: E402
 
 def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS, coverage: dict, graph: ExtractedGraph, result: CheckResult) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -44,7 +45,9 @@ def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS
 def check_biome_placement(html_path: str, out_dir: Path | None = None, model: str | None = None) -> CheckResult:
     log("      classify  (llm)")
     classified = classify_biome_js(html_path, model)
-    coverage = biome_coverage(classified, strip_html(html_path), RULES)
+    manifest = ensure_capture(html_path, model)
+    confirmed = {bid for bid in RULES if confirmed_biome_view(manifest, bid)}
+    coverage = biome_coverage(classified, strip_html(html_path), RULES, confirmed)
     log(f"      coverage  {sum(c['covered'] for c in coverage.values())}/{len(RULES)} covered")
     log("      extract   (llm)")
     graph = extract_graph(classified, model)

@@ -5,13 +5,16 @@ overview, four orbit directions, and the navigator agent's per-biome frames.
 This file used to drive Playwright itself; now every visual test judges the
 same frames, captured once at a pinned daytime.
 
-Two passes per view (same describe-then-hunt shape as WC002's
-extract-with-citations): describe the scene, then hunt four defects:
+One call per view lists the entities, then hunts four defects:
   - floating_blocks: a block with empty space between it and what should hold it.
   - hollow_mass:     a solid-looking volume with holes into the void.
   - non_voxel:       terrain that is smooth/curved instead of chunky cubes.
   - water_void:      a water sheet running out over the void with no blocks
                      under or around it (a sea with no seabed).
+
+Weather, particles, clouds, mist, the sun and UI are excluded by the prompt:
+on opus-5 most of the 10 flagged views were clouds called non_voxel and
+falling particles called floating_blocks, penalising a richer atmosphere.
 
 Findings only subtract: vision is poor at confirming a positive, but a cited
 visible defect is real signal. A first-pass flag is re-voted twice and kept
@@ -53,28 +56,26 @@ DEFECTS = ("floating_blocks", "hollow_mass", "non_voxel", "water_void")
 PER_VIEW_DEFECTS = ("floating_blocks", "hollow_mass", "non_voxel")
 OCEAN_VOID_VIEWS = 2
 
-DESCRIBE_PROMPT = """This is one frame of a 3D world meant to be a Minecraft-like voxel floating
+BUG_HUNT_PROMPT = """This is one frame of a 3D world meant to be a Minecraft-like voxel floating
 island in a black void. View: "{view}".
 
-Describe the scene, then list every distinct entity/structure you can see (terrain,
-trees, rocks, water, lava, mountains, buildings...). For each, say how it looks built:
-chunky cubes, smooth surfaces, flat sheets, etc."""
-
-BUG_HUNT_PROMPT = """You described this frame as:
-
-{description_json}
-
-Look again and hunt for four defects, one entity at a time. Assume defects are likely.
+First list the distinct entities you see (terrain masses, cliffs, trees, rocks, water,
+lava, buildings, animals) and how each looks built. Then hunt four defects, one entity
+at a time. Assume defects are likely.
 
 1. floating_blocks: a block with visible empty space between it and the blocks that
-   should support or connect it. (The island itself floats by design; this is about
-   detached pieces.)
+   should support or connect it. (The island itself floats by design.)
 2. hollow_mass: a structure that should be a solid volume (mountain, cliff, trunk,
    terrain mass, island underside) with holes showing the void through it.
 3. non_voxel: terrain or landforms that are smooth, curved, or a displaced surface
-   rather than chunky axis-aligned cubes. (Particles and the sun may be flat.)
+   rather than chunky axis-aligned cubes.
 4. water_void: water that spreads out as a flat sheet beyond the land, over the black
    void, with no blocks beneath or around it holding it.
+
+IGNORE entirely, never a defect: weather and particles (rain, snow, petals, ash,
+sparks, dust), clouds, mist, fog, smoke, the sun and moon, and UI. Those float and
+may be flat by design. Judge only terrain, water bodies, plants, animals and built
+structures.
 
 Report what you SEE, not the likely intent. Void visible through terrain IS hollow_mass;
 do not excuse it as stylized. If a defect is absent for an entity, say so plainly."""
@@ -87,16 +88,6 @@ class CheckResult:
     details: dict = field(default_factory=dict)
 
 
-class EntityDescription(BaseModel):
-    name: str
-    block_composition: str
-
-
-class SceneDescription(BaseModel):
-    overview: str
-    entities: list[EntityDescription]
-
-
 class EntityBugFinding(BaseModel):
     entity: str
     floating_blocks: bool
@@ -107,6 +98,7 @@ class EntityBugFinding(BaseModel):
 
 
 class BugReport(BaseModel):
+    overview: str = Field(description="one line: what the frame shows")
     entity_findings: list[EntityBugFinding]
     any_floating_blocks: bool
     any_hollow_mass: bool
@@ -119,8 +111,9 @@ def _flags(report: BugReport) -> dict[str, bool]:
 
 
 def judge_view(path: Path, view_id: str, model: str | None = None) -> dict:
-    description = invoke_structured(SceneDescription, DESCRIBE_PROMPT.format(view=view_id), [path], model)
-    hunt = BUG_HUNT_PROMPT.format(description_json=description.model_dump_json(indent=2))
+    # Describe and hunt are one call (the describe step used to be its own
+    # call, doubling the cost of every view against a 500/day quota).
+    hunt = BUG_HUNT_PROMPT.format(view=view_id)
     votes = [invoke_structured(BugReport, hunt, [path], model)]
     if any(_flags(votes[0]).values()):
         votes += [invoke_structured(BugReport, hunt, [path], model, temperature=0.8) for _ in range(2)]
@@ -128,7 +121,7 @@ def judge_view(path: Path, view_id: str, model: str | None = None) -> dict:
     majority = len(votes) // 2 + 1
     confirmed = sorted(d for d, n in tally.items() if n >= majority)
     return {
-        "description": description.model_dump(),
+        "description": votes[0].overview,
         "votes": [v.model_dump() for v in votes],
         "tally": {**tally, "of": len(votes)},
         "defects": confirmed,

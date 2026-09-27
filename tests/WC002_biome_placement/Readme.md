@@ -37,7 +37,12 @@ Grade does not look at the original HTML. It only scores the extracted graph.
 
 ## Coverage
 
-A biome is covered when the classify step marks it present and the layout code it quotes for that biome really appears in the source (`coverage.py`, `eval/evidence.py`).
+A biome is covered when either source shows it (`coverage.py`):
+
+- **Source:** the classify step marks it present, and the layout code it quotes really appears in the source (`eval/evidence.py`).
+- **Frames:** the capture's blind check identified that biome's frame as that biome without being told which it was meant to be.
+
+One classify call used to decide this alone, and it missed opus-5's ocean.
 
 The old WC001 searched the JS for biome keywords. Every scored model got 10/10, and a one-line file with no world (`const pine=1,canopy=2,...,lava=9`) also got 10/10.
 

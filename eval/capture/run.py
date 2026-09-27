@@ -50,7 +50,7 @@ from eval.capture.navigator import frame_biome  # noqa: E402
 from eval.capture.preview import build_preview  # noqa: E402
 from harness.status import log  # noqa: E402
 
-MANIFEST_VERSION = 2  # 2: biome views carry motion bursts
+MANIFEST_VERSION = 3  # 2: motion bursts; 3: biome frames taken with the HUD hidden
 BURST_FRAMES = 3
 BURST_GAP_S = 2.0
 ZOOM_OUT_STEPS = -3
@@ -98,10 +98,21 @@ def world_sha(world_html: Path) -> str:
     return hashlib.sha256(Path(world_html).read_bytes()).hexdigest()
 
 
-def luma(path: Path) -> float:
-    from PIL import Image, ImageStat
+# Brightness is measured on lit scene pixels only. The black void and a dark
+# HUD panel are most of every frame and never change with time of day, so a
+# whole-frame mean squeezed opus-5's day/night range into 7.8-13.8.
+LUMA_VOID_MAX = 12       # grey level at or below which a pixel counts as void
+LUMA_HUD_CROP = 0.2      # left share of the frame dropped (legends sit there)
 
-    return round(ImageStat.Stat(Image.open(path).convert("L")).mean[0], 2)
+
+def luma(path: Path) -> float:
+    from PIL import Image
+
+    img = Image.open(path).convert("L")
+    w, h = img.size
+    img = img.crop((int(LUMA_HUD_CROP * w), 0, w, h)).resize((320, 250))
+    lit = [v for v in img.get_flattened_data() if v > LUMA_VOID_MAX]
+    return round(sum(lit) / len(lit), 2) if lit else 0.0
 
 
 def pick_day_tod(lumas: dict[float, float]) -> tuple[float, float, bool]:
@@ -165,6 +176,119 @@ def _url(preview: Path, tod: float | None = None, season: int | None = None) -> 
     return preview.resolve().as_uri() + (("?" + "&".join(params)) if params else "")
 
 
+async def _frame_one(browser, day_url, biome, views_dir, cap_dir, manifest, day_tod, model) -> None:
+    """One agent episode + motion bursts; writes manifest["biomes"][id] and the view."""
+    log(f"      agent     {biome['id']}")
+    out = views_dir / f"biome_{biome['id']}.png"
+    view_id = f"biome_{biome['id']}"
+    manifest["views"].pop(view_id, None)
+    try:
+        outcome = await frame_biome(browser, day_url, biome, out, model)
+    except Exception as exc:  # one broken episode must not lose the other nine
+        outcome = {"status": "error", "reason": str(exc)[:300]}
+    if out.is_file() and outcome.get("status") in ("found", "uncertain"):
+        log(f"      burst     {view_id}  near + far, {BURST_FRAMES} x {BURST_GAP_S}s")
+        try:
+            # The saved frame is retaken with the HUD hidden: every judge of a
+            # biome frame (and the blind check) sees terrain, never the label.
+            await browser.hide_hud(True)
+            await browser.screenshot(out)
+            b = await capture_bursts(browser, views_dir, view_id, out)
+            await browser.hide_hud(False)
+            rel = lambda p: str(p.relative_to(cap_dir))  # noqa: E731
+            extra = {
+                "bursts": {k: [rel(p) for p in v] for k, v in b["bursts"].items()},
+                "overlays": {k: rel(p) for k, p in b["overlays"].items()},
+                "motion_fraction": b["motion_fraction"],
+                "burst_gap_s": BURST_GAP_S,
+            }
+        except Exception as exc:  # no burst is a missing motion view, not a lost biome
+            extra = {"burst_error": str(exc)[:300]}
+        manifest["views"][view_id] = {"path": str(out.relative_to(cap_dir)), "kind": "biome",
+                                      "biome": biome["id"], "tod": day_tod, **extra}
+        outcome["view"] = view_id
+    manifest["biomes"][biome["id"]] = outcome
+
+
+async def _redo_biomes(cap_dir: Path, manifest: dict, ids: list[str], model: str | None) -> None:
+    """Re-run only the named biome episodes on the existing preview."""
+    preview = cap_dir / "preview.html"
+    day_tod = manifest.get("time", {}).get("day_tod", 0.5)
+    day_url = _url(preview, day_tod)
+    async with DevToolsBrowser() as browser:
+        for biome in BIOMES:
+            if biome["id"] in ids:
+                await _frame_one(browser, day_url, biome, cap_dir / "views", cap_dir, manifest, day_tod, model)
+
+
+IDENTIFY_PROMPT = """Each image is one frame of a voxel floating island, zoomed toward one region.
+For each frame, say which ONE of these biomes it mainly shows, or "none" if it shows
+none of them clearly (only sky/void, only UI, or a mix with no main biome):
+{options}
+
+Answer for every frame by its name ({names})."""
+
+
+def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = None) -> None:
+    """Blind check that each agent frame shows its biome: one call, shuffled, neutral names.
+
+    The navigator's own "found" is not trusted (it saved kimi-k-3's volcano as
+    the swamp at confidence 1.0), and asking a judge "does this show the swamp?"
+    got yes on all 30 frames across three models. Here the judge is never told
+    which biome a frame was meant to be; a frame counts only if its answer
+    matches. Result: manifest["biomes"][id]["confirmed"] / ["identified_as"].
+    """
+    import random
+
+    from pydantic import BaseModel
+
+    from eval.capture.llm import invoke_structured
+
+    class FrameLabel(BaseModel):
+        frame: str
+        biome: str
+
+    class FrameLabels(BaseModel):
+        labels: list[FrameLabel]
+
+    views = manifest.get("views", {})
+    framed = [b["id"] for b in BIOMES if f"biome_{b['id']}" in views]
+    if not framed:
+        return
+    order = framed[:]
+    random.Random(manifest.get("world_sha256", "")).shuffle(order)
+    names = {f"frame_{i + 1}": bid for i, bid in enumerate(order)}
+    images = {n: cap_dir / views[f"biome_{bid}"]["path"] for n, bid in names.items()}
+    options = "\n".join(f"- {b['id']}: {b['label']}" for b in BIOMES)
+    log(f"      identify  (vlm) {len(images)} biome frames, blind")
+    try:
+
+        result = invoke_structured(
+            FrameLabels, IDENTIFY_PROMPT.format(options=options, names=", ".join(images)), list(images.values()), model
+        )
+        answers = {x.frame: x.biome.strip().lower() for x in result.labels}
+    except Exception as exc:
+        log(f"      identify  error: {exc}")
+        manifest["identify_error"] = str(exc)[:300]
+        return
+    for name, bid in names.items():
+        said = answers.get(name, "none")
+        manifest["biomes"][bid]["identified_as"] = said
+        manifest["biomes"][bid]["confirmed"] = said == bid
+    manifest["identified"] = True
+    ok = sum(1 for bid in framed if manifest["biomes"][bid]["confirmed"])
+    log(f"      identify  {ok}/{len(framed)} frames confirmed")
+
+
+def confirmed_biome_view(manifest: dict, biome_id: str) -> str | None:
+    """The biome's view id if the blind check confirmed it, else None."""
+    b = manifest.get("biomes", {}).get(biome_id, {})
+    view = f"biome_{biome_id}"
+    if view in manifest.get("views", {}) and b.get("confirmed"):
+        return view
+    return None
+
+
 async def _capture(world_html: Path, cap_dir: Path, model: str | None) -> dict:
     views_dir = cap_dir / "views"
     views_dir.mkdir(parents=True, exist_ok=True)
@@ -211,29 +335,7 @@ async def _capture(world_html: Path, cap_dir: Path, model: str | None) -> dict:
 
         # 4. biomes
         for biome in BIOMES:
-            log(f"      agent     {biome['id']}")
-            out = views_dir / f"biome_{biome['id']}.png"
-            try:
-                outcome = await frame_biome(browser, day_url, biome, out, model)
-            except Exception as exc:  # one broken episode must not lose the other nine
-                outcome = {"status": "error", "reason": str(exc)[:300]}
-            if out.is_file() and outcome.get("status") in ("found", "uncertain"):
-                view_id = f"biome_{biome['id']}"
-                log(f"      burst     {view_id}  near + far, {BURST_FRAMES} x {BURST_GAP_S}s")
-                try:
-                    b = await capture_bursts(browser, views_dir, view_id, out)
-                    rel = lambda p: str(p.relative_to(cap_dir))  # noqa: E731
-                    extra = {
-                        "bursts": {k: [rel(p) for p in v] for k, v in b["bursts"].items()},
-                        "overlays": {k: rel(p) for k, p in b["overlays"].items()},
-                        "motion_fraction": b["motion_fraction"],
-                        "burst_gap_s": BURST_GAP_S,
-                    }
-                except Exception as exc:  # no burst is a missing motion view, not a lost biome
-                    extra = {"burst_error": str(exc)[:300]}
-                add_view(view_id, out, "biome", biome=biome["id"], tod=day_tod, **extra)
-                outcome["view"] = view_id
-            manifest["biomes"][biome["id"]] = outcome
+            await _frame_one(browser, day_url, biome, views_dir, cap_dir, manifest, day_tod, model)
     return manifest
 
 
@@ -242,17 +344,28 @@ def capture(output_dir: Path, *, force: bool = False, model: str | None = None) 
     output_dir = Path(output_dir)
     world_html = output_dir / "world.html"
     existing = load_manifest(output_dir)
+    cap_dir = output_dir / "capture"
     if (
         not force
         and existing
         and existing.get("version") == MANIFEST_VERSION
         and existing.get("world_sha256") == world_sha(world_html)
     ):
-        log("      capture   reuse manifest (same world.html)")
-        return existing
-    cap_dir = output_dir / "capture"
-    cap_dir.mkdir(parents=True, exist_ok=True)
-    manifest = asyncio.run(_capture(world_html, cap_dir, model))
+        manifest = existing
+        # A reused capture must not carry failed episodes forward (a quota
+        # error on grok-4-6 would otherwise stick to that world forever).
+        errored = [bid for bid, b in manifest.get("biomes", {}).items() if b.get("status") == "error"]
+        if errored:
+            log(f"      capture   redo failed episodes: {', '.join(errored)}")
+            asyncio.run(_redo_biomes(cap_dir, manifest, errored, model))
+            manifest.pop("identified", None)
+        else:
+            log("      capture   reuse manifest (same world.html)")
+    else:
+        cap_dir.mkdir(parents=True, exist_ok=True)
+        manifest = asyncio.run(_capture(world_html, cap_dir, model))
+    if not manifest.get("identified"):
+        identify_biome_frames(cap_dir, manifest, model)
     manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     found = sum(1 for b in manifest["biomes"].values() if b.get("status") == "found")
     log(f"      capture   {len(manifest['views'])} views, {found}/{len(BIOMES)} biomes framed")

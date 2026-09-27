@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grade import grade_reports
 from llm import BIOME_IDS, BiomeRenderReport, CheckResult
 from probe import probe_all, strip_html
-from visual import dump_motion, judge_all, judge_motion, load_motion
+from visual import dump_motion, judge_all, load_motion
 
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
@@ -93,10 +93,8 @@ def check_biome_rendering(
     selected = biome_ids or BIOME_IDS
     reports = probe_all(html_path, model, selected)
     raise_if_mostly_failed(reports, "code probe")
-    visual = judge_all(html_path, selected, model)
+    visual, motion = judge_all(html_path, selected, model)
     raise_if_mostly_failed(visual, "visual judge")
-    motion = judge_motion(html_path, selected, model)
-    raise_if_mostly_failed(motion, "motion judge")
     result = grade_reports(reports, selected, visual, normalize(strip_html(html_path)), motion)
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     result.details["artifacts"] = write_artifacts(dest, reports, result, visual, motion)

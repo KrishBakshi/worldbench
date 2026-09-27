@@ -43,8 +43,13 @@ property of the world.
     data was absent (2/12) or a different bespoke shape every time.
   - WC003/WC004/WC005 are **code probe + visual judge**: each item's points
     are split between a verified code quote and what the captured frames
-    show (WC004 motion and WC005's cloud/weather items stay code-only —
-    stills can't show motion). WC005 measures "does X change" from pixels
+    show. WC004 motion is hybrid too: capture takes a near + far burst per
+    biome (frames ~2s apart, camera still, changed-pixel overlay) on the
+    **daytime preview** — at night most moving things are invisible — and a
+    VLM "it moves" only counts if the burst's pixels really changed. Kept
+    small on purpose (one zoom-out, no pivots, no waiting for weather
+    cycles); don't grow it into a camera-choreography project. WC005's
+    cloud/weather items stay code-only. WC005 measures "does X change" from pixels
     (brightness, frame diff, chromaticity) rather than asking the VLM: on
     kimi-k-3 the VLM called lighting "identical" across frames whose mean
     brightness was 11.9 / 35.0 / 11.6 / 11.5.

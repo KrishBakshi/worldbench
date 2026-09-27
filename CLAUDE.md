@@ -304,8 +304,18 @@ property of the world.
       injected via `add_init_script` gets `lineno`/`colno` for both
       cases, correlated back to the matching `pageerror` event by a FIFO
       queue (both fire for the same underlying event, in the same
-      order). `console.error()` calls get their location straight from
-      Playwright's own `msg.location` — no injection needed there.
+      order).
+    - **`console.error` gets a stack too.** An init-script wrapper records
+      `new Error().stack` per call, matched to its console message by first
+      argument (not arrival order — the browser logs errors of its own that
+      never pass through the wrapper). When the message was logged from
+      inside a library, its own location is the library's line (e.g. line
+      10912 of `three.module.js`), which `fix` can't edit and
+      `_build_fix_context` drops as out of range — so the page's own frames
+      become the location instead. Seen for real: `computeBoundingSphere():
+      radius is NaN` in a real run was unlocalizable and survived to
+      give-up; with frames it points at `createAnimal` and both spawn
+      sites, and a free-model fix round repaired it in one edit.
     - **The suffix reports caller frames too, not just the throw site:**
       `(line 104, col 27; called from line 383, line 397)`. This is not
       cosmetic. For a whole class of JS errors the throw site is correct

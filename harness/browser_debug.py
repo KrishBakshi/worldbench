@@ -62,12 +62,30 @@ DEFAULT_NAV_TIMEOUT_MS = 15000
 MAX_CALLER_FRAMES = 4
 
 _LOC_MARKER = "__WB_LOC__"
+_ERR_STACK_MARKER = "__WB_ERRSTACK__"
 _LOCATION_INIT_SCRIPT = f"""
 window.addEventListener('error', (e) => {{
   try {{
     console.log({_LOC_MARKER!r}, JSON.stringify({{lineno: e.lineno, colno: e.colno}}));
   }} catch (_) {{}}
 }});
+// console.error carries no stack of its own, and when a library logs it
+// (three.module.js's `computeBoundingSphere(): radius is NaN`) its location is
+// the library's line, which the fix node can't edit or window. Record the JS
+// stack at the call so the page's own frames — the code that handed the
+// library bad data — can be reported instead. Keyed by the first argument
+// so it's matched to its console message by text, not by arrival order:
+// the browser emits console errors of its own (failed resource loads) that
+// never pass through this wrapper, and an ordering queue would desync.
+(() => {{
+  const original = console.error.bind(console);
+  console.error = (...args) => {{
+    try {{
+      console.debug({_ERR_STACK_MARKER!r}, JSON.stringify({{first: String(args[0]), stack: new Error().stack}}));
+    }} catch (_) {{}}
+    original(...args);
+  }};
+}})();
 window.addEventListener('unhandledrejection', (e) => {{
   try {{
     const r = e.reason;
@@ -134,6 +152,8 @@ def check_console_errors(
     # the pageerror events they correspond to, so a FIFO queue correlates them
     # without needing to text-match the two independent event streams.
     loc_queue: list[tuple[int | None, int | None]] = []
+    # (first console.error argument, in-document frames), see the init script.
+    error_stacks: list[tuple[str, list[tuple[int, int]]]] = []
 
     def _record(text: str) -> None:
         seen.setdefault(text, None)
@@ -146,10 +166,28 @@ def check_console_errors(
                 return
             loc_queue.append((data.get("lineno"), data.get("colno")))
             return
+        if msg.text.startswith(_ERR_STACK_MARKER):
+            try:
+                data = json.loads(msg.text[len(_ERR_STACK_MARKER) :].strip())
+            except (json.JSONDecodeError, ValueError):
+                return
+            error_stacks.append((data.get("first") or "", _stack_frames(data.get("stack") or "", page_url)))
+            return
         if msg.type == "error":
+            frames: list[tuple[int, int]] = []
+            for i, (first, stack_frames) in enumerate(error_stacks):
+                if msg.text.startswith(first):
+                    frames = stack_frames
+                    del error_stacks[i]
+                    break
             loc = msg.location or {}
-            suffix = _loc_suffix(loc.get("lineNumber"), loc.get("columnNumber"))
-            _record(f"[console.error] {msg.text}{suffix}")
+            lineno, colno = loc.get("lineNumber"), loc.get("columnNumber")
+            if loc.get("url") != page_url:
+                # Logged from inside a library: its line is the library's, not
+                # ours. The page's own frames say which of our lines called in.
+                lineno, colno = frames[0] if frames else (None, None)
+            callers = [ln for ln, _ in frames if ln != lineno][:MAX_CALLER_FRAMES]
+            _record(f"[console.error] {msg.text}{_loc_suffix(lineno, colno, callers)}")
 
     def _on_pageerror(exc) -> None:
         # Runtime errors (unlike parse-time SyntaxErrors, which V8 never

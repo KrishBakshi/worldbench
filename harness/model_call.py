@@ -28,7 +28,7 @@ everything already streamed.
 
 Some providers cut a response off mid-file when it hits their own default
 output-length cap (`finish_reason: "length"`), independent of any timeout —
-this happened for real on stealth/ox-alpha and produced a broken,
+this happened for real and produced a broken,
 unparseable world.html. Rather than trust a single turn, generate() checks
 completion after every turn (finish_reason plus a `</html>` presence check)
 and, if incomplete, sends the accumulated output plus reasoning back as
@@ -320,7 +320,7 @@ def _extract_html(text: str) -> str:
     """Unwrap a wrapping ```html fence if the model added one.
 
     A fence on the first line, or right after a doctype/html-open prefix
-    (stealth/ox-alpha emits `<!DOCTYPE html>` then an opening fence), is
+    (seen for real: `<!DOCTYPE html>` then an opening fence), is
     wrapping and gets stripped. A fence *after* the document has started
     (mid-script ``const w = Math.max(8*`` then ```html) is a restart —
     two drafts glued together — and is left in the file so world_lint
@@ -458,7 +458,7 @@ def _is_silent_tool_call_stall(exc: Exception, full, tools: list | None) -> bool
 
     Many providers don't stream tool-call arguments — they hold the whole
     call until it's complete. A model that decides to emit a large argument
-    (a 54KB file rewrite, on nemotron-3-ultra) leaves the connection silent
+    (a 54KB file rewrite, seen for real) leaves the connection silent
     for minutes, and OpenRouter kills it with "Upstream idle timeout
     exceeded (504)". Retrying replays the same reasoning to the same decision
     and the same silence: that run spent 3 x ~170s on it. Only this exact

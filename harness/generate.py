@@ -88,7 +88,7 @@ MAX_FIX_ROUNDS = 5
 MAX_ERRORS_IN_PROMPT = 15  # dedup already collapses per-frame spam; cap for prompt size
 FIX_CONTEXT_LINES = 40  # lines of context on each side of an error location, for the windowed fix prompt
 # A stack trace is control flow ("who called this"), never data flow ("where
-# did this bad value come from"). inputs/nex-n2.5-mini hit the gap: `Cannot
+# did this bad value come from"). A real run hit the gap: `Cannot
 # read properties of undefined (reading 'color')` threw at line 350 on
 # `terrainGeo.attributes.color`, with a caller frame at 1037 — but the defect
 # is at line 996, `terrainGeo=buildTerrain(0);`, assigning a Mesh to something
@@ -557,7 +557,7 @@ def _problems_text(state: AgentState) -> str:
 def _rewrite_round(state: AgentState) -> dict:
     """Full rewrite as streamed content, never as a tool-call argument.
 
-    The tool-call version is what failed on nemotron-3-ultra: the provider
+    The tool-call version is what failed in a real run: the provider
     buffers tool arguments, so a 54KB write_world_html call left the
     connection silent until OpenRouter's idle timeout killed it (504), three
     times. Content streams — progress is visible, the connection is never
@@ -626,7 +626,7 @@ def _patch_round(state: AgentState) -> dict:
         # Verify on the spot rather than a debug round later. Parsing takes
         # tens of ms; a debug round costs a Chromium launch, a CDN fetch and
         # a fresh model turn — and it's how edits that broke something new
-        # used to surface (nex-n2.5-mini's round 1).
+        # used to surface.
         after = syntax_findings(candidate)
         if after and not current_syntax:
             refused += 1
@@ -698,7 +698,7 @@ def _patch_round(state: AgentState) -> dict:
         except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
             # A provider failure forfeits this round, not the run: edits
             # already applied are kept, and the trajectory still gets written.
-            # (nemotron-3-ultra's 504 used to crash run() and lose its .json.)
+            # (a 504 here used to crash run() and lose its .json.)
             failure_note = _provider_failure_note(round_n, exc)
             break
         if turn.reasoning_content:

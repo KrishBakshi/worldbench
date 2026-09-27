@@ -95,13 +95,13 @@ property of the world.
       (the full file is already printed once the turn ends — echoing would
       double it). The reasoning→content boundary prints one line,
       `reasoning ended (N chars) — writing content now`.
-      **This exists because the boundary reads as a hang.** Reported against
-      Nemotron 3 Ultra: "the reasoning stops streaming, but the completion
+      **This exists because the boundary reads as a hang.** Reported as:
+      "the reasoning stops streaming, but the completion
       tokens are still coming." That is a reasoning model behaving
       normally — it finished thinking and started writing — but the stream
       loop fed *only* `reasoning_content` to the printer and accumulated
       content silently, so the terminal went dark from that moment until
-      the whole turn finished. On a 550B model writing a ~50KB
+      the whole turn finished. On a large model writing a ~50KB
       `world.html`, that silent stretch is the longest phase of the run and
       is indistinguishable from a wedged stream. Nothing was wrong with the
       model or the provider; the harness just wasn't reporting the phase it
@@ -161,8 +161,8 @@ property of the world.
       `_patch_round`: small `str_replace(old_str, new_str)` edits, as many
       as the model needs. There is no
       `write_world_html` tool any more — **that is the 504 fix.** Providers
-      buffer tool-call arguments until the call is complete, so on
-      `nemotron-3-ultra` a 54KB rewrite-as-tool-argument left the
+      buffer tool-call arguments until the call is complete, so in a
+      real run a 54KB rewrite-as-tool-argument left the
       connection silent until OpenRouter's "Upstream idle timeout exceeded
       (504)" killed it — three times, 521s, then a crash. Content streams;
       the connection is never idle.
@@ -171,11 +171,11 @@ property of the world.
       (`world_lint.syntax_findings`, ~30ms), with a numbered snippet if
       not. An edit that would break a file that currently parses is
       **refused** and the file left unchanged — the "fix one bug, introduce
-      another" pattern from `nex-n2.5-mini` used to cost a full round to
+      another" pattern seen in real runs used to cost a full round to
       surface. A refused edit doesn't trigger the full-file escalation
       below (it proves the model found the spot).
     - **`str_replace` is built to land on the first try** — a failed edit
-      burns one of only 4 turns (`nemotron-3-ultra` round 2 lost 2 of 4 to
+      burns a whole model turn (one real round lost 2 turns to
       `old_str not found`). Excerpt `  393: ` prefixes copied into old_str
       are stripped; a whitespace-only mismatch with exactly one match is
       applied; otherwise the error shows the closest matching file text
@@ -183,7 +183,7 @@ property of the world.
       match when it isn't unique.
     - **A provider failure forfeits the round, not the run.** Edits already
       applied are kept and `run()` still writes its trajectory `.json`
-      (the nemotron 504 crashed `run()` and lost it).
+      (a 504 used to crash `run()` and lose it).
     - **The fix prompt itself doesn't send the whole file for runtime
       problems — `_build_fix_context()` sends only a windowed excerpt
       (+/- `FIX_CONTEXT_LINES`, 40) around each error's source line.**
@@ -199,8 +199,8 @@ property of the world.
       and applied no edit escalates the next round to the complete
       file.** That outcome is evidence the window is pointing where the
       bug isn't, not that the model was idle; without the escalation a
-      run re-sends the same useless excerpt until `--max-fix-rounds` is
-      exhausted, which is exactly how `inputs/nex-n2.5-pro` spent all 3
+      run re-sends the same useless excerpt until the round budget is
+      exhausted, which is exactly how a real run spent all 3
       attempts producing zero edits. The escalation is a safety net for
       when caller-frame windowing (see `browser_debug.py` below) still
       misses — it is not a substitute for it, since a fix round spent
@@ -209,7 +209,7 @@ property of the world.
       bound, not only where execution went** (`_definition_sites()`,
       `DEF_CONTEXT_LINES` 12). A stack trace is control flow ("who called
       this"); it never answers "where did this bad value come from."
-      `inputs/nex-n2.5-mini` is the case: `Cannot read properties of
+      A real run is the case: `Cannot read properties of
       undefined (reading 'color')` threw at line 350 on
       `terrainGeo.attributes.color` with a caller frame at 1037, but the
       defect is line 996, `terrainGeo=buildTerrain(0);` — assigning a
@@ -270,17 +270,17 @@ property of the world.
       to the 504 above. A false finding costs every round it survives.
     - The parser's line is exact except for brace errors (`Unexpected end
       of input` points at the last line; inside a class a missing `}`
-      surfaces at the next method header, 58 lines late on nemotron). A
+      surfaces at the next method header, 58 lines late in a real run). A
       comment/string/template/regex-aware lexer yields candidate sites from
       the code's own intent — a `}` less indented than its `{`
       (missing), more indented (extra), a `function`/`class` one brace
-      level deeper than earlier ones at its indent (flat code: fable,
-      glm-5-turbo) — and each candidate's one-brace repair is **re-parsed
+      level deeper than earlier ones at its indent (flat,
+      unindented code) — and each candidate's one-brace repair is **re-parsed
       before it's reported** (`_confirmed_location`), so sloppy-but-valid
       indentation can't produce a false lead. Measured on 193 synthetic
       single-brace breakages of the 17 real worlds: 90/91 missing-`}` and
       97/102 extra-`}` land inside a fix window. Earliest-first beat
-      nearest-to-error-first (tried; it moved the nemotron-shaped case
+      nearest-to-error-first (tried; it moved a real-run missing-`}` case
       from its true line 393 to 444).
     - Without `node` on PATH, `[syntax]` falls back to the lexer's bracket
       balance (hint-worded); the browser's SyntaxError is the backstop.
@@ -327,8 +327,8 @@ property of the world.
       `(line 104, col 27; called from line 383, line 397)`. This is not
       cosmetic. For a whole class of JS errors the throw site is correct
       code and the defect is in the *caller*, so a fix window centered on
-      the throw site shows the model nothing wrong. Seen for real on
-      `inputs/nex-n2.5-pro`: `jit=(c,rnd)=>c*(0.9+rnd()*0.2)` on line 104
+      the throw site shows the model nothing wrong. Seen for real:
+      `jit=(c,rnd)=>c*(0.9+rnd()*0.2)` on line 104
       was called as `jit(color, Rv())` — the RNG's *result* instead of
       the RNG — on lines 383/397/412. `rnd is not a function` reported
       line 104, the window covered 64–144, and all 3 fix rounds made zero
@@ -448,7 +448,7 @@ property of the world.
       streamed no content** (`_is_silent_tool_call_stall` →
       `SilentToolCallTimeout`). That's the provider buffering a large
       tool-call argument; a retry replays the same reasoning to the same
-      decision and the same silence (3 × ~170s on nemotron-3-ultra).
+      decision and the same silence (3 × ~170s in a real run).
 - `inputs/` — gitignored drop zone. **Real harness/eval input only** —
   never dry-run data (see `dry_runs/` below). Written by `harness/`
   (`generate.py`) or by hand; read by `eval/` (`ingest.py`) — the seam
@@ -464,7 +464,7 @@ property of the world.
     `debug_rounds` errors, `fix_history` notes, status, rounds used,
     timings. Timestamped rather than overwritten so reruns accumulate
     instead of destroying the previous attempt's evidence. This exists
-    because diagnosing `nex-n2.5-mini`'s give-up was guesswork without it
+    because diagnosing a real give-up was guesswork without it
     — the run was over, nothing on disk said what the three fix rounds had
     tried, and `outputs/<name>/` didn't exist either. LangSmith had it, but
     a trace you can't open offline (or after the project's retention

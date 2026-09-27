@@ -17,7 +17,7 @@ carrying a ``(line N; see also line …)`` location so the fix node can send a
 small excerpt and patch it with ``str_replace``.
 
 Why a real parser: the old check counted braces character by character and
-didn't understand comments. On nemotron-3-ultra it reported
+didn't understand comments. In a real run it reported
 ``last <script> has 1 extra '{'`` for three straight rounds against a script
 that parsed cleanly — an apostrophe in ``// Swamp on jungle's far side``
 opened a phantom string. The fix node believed it, got the whole 54KB file,
@@ -263,8 +263,8 @@ def _confirmed_location(script: _Script, rel_line: int, end_of_input: bool) -> _
     """First brace candidate the parser agrees with.
 
     Indentation is only a signal of intent, and valid code with sloppy
-    indentation emits false ones (fable's line 99, ox-alpha's line 224 —
-    both correct code, both earlier than any real gap). A false lead handed
+    indentation emits false ones (seen in two real worlds — correct code,
+    earlier than any real gap). A false lead handed
     to the fix node is exactly the failure this module exists to prevent, so
     each candidate's one-brace repair is applied to a scratch copy and
     re-parsed: kept only if the script then parses, or (mid-file) the
@@ -275,7 +275,7 @@ def _confirmed_location(script: _Script, rel_line: int, end_of_input: bool) -> _
     synthetic single-brace breakages of the 17 real worlds in inputs/.
     Earliest put 90/91 missing-`}` and 97/102 extra-`}` cases inside a fix
     window; nearest-first was no better on extra and pulled the
-    nemotron-shaped missing-`}` case from its true line (393) to 444. The
+    real-run missing-`}` case from its true line (393) to 444. The
     residual ambiguity is real — with an extra `}` at 222, removing a
     correct `}` at 99 rebalances the script too — which is why the finding
     always also names the parser's own line.
@@ -431,8 +431,8 @@ def _indent(line: str) -> int:
 
 
 # Only declarations that style guides (and every model in inputs/) keep at a
-# fixed nesting level. `const`/`let` would misfire on flat code: glm-5-turbo
-# writes function bodies at column 0, so a body's `const` looks one level
+# fixed nesting level. `const`/`let` would misfire on flat code: some models
+# write function bodies at column 0, so a body's `const` looks one level
 # "too deep" next to the `function` line above it.
 _DECL_RE = re.compile(r"(?:export\s+)?(?:async\s+)?(?:function|class)\b")
 
@@ -462,7 +462,7 @@ def _brace_candidates(src: str):
     - `extra`: a `}` *more* indented than its `{` — it closed an outer block
       early.
     - `deeper`: a `function`/`class` at an indent already seen at a shallower
-      brace depth — for unindented code (fable, glm-5-turbo) where the
+      brace depth — for unindented code (seen in real worlds) where the
       indent signals can't fire.
     - `unclosed`: last resort — the innermost still-open bracket.
     """
@@ -489,7 +489,7 @@ def _brace_candidates(src: str):
                 # `if (a ||\n    b) {` — the `{` sits on a continuation line
                 # indented deeper than the statement; it answers to the
                 # line the `(` opened on, or every correct block like this
-                # would look mis-paired (kimi-k-2-7).
+                # would look mis-paired.
                 anchor = last_paren[1] if ch == "{" and last_paren and last_paren[0] == ln else ln
                 stack.append((ch, ln, anchor))
                 last_paren = None

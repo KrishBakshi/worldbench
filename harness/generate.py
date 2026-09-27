@@ -21,8 +21,8 @@ handing off to `debug`.
                  moment it's made and refused if it would break parsing.
                  Loops back to debug.
 
-Stops when a debug pass comes back clean, or after --max-fix-rounds fix
-attempts — whichever comes first. The file on disk at inputs/<name>/world.html
+Stops when a debug pass comes back clean, or after MAX_FIX_ROUNDS (5) fix
+attempts — a hard cap, stated to the model — whichever comes first. The file on disk at inputs/<name>/world.html
 is always the latest attempt, clean or not; a run that gives up still leaves
 something there rather than nothing, and says so.
 
@@ -37,8 +37,7 @@ the terminal alone.
 
 Usage:
     uv run python -m harness.generate <name> --model <openrouter-id>
-    uv run python -m harness.generate <name> --model <openrouter-id> \\
-        --max-fix-rounds 5 --run
+    uv run python -m harness.generate <name> --model <openrouter-id> --run
 """
 
 from __future__ import annotations
@@ -75,22 +74,18 @@ from harness.world_lint import check_world, syntax_findings  # noqa: E402
 from harness.status import log, log_to_file, timed  # noqa: E402
 
 INPUTS_DIR = REPO_ROOT / "inputs"
-# A dry run against nex-n2.5-mini:free needed 3 fix attempts to genuinely
-# converge (round 1 fixed the original bug but its own second edit
-# introduced a new one; round 2's fix unmasked a second, pre-existing,
-# unrelated syntax error the parser had never reached before; round 3's
-# fix unmasked a runtime race condition only reachable once the file
-# finally parsed) — one bug hiding behind another, fixed one layer at a
-# time, is the normal shape of this loop. A 4th attempt was tried in that
-# same dry run and made things worse (misdiagnosed the race condition,
-# traded a working error message for a different one) rather than better,
-# so more rounds isn't free insurance — 3 is deliberately not "3 undersells
-# it," it's "the loop reports an honest remaining error instead of a
-# model spending a 4th attempt badly guessing." Raise it only alongside
-# evidence a specific class of bug needs more layers, not preemptively.
-DEFAULT_MAX_FIX_ROUNDS = 3
+# The whole fix budget, and the only limit on fixing: a hard cap, not a
+# default (no CLI override). It is stated to the model up front — in the
+# generation system message and in every fix round's prompt — so a model can
+# plan across the budget instead of discovering it: a crash hides every
+# error after it (a real run surfaced exactly one new bug per round and ran
+# out with the fourth still hidden), so a model that knows it
+# has N rounds has a reason to look past the one reported error. Nothing
+# inside a round is capped: a model mid-fix is never cut off by the harness
+# (the old 4-tool-calls-per-round cap ended rounds while models were still
+# making progress). See _patch_round for the one stop that isn't a budget.
+MAX_FIX_ROUNDS = 5
 MAX_ERRORS_IN_PROMPT = 15  # dedup already collapses per-frame spam; cap for prompt size
-MAX_TOOL_CALLS_PER_FIX_ROUND = 4  # bound on how many str_replace calls one round may make
 FIX_CONTEXT_LINES = 40  # lines of context on each side of an error location, for the windowed fix prompt
 # A stack trace is control flow ("who called this"), never data flow ("where
 # did this bad value come from"). inputs/nex-n2.5-mini hit the gap: `Cannot
@@ -117,7 +112,6 @@ class AgentState(TypedDict):
     name: str
     model: str
     round: int
-    max_rounds: int
     reasoning: bool | None
     errors: list[str]
     fix_history: list[str]
@@ -164,7 +158,9 @@ def _tag_current_run(*, round_n: int, extra_tags: list[str] | None = None, **met
 @traceable(name="generate::generate_node", run_type="chain")
 def _generate_node(state: AgentState) -> dict:
     log(f"[generate] {state['model']} -> inputs/{state['name']}/world.html")
-    result = generate_completion(state["name"], state["model"], reasoning=state["reasoning"])
+    result = generate_completion(
+        state["name"], state["model"], reasoning=state["reasoning"], system=generation_system()
+    )
     _print_output_block(f"generated output, round {state['round']}", result.html)
     _tag_current_run(
         round_n=state["round"],
@@ -200,41 +196,79 @@ def _debug_node(state: AgentState) -> dict:
     }
 
 
-_FIX_SYSTEM = (
-    "You are fixing a self-contained Three.js world.html file by editing it "
-    "in place with the str_replace tool. You'll get a list of problems and "
-    "either the complete file or, when every problem has a known source "
-    "location, only excerpts around those locations (the file may be "
-    "hundreds of lines; you don't need all of it to fix a specific error). "
-    "Problem tags:\n"
-    "  [syntax] — a script doesn't parse, found by a real JS parser. The "
-    "message says where the fix goes (often a missing or extra '}' — and "
-    "says so when the parser has verified that one change makes the script "
-    "parse). Make exactly that small edit.\n"
-    "  [uncaught] / [console.error] / [navigation] — browser runtime error. "
-    "The location is the throw site; `called from` lines are callers, and the "
-    "bug is often in the caller or where a value was assigned, not at the "
-    "throw.\n"
-    "Excerpt lines are prefixed `NNNNN: ` for orientation only — old_str/"
-    "new_str must be the exact source text WITHOUT that prefix. Keep each "
-    "edit small: a few lines of old_str, never a whole function or the file. "
-    f"You may call str_replace up to {MAX_TOOL_CALLS_PER_FIX_ROUND} times. "
-    "Every result tells you immediately whether the edit applied and whether "
-    "all scripts still parse; an edit that would break parsing is refused and "
-    "the file is left unchanged, so read the result and adjust. If old_str "
-    "isn't found, the result shows the closest matching text — copy from it.\n"
-    "Stop calling tools once every listed problem is fixed."
-)
+def _budget_text(round_n: int) -> str:
+    """The fix budget, said the same way to every model in every mode."""
+    left = MAX_FIX_ROUNDS - round_n
+    if left:
+        after = (
+            f"{left} more after this one. After each round the file is loaded in a "
+            "browser again and any remaining errors come back to you as the next "
+            "round; when the rounds run out, the file on disk is final."
+        )
+    else:
+        after = "this is the LAST one. No round follows: the file as you leave it now is final."
+    return (
+        f"This is fix round {round_n} of {MAX_FIX_ROUNDS} — a hard limit; {after} "
+        "A crash stops the script, so an error can hide others that come after "
+        "it; the list you see is only what the browser reached."
+    )
 
-_REWRITE_SYSTEM = (
-    "You are repairing a self-contained Three.js world.html file whose "
-    "document structure is broken: a generation artifact such as two drafts "
-    "glued together, a leaked markdown fence, prose in the file, or a missing "
-    "</html>. Patching around that damage can't work, so write the complete "
-    "corrected file: ONE HTML document from <!DOCTYPE html> to </html>, "
-    "keeping everything that works in the current file. Output only the raw "
-    "file — no markdown fences, no commentary before or after it."
-)
+
+def _fix_system(round_n: int) -> str:
+    return (
+        "You are fixing a self-contained Three.js world.html file by editing it "
+        "in place with the str_replace tool. You'll get a list of problems and "
+        "either the complete file or, when every problem has a known source "
+        "location, only excerpts around those locations (the file may be "
+        "hundreds of lines; you don't need all of it to fix a specific error). "
+        "Problem tags:\n"
+        "  [syntax] — a script doesn't parse, found by a real JS parser. The "
+        "message says where the fix goes (often a missing or extra '}' — and "
+        "says so when the parser has verified that one change makes the script "
+        "parse).\n"
+        "  [uncaught] / [console.error] / [navigation] — browser runtime error. "
+        "The location is where it was raised in this file; `called from` lines "
+        "are callers, and the bug is often in a caller or where a value was "
+        "assigned, not at the raise site.\n"
+        "Excerpt lines are prefixed `NNNNN: ` for orientation only — old_str/"
+        "new_str must be the exact source text WITHOUT that prefix. Keep each "
+        "edit small: a few lines of old_str, never a whole function or the file. "
+        "Call str_replace as many times as you need. Every result tells you "
+        "immediately whether the edit applied and whether all scripts still "
+        "parse; an edit that would break parsing is refused and the file is "
+        "left unchanged, so read the result and adjust. If old_str isn't found, "
+        "the result shows the closest matching text — copy from it.\n"
+        f"{_budget_text(round_n)}\n"
+        "Stop calling tools when you are done with this round."
+    )
+
+
+def _rewrite_system(round_n: int) -> str:
+    return (
+        "You are repairing a self-contained Three.js world.html file whose "
+        "document structure is broken: a generation artifact such as two drafts "
+        "glued together, a leaked markdown fence, prose in the file, or a missing "
+        "</html>. Patching around that damage can't work, so write the complete "
+        "corrected file: ONE HTML document from <!DOCTYPE html> to </html>, "
+        "keeping everything that works in the current file. Output only the raw "
+        "file — no markdown fences, no commentary before or after it.\n"
+        f"{_budget_text(round_n)}"
+    )
+
+
+def generation_system() -> str:
+    """Harness context for the generate node, identical for every model.
+    prompts/prompt.md stays the world spec (mirrored in worldbench-web); how
+    the harness checks the result is the harness's to say."""
+    return (
+        "After you write the file, it is loaded in a headless browser and "
+        "checked for JavaScript errors. If there are any, you get at most "
+        f"{MAX_FIX_ROUNDS} fix rounds in total: each round shows you the errors "
+        "the browser reached and lets you edit the file. After the last round "
+        "the file is final as it stands. A crash stops the script, so an error "
+        "can hide others that come after it."
+    )
+
 
 # Two-step on purpose. _LOCATION_RE isolates the suffix browser_debug.py
 # appends (`(line 104, col 27; called from line 383, line 397)`), or
@@ -392,9 +426,8 @@ def _build_fix_context(html: str, errors: list[str], *, force_full_file: bool = 
 # ---------------------------------------------------------------------------
 # str_replace, made to land on the first try.
 #
-# A failed edit costs a whole model turn, and the loop has only
-# MAX_TOOL_CALLS_PER_FIX_ROUND of them: nemotron-3-ultra's round 2 spent 2 of
-# its 4 on `old_str not found` and hit the cap. Every refusal below therefore
+# A failed edit costs a whole model turn (one real round spent 2 of its
+# turns on `old_str not found`). Every refusal below therefore
 # says exactly what to do next, and the two mismatches that are unambiguous
 # (excerpt line-number prefixes copied into old_str; whitespace-only
 # differences with a single match) are resolved instead of refused.
@@ -537,7 +570,7 @@ def _rewrite_round(state: AgentState) -> dict:
     total_lines = current_html.count("\n") + 1
     log(f"[fix]    round {round_n}: [structure] problem — full rewrite, streamed as content")
     messages = [
-        SystemMessage(content=_REWRITE_SYSTEM),
+        SystemMessage(content=_rewrite_system(round_n)),
         HumanMessage(
             content=f"{_problems_text(state)}\n\nCurrent world.html (complete, {total_lines} lines):\n"
             f"```html\n{current_html}\n```"
@@ -635,18 +668,25 @@ def _patch_round(state: AgentState) -> dict:
         )
 
     messages = [
-        SystemMessage(content=_FIX_SYSTEM),
+        SystemMessage(content=_fix_system(round_n)),
         HumanMessage(content=f"{_problems_text(state)}\n\n{file_block}"),
     ]
 
     reasoning_chunks: list[str] = []
     tool_names_used: list[str] = []
     failure_note = None
-    hit_cap = True
-    call_n = 0
-    for call_n in range(MAX_TOOL_CALLS_PER_FIX_ROUND):
+    loop_note = None
+    # Calls that failed against the file as it stood (keyed with len(edits),
+    # which changes whenever the file does). str_replace is deterministic, so
+    # re-sending one of these can only get the same answer: that is a loop,
+    # not an attempt, and it's the one thing that ends a round early. A model
+    # making any progress — a new call, or the file changing — never is.
+    failed_calls: set[tuple[str, int]] = set()
+    turns = 0
+    while True:
+        turns += 1
         try:
-            with timed(f"fix round {round_n} · turn {call_n + 1}/{MAX_TOOL_CALLS_PER_FIX_ROUND}"):
+            with timed(f"fix round {round_n}/{MAX_FIX_ROUNDS} · turn {turns}"):
                 turn = invoke_turn(
                     state["model"],
                     messages,
@@ -660,12 +700,10 @@ def _patch_round(state: AgentState) -> dict:
             # already applied are kept, and the trajectory still gets written.
             # (nemotron-3-ultra's 504 used to crash run() and lose its .json.)
             failure_note = _provider_failure_note(round_n, exc)
-            hit_cap = False
             break
         if turn.reasoning_content:
             reasoning_chunks.append(turn.reasoning_content)
         if not turn.tool_calls:
-            hit_cap = False
             break
 
         ai_kwargs = {"reasoning_content": turn.reasoning_content} if turn.reasoning_content else {}
@@ -674,17 +712,24 @@ def _patch_round(state: AgentState) -> dict:
             tool_names_used.append(call["name"])
             # An actual gate, not a lookup table: a model can emit a call for a
             # tool it was never bound (seen for real on a free-tier model).
-            if call["name"] != "str_replace":
+            key = (json.dumps([call["name"], call["args"]], sort_keys=True, default=str), len(edits))
+            if key in failed_calls:
+                loop_note = f"round {round_n}: ended — the model re-sent a call that had already failed on the unchanged file"
+                result = "ERROR: identical to a call that already failed on this unchanged file; ending this round."
+            elif call["name"] != "str_replace":
                 result = f"ERROR: {call['name']} is not available — only str_replace is bound. Make small edits."
             else:
                 try:
                     result = str_replace.invoke(call["args"])
                 except Exception as exc:  # noqa: BLE001 — a malformed tool call shouldn't kill the round
                     result = f"ERROR: str_replace call was malformed ({exc}); retry with old_str/new_str string args."
+            if result.startswith("ERROR"):
+                failed_calls.add(key)
             log(f"[fix]    round {round_n}: {call['name']}() -> {result}".replace("\n", "\n         "))
             messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
-    if hit_cap:
-        log(f"[fix]    round {round_n}: hit the {MAX_TOOL_CALLS_PER_FIX_ROUND}-tool-call cap without the model stopping on its own")
+        if loop_note:
+            log(f"[fix]    {loop_note}")
+            break
 
     if edits:
         html_path.write_text(current_html, encoding="utf-8")
@@ -700,6 +745,8 @@ def _patch_round(state: AgentState) -> dict:
         log(f"[fix]    {note}")
     if refused:
         note += f"; {refused} edit(s) refused because they would have broken parsing"
+    if loop_note:
+        note += "; ended on a repeated failed call"
     if failure_note:
         note = f"{note}; {failure_note}"
 
@@ -714,9 +761,8 @@ def _patch_round(state: AgentState) -> dict:
     _tag_current_run(
         round_n=round_n,
         context_mode="full_file" if is_full_file else "windowed",
-        tool_call_turns=call_n + 1,  # LLM turns spent inside this one fix round, not to be confused with the outer round count
-        max_tool_call_turns=MAX_TOOL_CALLS_PER_FIX_ROUND,
-        hit_tool_call_cap=hit_cap,
+        tool_call_turns=turns,  # LLM turns spent inside this one fix round, not to be confused with the outer round count
+        ended_on_repeat=loop_note is not None,
         tools_used=tool_names_used,
         edits_applied=len(edits),
         edits_refused=refused,
@@ -735,7 +781,7 @@ def _patch_round(state: AgentState) -> dict:
 def _route_after_debug(state: AgentState) -> str:
     if not state["errors"]:
         return "clean"
-    if state["round"] > state["max_rounds"]:
+    if state["round"] > MAX_FIX_ROUNDS:
         return "give_up"
     return "fix"
 
@@ -761,7 +807,6 @@ def run(
     name: str,
     model: str,
     *,
-    max_rounds: int = DEFAULT_MAX_FIX_ROUNDS,
     reasoning: bool | None = None,
 ) -> Path:
     """Run the full generate -> debug -> fix loop for one model/name.
@@ -777,7 +822,7 @@ def run(
     stamp = started.strftime("%Y%m%d-%H%M%S")
     log_dir = INPUTS_DIR / name / "logs"
     with log_to_file(log_dir / f"{stamp}.log") as log_path:
-        log(f"[run]    {name} | model={model} | max_fix_rounds={max_rounds} | started {started.isoformat()}")
+        log(f"[run]    {name} | model={model} | max_fix_rounds={MAX_FIX_ROUNDS} | started {started.isoformat()}")
         log(f"[run]    transcript -> {log_path}")
         if reasoning is None:
             reasoning = detect_reasoning(model)
@@ -789,7 +834,6 @@ def run(
                 "name": name,
                 "model": model,
                 "round": 1,
-                "max_rounds": max_rounds,
                 "reasoning": reasoning,
                 "errors": [],
                 "fix_history": [],
@@ -802,7 +846,7 @@ def run(
         status = "clean" if not final_state["errors"] else "gave_up"
         if final_state["errors"]:
             log(
-                f"warn     gave up after {max_rounds} fix round(s); "
+                f"warn     gave up after {MAX_FIX_ROUNDS} fix round(s); "
                 f"{len(final_state['errors'])} error(s) still present in {dest}"
             )
             for e in final_state["errors"]:
@@ -823,7 +867,7 @@ def run(
             "finished_at": datetime.now(timezone.utc).isoformat(),
             "status": status,
             "reasoning": reasoning,
-            "max_fix_rounds": max_rounds,
+            "max_fix_rounds": MAX_FIX_ROUNDS,
             "fix_rounds_used": fix_rounds_used,
             "debug_rounds": final_state["debug_history"],
             "fix_history": final_state["fix_history"],
@@ -845,7 +889,7 @@ def run(
         run_tree.add_metadata(
             {
                 "model": model,
-                "max_rounds": max_rounds,
+                "max_rounds": MAX_FIX_ROUNDS,
                 "fix_rounds_used": fix_rounds_used,
                 "status": status,
             }
@@ -854,7 +898,7 @@ def run(
             {
                 "status": status,
                 "fix_rounds_used": fix_rounds_used,
-                "max_rounds": max_rounds,
+                "max_rounds": MAX_FIX_ROUNDS,
                 "fix_history": final_state["fix_history"],
                 "remaining_error_count": len(final_state["errors"]),
                 "remaining_errors": final_state["errors"],
@@ -869,9 +913,8 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Generate a world.html, then debug+fix browser console errors via a LangGraph loop."
     )
-    parser.add_argument("name", help='folder to write under inputs/, e.g. "opus-5"')
-    parser.add_argument("--model", required=True, help='OpenRouter model id, e.g. "anthropic/claude-opus-5"')
-    parser.add_argument("--max-fix-rounds", type=int, default=DEFAULT_MAX_FIX_ROUNDS)
+    parser.add_argument("name", help='folder to write under inputs/, e.g. "my-model"')
+    parser.add_argument("--model", required=True, help='OpenRouter model id, e.g. "vendor/model-name"')
     parser.add_argument(
         "--reasoning",
         choices=["auto", "on", "off"],
@@ -883,7 +926,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     reasoning = {"auto": None, "on": True, "off": False}[args.reasoning]
-    dest = run(args.name, args.model, max_rounds=args.max_fix_rounds, reasoning=reasoning)
+    dest = run(args.name, args.model, reasoning=reasoning)
     log(f"wrote    {dest}")
 
     if args.run:

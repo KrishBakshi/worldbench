@@ -133,12 +133,19 @@ property of the world.
     — static structural lint, described below — then
     `browser_debug.check_console_errors()`), `fix` (only reached when
     `debug` found problems). `fix` loops back to `debug`; the graph ends
-    when a `debug` pass comes back clean or `--max-fix-rounds` is
-    exhausted (default 3 fix attempts — see `DEFAULT_MAX_FIX_ROUNDS`'s
-    comment in `generate.py`: a dry run needed exactly 3 to converge a
-    real multi-layer bug, and a 4th attempt in that same run made things
-    worse, not better, so the default stays evidence-based rather than
-    padded "just in case") — whichever first. The file on disk is always
+    when a `debug` pass comes back clean or `MAX_FIX_ROUNDS` (5) fix
+    rounds are used — whichever first. **5 is a hard cap with no CLI
+    override, and the model is told about it**: `generation_system()` (a
+    system message at generation — `prompts/prompt.md` stays the untouched
+    world spec) and every fix prompt (`_budget_text`: "round k of 5", the
+    last round says so) state the budget and that a crash hides the errors
+    after it. The point is that a model can plan across the budget instead
+    of discovering it one surfaced bug per round. **Nothing inside a round
+    is capped** — the old 4-tool-calls-per-round limit cut models off
+    mid-fix. The one early stop is a provable loop: re-sending a call that
+    already failed against the unchanged file (`failed_calls`) ends the
+    round, since `str_replace` is deterministic and can only answer the
+    same way. The file on disk is always
     the latest attempt, clean or not, even on give-up. Every node is a
     named `@traceable` run nested under one parent (`generate::run`) per
     invocation, and every node also prints to stderr as it happens
@@ -151,8 +158,8 @@ property of the world.
       **streamed content** via `model_call.complete_document()` (continued
       across turns if cut off), never as a tool argument. Everything else
       (`[syntax]`, `[uncaught]`, `[console.error]`, `[navigation]`) →
-      `_patch_round`: small `str_replace(old_str, new_str)` edits, up to
-      `MAX_TOOL_CALLS_PER_FIX_ROUND` (4) per round. There is no
+      `_patch_round`: small `str_replace(old_str, new_str)` edits, as many
+      as the model needs. There is no
       `write_world_html` tool any more — **that is the 504 fix.** Providers
       buffer tool-call arguments until the call is complete, so on
       `nemotron-3-ultra` a 54KB rewrite-as-tool-argument left the

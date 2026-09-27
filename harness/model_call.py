@@ -62,7 +62,7 @@ sys.path.insert(0, str(REPO_ROOT))
 load_dotenv(REPO_ROOT / ".env")
 
 import httpx  # noqa: E402
-from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 from langchain_openrouter import ChatOpenRouter  # noqa: E402
 from langsmith import traceable  # noqa: E402
 from openrouter import OpenRouter as OpenRouterClient  # noqa: E402
@@ -774,6 +774,7 @@ def generate(
     temperature: float = 1.0,
     max_tokens: int | None = None,
     reasoning: bool | None = None,
+    system: str | None = None,
 ) -> GenerationResult:
     """Call `model` on OpenRouter with prompts/prompt.md, write inputs/<name>/world.html.
 
@@ -801,7 +802,10 @@ def generate(
         reasoning = bool(_is_reasoning_model(model))
 
     prompt = PROMPT_PATH.read_text(encoding="utf-8")
-    prompt_hash = _prompt_hash(prompt)
+    # The system message is part of what the model was asked, so it's part of
+    # the checkpoint identity: a resume must never splice turns from two setups.
+    prompt_hash = _prompt_hash(f"{system}\n\n{prompt}" if system else prompt)
+    head = [SystemMessage(content=system)] if system else []
 
     state = _load_state(name, model, prompt_hash)
     if state:
@@ -824,13 +828,13 @@ def generate(
                 ai_kwargs["reasoning_content"] = reasoning_content
             if reasoning_details:
                 ai_kwargs["reasoning_details"] = reasoning_details
-            messages = [
+            messages = head + [
                 HumanMessage(content=prompt),
                 AIMessage(content=content, additional_kwargs=ai_kwargs),
                 HumanMessage(content=_CONTINUE_INSTRUCTION),
             ]
         else:
-            messages = [HumanMessage(content=prompt)]
+            messages = head + [HumanMessage(content=prompt)]
 
         with timed(f"generate {name} round {round_n}/{_MAX_ROUNDS} ({model}){' [reasoning]' if reasoning else ''}"):
             turn = invoke_turn(

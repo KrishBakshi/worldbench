@@ -178,7 +178,37 @@ property of the world.
       across turns if cut off), never as a tool argument. Everything else
       (`[syntax]`, `[uncaught]`, `[console.error]`, `[navigation]`) →
       `_patch_round`: small `str_replace(old_str, new_str)` edits, as many
-      as the model needs. There is no
+      as the model needs, plus the read-only tools from `code_tools.py`
+      (`grep`, `read_lines`, `shell`) over a temp copy refreshed after each
+      edit — so a model can trace where a bad value comes from, or check
+      whether the same mistake repeats, before it edits.
+      - **`insert_after_line(line, text)`** adds lines without replacing any.
+        A replace-only toolset can't *add* cleanly: a model that knew the
+        fix (a new `<script type="importmap">` before line 35) spent a
+        round trying to `str_replace` the blank line 34 with `old_str="\n"`.
+        Both edit tools share one apply-and-verify path (`_apply`), so an
+        insert is parse-checked and refused exactly like a replace.
+        Whitespace-only `old_str` now errors with a pointer to the insert
+        tool; `\n`/`\t` typed as two characters are read as real ones.
+      - **The page's imported modules are readable under `deps/`.** `debug`
+        saves every script module the page fetched (`modules.json` in a
+        run-scoped temp dir — a path in state, not 1MB of source in every
+        trace); `fix` mounts them read-only. The error that motivated it
+        lived inside a CDN file: `OrbitControls.js` does `from 'three'`, a
+        bare specifier that only resolves through an import map in the
+        page. Every search of world.html correctly found nothing, and the
+        model looped for minutes inventing causes.
+      - **Reasoning loops end a turn, not a run.** `invoke_turn(...,
+        stop_on_repetition=True)` raises `ReasoningLoop` when the latest
+        400 chars of reasoning already occurred twice before, verbatim.
+        The looped text is discarded and the model is told; two looped
+        turns in a row end the round (the same proven-no-progress stop as
+        a re-sent failed call). Checked against 46 real reasoning blocks
+        (1.66M chars): it fired on 8, all genuine verbatim loops, and on
+        none of the rest.
+      - **Fix turns sample at `TEMPERATURE` (1.0), the same as generation.**
+        They ran at 0.2, a known trigger for reasoning models looping on
+        their own text. There is no
       `write_world_html` tool any more — **that is the 504 fix.** Providers
       buffer tool-call arguments until the call is complete, so in a
       real run a 54KB rewrite-as-tool-argument left the

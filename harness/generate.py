@@ -45,6 +45,8 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import shutil
+import tempfile
 import re
 import sys
 from datetime import datetime, timezone
@@ -64,12 +66,14 @@ from langgraph.graph import END, StateGraph  # noqa: E402
 from langsmith import get_current_run_tree, traceable  # noqa: E402
 
 from harness.model_call import (  # noqa: E402
+    ReasoningLoop,
     SilentToolCallTimeout,
     complete_document,
     detect_reasoning,
     generate as generate_completion,
     invoke_turn,
 )
+from harness.code_tools import ReadOnlySource, dep_path  # noqa: E402
 from harness.world_lint import check_world, syntax_findings  # noqa: E402
 from harness.status import log, log_to_file, timed  # noqa: E402
 
@@ -85,6 +89,11 @@ INPUTS_DIR = REPO_ROOT / "inputs"
 # (the old 4-tool-calls-per-round cap ended rounds while models were still
 # making progress). See _patch_round for the one stop that isn't a budget.
 MAX_FIX_ROUNDS = 5
+# One sampling temperature for every turn the model under test takes —
+# generation and fix alike. Fix turns used to run at 0.2, and very low
+# temperature is a known trigger for reasoning models looping on their own
+# text; a model's fix rounds should also sample the way it generated.
+TEMPERATURE = 1.0
 MAX_ERRORS_IN_PROMPT = 15  # dedup already collapses per-frame spam; cap for prompt size
 FIX_CONTEXT_LINES = 40  # lines of context on each side of an error location, for the windowed fix prompt
 # A stack trace is control flow ("who called this"), never data flow ("where
@@ -120,6 +129,11 @@ class AgentState(TypedDict):
     # than just a final verdict. Scoped to one run() call, like fix_history.
     debug_history: list[dict]
     force_full_file: bool
+    # Run-scoped temp dir where debug saves the modules the page imported
+    # (modules.json, {url: source}); fix mounts them read-only under deps/.
+    # A path, not the sources: a 1MB library in graph state would be copied
+    # into every node's trace.
+    modules_dir: str
     _generate_reasoning: str
     _generate_html: str
     _fix_reasoning: str | None
@@ -159,7 +173,11 @@ def _tag_current_run(*, round_n: int, extra_tags: list[str] | None = None, **met
 def _generate_node(state: AgentState) -> dict:
     log(f"[generate] {state['model']} -> inputs/{state['name']}/world.html")
     result = generate_completion(
-        state["name"], state["model"], reasoning=state["reasoning"], system=generation_system()
+        state["name"],
+        state["model"],
+        reasoning=state["reasoning"],
+        system=generation_system(),
+        temperature=TEMPERATURE,
     )
     _print_output_block(f"generated output, round {state['round']}", result.html)
     _tag_current_run(
@@ -176,8 +194,11 @@ def _generate_node(state: AgentState) -> dict:
 
 @traceable(name="generate::debug_node", run_type="chain")
 def _debug_node(state: AgentState) -> dict:
+    modules: dict[str, str] = {}
     with timed(f"debug round {state['round']}"):
-        errors = check_world(_html_path(state["name"]))
+        errors = check_world(_html_path(state["name"]), modules=modules)
+    if state.get("modules_dir") and modules:
+        (Path(state["modules_dir"]) / "modules.json").write_text(json.dumps(modules), encoding="utf-8")
     if errors:
         log(f"[debug]  round {state['round']}: {len(errors)} distinct error(s)")
         for e in errors:
@@ -217,7 +238,14 @@ def _budget_text(round_n: int) -> str:
 def _fix_system(round_n: int) -> str:
     return (
         "You are fixing a self-contained Three.js world.html file by editing it "
-        "in place with the str_replace tool. You'll get a list of problems and "
+        "in place: str_replace(old_str, new_str) changes existing text, and "
+        "insert_after_line(line, text) adds new lines after a numbered line "
+        "without touching existing ones. To look around first, you also have "
+        "read-only tools over the current file: grep (regex, returns `N: line`), "
+        "read_lines(start, end), and shell (read-only grep/sed -n/head/tail/wc "
+        "pipelines on world.html) — use them to find where a bad value comes "
+        "from, or whether the same mistake repeats elsewhere, before you edit. "
+        "You'll get a list of problems and "
         "either the complete file or, when every problem has a known source "
         "location, only excerpts around those locations (the file may be "
         "hundreds of lines; you don't need all of it to fix a specific error). "
@@ -476,9 +504,26 @@ def _closest_match(html: str, old_str: str) -> str:
     )
 
 
+def _unescape(text: str) -> str:
+    r"""`\n`/`\t` typed as two characters -> the real characters. Models
+    writing JSON tool arguments sometimes double-escape; seen for real: an
+    old_str of `\n` meant as a blank line, reported "not found"."""
+    return text.replace("\\n", "\n").replace("\\t", "\t")
+
+
 def _resolve_old_str(html: str, old_str: str) -> tuple[int, int, str] | str:
     """(start, end, note) of old_str's one occurrence, or an `ERROR: …` string."""
-    count = html.count(old_str) if old_str else 0
+    if not _unescape(old_str).strip():
+        # A blank line or a bare newline can't name one place in a file, and
+        # this is always an attempt to *add* text (seen for real: a model
+        # spent a whole round trying to replace line 34, a blank line, to put
+        # a new <script> element before line 35).
+        return (
+            "ERROR: old_str has no visible text (only whitespace/newlines), so it can't pick out "
+            "one place. To add new lines, use insert_after_line(line, text) with the line number "
+            "the tools show."
+        )
+    count = html.count(old_str)
     if count == 1:
         start = html.index(old_str)
         return start, start + len(old_str), ""
@@ -488,8 +533,10 @@ def _resolve_old_str(html: str, old_str: str) -> tuple[int, int, str] | str:
             f"ERROR: old_str matches {count} places (lines {', '.join(map(str, lines[:8]))}), not 1. "
             "Add a neighbouring line to old_str so it matches exactly one of them."
         )
-    if not old_str.strip():
-        return "ERROR: old_str is empty."
+    if "\\n" in old_str or "\\t" in old_str:
+        resolved = _resolve_old_str(html, _unescape(old_str))
+        if not isinstance(resolved, str):
+            return resolved[0], resolved[1], " (read \\n/\\t in old_str as a real newline/tab)"
 
     unprefixed = _strip_excerpt_prefixes(old_str)
     if unprefixed != old_str:
@@ -581,9 +628,10 @@ def _rewrite_round(state: AgentState) -> dict:
         doc = complete_document(
             state["model"],
             messages,
-            temperature=0.2,
+            temperature=TEMPERATURE,
             reasoning=bool(state["reasoning"]),
             label=f"fix round {round_n} rewrite",
+            stop_on_repetition=True,
         )
         reasoning_text = doc.reasoning_content
         if doc.complete:
@@ -593,7 +641,7 @@ def _rewrite_round(state: AgentState) -> dict:
         else:
             note = f"round {round_n}: rewrite still incomplete after {doc.turns} turn(s) — discarded, file unchanged"
         log(f"[fix]    {note}")
-    except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
+    except (SilentToolCallTimeout, ReasoningLoop, ValueError, httpx.HTTPError) as exc:
         note = _provider_failure_note(round_n, exc)
     _tag_current_run(round_n=round_n, context_mode="rewrite", outcome=note)
     return {
@@ -604,6 +652,22 @@ def _rewrite_round(state: AgentState) -> dict:
     }
 
 
+_LOOP_NUDGE = (
+    "Your last reasoning started repeating the same passage word for word, so it "
+    "was stopped and discarded. Don't re-read the same lines again. State one "
+    "concrete hypothesis and check it with a tool call — the cause may be in a "
+    "file other than world.html — or make an edit."
+)
+
+
+def _imported_modules(state: AgentState) -> dict[str, str]:
+    """{deps/<host>/<path>: source} for the modules the last debug pass saw."""
+    index = Path(state.get("modules_dir") or "") / "modules.json"
+    if not state.get("modules_dir") or not index.is_file():
+        return {}
+    return {dep_path(url): text for url, text in json.loads(index.read_text(encoding="utf-8")).items()}
+
+
 def _patch_round(state: AgentState) -> dict:
     round_n = state["round"]
     html_path = _html_path(state["name"])
@@ -612,38 +676,67 @@ def _patch_round(state: AgentState) -> dict:
     edits: list[tuple[str, str]] = []
     refused = 0  # edits the parser turned away — proof the model found the spot, so no escalation
 
-    @tool
-    def str_replace(old_str: str, new_str: str) -> str:
-        """Replace one exact, unique occurrence of old_str with new_str. Keep both small."""
-        nonlocal current_html, current_syntax, refused
-        resolved = _resolve_old_str(current_html, old_str)
-        if isinstance(resolved, str):
-            return resolved
-        start, end, how = resolved
-        replacement = _strip_excerpt_prefixes(new_str) if how.startswith(" (ignored the excerpt") else new_str
-        candidate = current_html[:start] + replacement + current_html[end:]
+    def _apply(start: int, end: int, replacement: str, how: str, label: str) -> str:
+        """Put `replacement` in place of current_html[start:end], verified.
 
-        # Verify on the spot rather than a debug round later. Parsing takes
-        # tens of ms; a debug round costs a Chromium launch, a CDN fetch and
-        # a fresh model turn — and it's how edits that broke something new
-        # used to surface.
+        Verified on the spot rather than a debug round later. Parsing takes
+        tens of ms; a debug round costs a Chromium launch, a CDN fetch and a
+        fresh model turn — and it's how edits that broke something new used
+        to surface. Shared by both edit tools so they can't drift apart.
+        """
+        nonlocal current_html, current_syntax, refused
+        candidate = current_html[:start] + replacement + current_html[end:]
         after = syntax_findings(candidate)
         if after and not current_syntax:
             refused += 1
             return (
                 "ERROR: edit NOT applied — the file parses now and this edit would break it:\n"
-                f"{after[0]}{_snippet(candidate, after[0])}\nFix old_str/new_str and retry."
+                f"{after[0]}{_snippet(candidate, after[0])}\nFix the edit and retry."
             )
         fixed_syntax = bool(current_syntax) and not after
+        old_text = current_html[start:end]
         current_html, current_syntax = candidate, after
-        edits.append((old_str, replacement))
-        first, last = _line_of(current_html, start), _line_of(current_html, start + len(replacement))
-        result = f"OK: edit applied{how}; it now spans lines {first}-{last}."
+        source.refresh(current_html)
+        edits.append((old_text, replacement))
+        first, last = _line_of(current_html, start), _line_of(current_html, start + max(0, len(replacement) - 1))
+        result = f"OK: {label} applied{how}; it now spans lines {first}-{last}."
         if after:
             return f"{result} The script still does not parse:\n{after[0]}{_snippet(current_html, after[0])}"
         if fixed_syntax:
             return f"{result} Every script parses now — the [syntax] problem is fixed."
         return f"{result} Every script still parses. (Runtime errors are re-checked in the browser after this round.)"
+
+    @tool
+    def str_replace(old_str: str, new_str: str) -> str:
+        """Replace one exact, unique occurrence of old_str with new_str. Keep both small.
+        To ADD new lines rather than change existing ones, use insert_after_line."""
+        resolved = _resolve_old_str(current_html, old_str)
+        if isinstance(resolved, str):
+            return resolved
+        start, end, how = resolved
+        replacement = new_str
+        if how.startswith(" (ignored the excerpt"):
+            replacement = _strip_excerpt_prefixes(new_str)
+        elif how.startswith(" (read"):
+            replacement = _unescape(new_str)
+        return _apply(start, end, replacement, how, "edit")
+
+    @tool
+    def insert_after_line(line: int, text: str) -> str:
+        """Insert `text` as new line(s) after line `line` of world.html, using the line numbers
+        the tools show (0 inserts at the very top). Existing lines are untouched — use this to
+        add markup or code, e.g. a new <script> element before an existing one."""
+        lines = current_html.split("\n")
+        if not 0 <= int(line) <= len(lines):
+            return f"ERROR: line {line} is out of range — world.html has {len(lines)} lines."
+        if not text.strip():
+            return "ERROR: text is empty."
+        text = _unescape(text) if "\n" not in text and "\\n" in text else text
+        offset = sum(len(x) + 1 for x in lines[: int(line)])  # start of the line after `line`
+        block = text if text.endswith("\n") else text + "\n"
+        if offset > len(current_html):  # after the last line, which has no trailing newline
+            offset, block = len(current_html), "\n" + block.rstrip("\n")
+        return _apply(offset, offset, block, "", "insert")
 
     context_text, is_full_file = _build_fix_context(
         current_html, state["errors"], force_full_file=state["force_full_file"]
@@ -667,73 +760,106 @@ def _patch_round(state: AgentState) -> dict:
             f"instead of the full {total_lines}-line file"
         )
 
+    # Read-only view of the file for looking around before editing (grep,
+    # read_lines, an allowlisted shell) — a temp copy, never the real file,
+    # refreshed whenever an edit lands so a search always sees current text —
+    # plus the modules the page imported, under deps/: an error can live in an
+    # imported file, and a model that can only see world.html can only guess.
+    source = ReadOnlySource(current_html, _imported_modules(state))
+    read_tools = source.tools()
+    bound = {t.name: t for t in [str_replace, insert_after_line, *read_tools]}
+
+    deps_note = ""
+    if source.extra_paths:
+        deps_note = (
+            "\n\nModules the page imported are readable (not editable) with the same tools:\n"
+            + "\n".join(f"- {p}" for p in source.extra_paths)
+        )
     messages = [
         SystemMessage(content=_fix_system(round_n)),
-        HumanMessage(content=f"{_problems_text(state)}\n\n{file_block}"),
+        HumanMessage(content=f"{_problems_text(state)}\n\n{file_block}{deps_note}"),
     ]
+    try:
+        reasoning_chunks: list[str] = []
+        tool_names_used: list[str] = []
+        failure_note = None
+        loop_note = None
+        # Calls that failed against the file as it stood (keyed with len(edits),
+        # which changes whenever the file does). str_replace is deterministic, so
+        # re-sending one of these can only get the same answer: that is a loop,
+        # not an attempt, and it's the one thing that ends a round early. A model
+        # making any progress — a new call, or the file changing — never is.
+        failed_calls: set[tuple[str, int]] = set()
+        last_turn_looped = False
+        turns = 0
+        while True:
+            turns += 1
+            try:
+                with timed(f"fix round {round_n}/{MAX_FIX_ROUNDS} · turn {turns}"):
+                    turn = invoke_turn(
+                        state["model"],
+                        messages,
+                        temperature=TEMPERATURE,
+                        max_tokens=None,
+                        reasoning=bool(state["reasoning"]),
+                        tools=list(bound.values()),
+                        stop_on_repetition=True,
+                    )
+            except ReasoningLoop:
+                # Proven repetition, not a slow model (see model_call's
+                # _RepetitionGuard). The looped text is not replayed; the model
+                # is told and gets a fresh turn. Looping again straight away is
+                # the same no-progress signal as re-sending a failed call.
+                if last_turn_looped:
+                    loop_note = f"round {round_n}: ended — reasoning looped verbatim on two turns in a row"
+                    log(f"[fix]    {loop_note}")
+                    break
+                last_turn_looped = True
+                messages.append(HumanMessage(content=_LOOP_NUDGE))
+                continue
+            except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
+                # A provider failure forfeits this round, not the run: edits
+                # already applied are kept, and the trajectory still gets written.
+                # (a 504 here used to crash run() and lose its .json.)
+                failure_note = _provider_failure_note(round_n, exc)
+                break
+            last_turn_looped = False
+            if turn.reasoning_content:
+                reasoning_chunks.append(turn.reasoning_content)
+            if not turn.tool_calls:
+                break
 
-    reasoning_chunks: list[str] = []
-    tool_names_used: list[str] = []
-    failure_note = None
-    loop_note = None
-    # Calls that failed against the file as it stood (keyed with len(edits),
-    # which changes whenever the file does). str_replace is deterministic, so
-    # re-sending one of these can only get the same answer: that is a loop,
-    # not an attempt, and it's the one thing that ends a round early. A model
-    # making any progress — a new call, or the file changing — never is.
-    failed_calls: set[tuple[str, int]] = set()
-    turns = 0
-    while True:
-        turns += 1
-        try:
-            with timed(f"fix round {round_n}/{MAX_FIX_ROUNDS} · turn {turns}"):
-                turn = invoke_turn(
-                    state["model"],
-                    messages,
-                    temperature=0.2,
-                    max_tokens=None,
-                    reasoning=bool(state["reasoning"]),
-                    tools=[str_replace],
-                )
-        except (SilentToolCallTimeout, ValueError, httpx.HTTPError) as exc:
-            # A provider failure forfeits this round, not the run: edits
-            # already applied are kept, and the trajectory still gets written.
-            # (a 504 here used to crash run() and lose its .json.)
-            failure_note = _provider_failure_note(round_n, exc)
-            break
-        if turn.reasoning_content:
-            reasoning_chunks.append(turn.reasoning_content)
-        if not turn.tool_calls:
-            break
+            ai_kwargs = {"reasoning_content": turn.reasoning_content} if turn.reasoning_content else {}
+            messages.append(AIMessage(content=turn.text, tool_calls=turn.tool_calls, additional_kwargs=ai_kwargs))
+            for call in turn.tool_calls:
+                tool_names_used.append(call["name"])
+                # An actual gate, not a lookup table: a model can emit a call for a
+                # tool it was never bound (seen for real on a free-tier model).
+                key = (json.dumps([call["name"], call["args"]], sort_keys=True, default=str), len(edits))
+                if key in failed_calls:
+                    loop_note = f"round {round_n}: ended — the model re-sent a call that had already failed on the unchanged file"
+                    result = "ERROR: identical to a call that already failed on this unchanged file; ending this round."
+                elif call["name"] not in bound:
+                    result = f"ERROR: {call['name']} is not available — the tools are {', '.join(bound)}."
+                else:
+                    try:
+                        result = bound[call["name"]].invoke(call["args"])
+                    except Exception as exc:  # noqa: BLE001 — a malformed tool call shouldn't kill the round
+                        result = f"ERROR: {call['name']} call was malformed ({exc}); check the argument names and types."
+                if result.startswith(("ERROR", "REFUSED")):
+                    failed_calls.add(key)
+                log(f"[fix]    round {round_n}: {call['name']}() -> {result}".replace("\n", "\n         "))
+                messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
+            if loop_note:
+                log(f"[fix]    {loop_note}")
+                break
 
-        ai_kwargs = {"reasoning_content": turn.reasoning_content} if turn.reasoning_content else {}
-        messages.append(AIMessage(content=turn.text, tool_calls=turn.tool_calls, additional_kwargs=ai_kwargs))
-        for call in turn.tool_calls:
-            tool_names_used.append(call["name"])
-            # An actual gate, not a lookup table: a model can emit a call for a
-            # tool it was never bound (seen for real on a free-tier model).
-            key = (json.dumps([call["name"], call["args"]], sort_keys=True, default=str), len(edits))
-            if key in failed_calls:
-                loop_note = f"round {round_n}: ended — the model re-sent a call that had already failed on the unchanged file"
-                result = "ERROR: identical to a call that already failed on this unchanged file; ending this round."
-            elif call["name"] != "str_replace":
-                result = f"ERROR: {call['name']} is not available — only str_replace is bound. Make small edits."
-            else:
-                try:
-                    result = str_replace.invoke(call["args"])
-                except Exception as exc:  # noqa: BLE001 — a malformed tool call shouldn't kill the round
-                    result = f"ERROR: str_replace call was malformed ({exc}); retry with old_str/new_str string args."
-            if result.startswith("ERROR"):
-                failed_calls.add(key)
-            log(f"[fix]    round {round_n}: {call['name']}() -> {result}".replace("\n", "\n         "))
-            messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
-        if loop_note:
-            log(f"[fix]    {loop_note}")
-            break
+    finally:
+        source.close()
 
     if edits:
         html_path.write_text(current_html, encoding="utf-8")
-        note = f"round {round_n}: {len(edits)} str_replace edit(s) applied"
+        note = f"round {round_n}: {len(edits)} edit(s) applied"
         log(f"[fix]    {note} to {html_path}")
         for old, new in edits:
             log(f"         - {len(old)} chars -> {len(new)} chars")
@@ -746,7 +872,7 @@ def _patch_round(state: AgentState) -> dict:
     if refused:
         note += f"; {refused} edit(s) refused because they would have broken parsing"
     if loop_note:
-        note += "; ended on a repeated failed call"
+        note += "; " + loop_note.removeprefix(f"round {round_n}: ")
     if failure_note:
         note = f"{note}; {failure_note}"
 
@@ -829,18 +955,23 @@ def run(
             log(f"[reasoning] auto-detected {model}: {'capable' if reasoning else 'not reasoning-capable'}")
 
         app = build_graph()
-        final_state = app.invoke(
-            {
-                "name": name,
-                "model": model,
-                "round": 1,
-                "reasoning": reasoning,
-                "errors": [],
-                "fix_history": [],
-                "debug_history": [],
-                "force_full_file": False,
-            }
-        )
+        modules_dir = tempfile.mkdtemp(prefix="wb-modules-")
+        try:
+            final_state = app.invoke(
+                {
+                    "name": name,
+                    "model": model,
+                    "round": 1,
+                    "reasoning": reasoning,
+                    "errors": [],
+                    "fix_history": [],
+                    "debug_history": [],
+                    "force_full_file": False,
+                    "modules_dir": modules_dir,
+                }
+            )
+        finally:
+            shutil.rmtree(modules_dir, ignore_errors=True)
         dest = _html_path(name)
         fix_rounds_used = final_state["round"] - 1
         status = "clean" if not final_state["errors"] else "gave_up"

@@ -81,6 +81,20 @@ property of the world.
       run killed mid-way still leaves a usable transcript; a closed or
       broken sink is swallowed rather than taking down the run it was only
       meant to record.
+  - `code_tools.py` — **read-only code-inspection tools shared by both
+    sides** (the fix loop here and `eval/evidence_agent.py`): `grep`,
+    `read_lines`, and an allowlisted `shell`. A security boundary, so it
+    exists once. The agent never sees the real file — `ReadOnlySource`
+    copies it into a fresh temp dir outside the repo and makes file and dir
+    read-only. `shell` never starts an interpreter (no `shell=True`):
+    `|` pipelines of text readers only (`grep`, `sed -n 'A,Bp'`, `head`,
+    `tail`, `wc`, `nl`, `cut`, `sort`, `uniq`, `tr`, `cat`); `;`, `&&`,
+    redirection and subshells are refused; write flags (`sed -i`,
+    `sort -o`, …) are refused; paths can't leave the temp dir; the env is
+    scrubbed (no HOME, no API keys). There is deliberately no way to *run*
+    the inspected JS — reading untrusted generated code and executing it are
+    different risks. Adversarially tested: 22 escape/write attempts refused,
+    the real file byte-identical afterwards.
   - `model_call.py` — **shared OpenRouter invocation machinery, no CLI of
     its own.** `generate(name, model)` does one full completion of
     `prompts/prompt.md` — up to 3 turns of "continue where you left off"
@@ -553,9 +567,11 @@ property of the world.
   each other's internals.** `harness/generate.py` only chains into
   `eval.run` at the CLI boundary (`--run`), the same way a human would run
   two separate commands. A new generation-side script goes in `harness/`;
-  a new scoring/grading-side script goes in `eval/`. `harness/status.py`
-  is the one exception — a leaf logging util both sides import, not
-  generation or evaluation logic itself.
+  a new scoring/grading-side script goes in `eval/`. Two leaf modules are
+  the exceptions both sides import: `harness/status.py` (logging) and
+  `harness/code_tools.py` (the read-only tool boundary — one copy of a
+  security boundary, not two that drift). Neither is generation or
+  evaluation logic itself.
 - **Every generation node (generate/debug/fix) prints what it did to
   stderr *and* is a named LangSmith `@traceable` run** — chain-of-thought
   reasoning, the full generated/fixed HTML, and every debug error, all in

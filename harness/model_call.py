@@ -502,6 +502,41 @@ def _splice_partial_turn(messages: list, full) -> list:
     ]
 
 
+class ReasoningLoop(RuntimeError):
+    """A turn's reasoning started repeating itself verbatim. Not transient:
+    invoke_turn never retries it; the caller decides what the turn means."""
+
+
+# A reasoning stream that degenerates repeats whole paragraphs word for word
+# (seen for real: one fix turn spent 267s restating the same four paragraphs
+# about a quote character that was fine). Checking whether the latest
+# REPETITION_WINDOW chars already occurred REPETITION_COUNT-1 times before is
+# a proof of looping, not a budget: a model that is making progress — even
+# slowly, even re-reading the same code — does not reproduce a 400-char
+# passage verbatim three times.
+REPETITION_WINDOW = 400
+REPETITION_COUNT = 3
+REPETITION_CHECK_EVERY = 1500
+
+
+class _RepetitionGuard:
+    def __init__(self) -> None:
+        self.text = ""
+        self._next_check = REPETITION_CHECK_EVERY
+
+    def feed(self, delta: str) -> int:
+        """Returns how many times the latest window occurs, once it's a loop; else 0."""
+        self.text += delta
+        if len(self.text) < self._next_check:
+            return 0
+        self._next_check = len(self.text) + REPETITION_CHECK_EVERY
+        tail = self.text[-REPETITION_WINDOW:]
+        if len(tail.strip()) < REPETITION_WINDOW * 0.8:
+            return 0
+        count = self.text.count(tail)
+        return count if count >= REPETITION_COUNT else 0
+
+
 @dataclass
 class TurnResult:
     text: str
@@ -521,6 +556,7 @@ def invoke_turn(
     max_tokens: int | None,
     reasoning: bool,
     tools: list | None = None,
+    stop_on_repetition: bool = False,
 ) -> TurnResult:
     """One model turn, optionally tool-bound. Streams + prints reasoning live
     (see _ReasoningPrinter) whenever reasoning=True — a tool-calling turn
@@ -558,6 +594,7 @@ def invoke_turn(
                 llm = llm.bind_tools(tools)
             printer = _ReasoningPrinter()
             progress = _ContentProgress()
+            guard = _RepetitionGuard() if stop_on_repetition else None
             # AIMessageChunk accumulated via __add__, which merges content/reasoning/tool_call_chunks/metadata for us
             try:
                 for chunk in llm.stream(messages):
@@ -565,6 +602,16 @@ def invoke_turn(
                     if reasoning_delta:
                         progress.clear()  # don't append the badge to a half-written progress line
                         printer.feed(reasoning_delta)
+                        repeats = guard.feed(reasoning_delta) if guard else 0
+                        if repeats:
+                            printer.close()
+                            log(
+                                f"warn     reasoning repeated a {REPETITION_WINDOW}-char passage {repeats}x "
+                                f"verbatim after {len(guard.text):,} chars — stopping this turn"
+                            )
+                            raise ReasoningLoop(
+                                f"reasoning repeated itself verbatim ({repeats}x) after {len(guard.text):,} chars"
+                            )
                     content_delta = _chunk_text(chunk.content)
                     if content_delta:
                         # The reasoning->content transition, announced. A model
@@ -664,6 +711,7 @@ def complete_document(
     reasoning: bool,
     label: str,
     max_turns: int = _MAX_ROUNDS,
+    stop_on_repetition: bool = False,
 ) -> DocumentResult:
     """Have the model write one complete HTML file as streamed *content*,
     continuing across turns if it's cut off — the same completion rule and
@@ -686,7 +734,14 @@ def complete_document(
                 HumanMessage(content=_CONTINUE_INSTRUCTION),
             ]
         with timed(f"{label} · turn {turn_n}/{max_turns}{' [reasoning]' if reasoning else ''}"):
-            turn = invoke_turn(model, turn_messages, temperature=temperature, max_tokens=None, reasoning=reasoning)
+            turn = invoke_turn(
+                model,
+                turn_messages,
+                temperature=temperature,
+                max_tokens=None,
+                reasoning=reasoning,
+                stop_on_repetition=stop_on_repetition,
+            )
         content += turn.text
         if turn.reasoning_content:
             reasoning_parts.append(turn.reasoning_content)

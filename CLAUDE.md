@@ -53,6 +53,12 @@ property of the world.
     (brightness, frame diff, chromaticity) rather than asking the VLM: on
     kimi-k-3 the VLM called lighting "identical" across frames whose mean
     brightness was 11.9 / 35.0 / 11.6 / 11.5.
+  - WC003 **rechecks code/frames disagreements** (`recheck.py`): a
+    `must_present` item the frames show but the one-shot probe's code half
+    rejected gets one `eval/evidence_agent.py` hunt; verified evidence is
+    patched in and graded like any other quote, and every hunt lands in
+    `recheck.json`. Only disagreements are rechecked — on one real world,
+    4 of ~70 items, one agent run each.
 - `checks/` — **generic structural pre-checks only**, shared by every
   test (unlike content checks, which stay in each test's own folder — see
   **Conventions** below for the distinction).
@@ -441,6 +447,24 @@ property of the world.
     - `llm.py` — judge model (`CAPTURE_MODEL` → `WC002_MODEL`), images
       downscaled to 896px JPEG. `gemini-3.5-flash-lite` ignores
       `temperature` (fixed sampling), so judges are not bit-repeatable.
+  - `evidence_agent.py` — `hunt(html, biome=, aliases=, feature=,
+    visual_hint=)`: an agentic evidence hunter (LangChain `create_agent` +
+    `harness/code_tools.py`) for **one item**. A one-shot probe reads the
+    whole source once and misses features built *implicitly* — terraced
+    noise (`Math.round(32*t/5)*5` over a smoothstep threshold) and a
+    height-band colour build sandstone mesas with no identifier naming
+    them; a single pass cited that very line as the *flat* basin. The agent
+    greps, reads, follows helpers and works out what the math produces,
+    guided by a few-shot prompt (implicit math, named helper placed in the
+    biome, a table + its consumer, genuine absence). Guardrails: read-only
+    tools over a temp copy; the real file is sha256-checked before/after
+    (a change raises); every quote must pass `in_source`; a frames hint is
+    a lead, never proof (a false "igloos seen" hint was rejected). **The
+    prompt forbids inference** ("there are pools, so there must be banks"):
+    without that rule it passed a swamp "mud banks" item whose quoted lines
+    built pools and mangroves, not banks. Judge-side spend is bounded by
+    `RECURSION_LIMIT` (40 steps); every model call goes through the judge's
+    shared throttle/429 backoff via `wrap_model_call`.
   - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
     quote must really be in the source (whitespace-insensitive, per line,
     tolerant of a garbled line *tail* — ≥85% prefix — not of invented

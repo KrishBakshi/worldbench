@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grade import grade_reports
 from llm import BIOME_IDS, BiomeMicroReport, CheckResult
 from probe import probe_all, strip_html
+from recheck import recheck
 from visual import judge_all
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -88,9 +89,20 @@ def check_biome_micro_contents(
     raise_if_mostly_failed(reports, "code probe")
     visual = judge_all(html_path, selected, model)
     raise_if_mostly_failed(visual, "visual judge")
-    result = grade_reports(reports, selected, visual, normalize(strip_html(html_path)))
+    source = normalize(strip_html(html_path))
+    # Items the frames show but the one-shot probe's code half rejected get an
+    # agentic second look (recheck.py); confirmed evidence is patched in and
+    # graded like any other quote.
+    rechecks = recheck(html_path, reports, visual, selected, source, model)
+    result = grade_reports(reports, selected, visual, source)
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     result.details["artifacts"] = write_artifacts(dest, reports, result, visual)
+    if rechecks:
+        (dest / "recheck.json").write_text(json.dumps(rechecks, indent=2), encoding="utf-8")
+        result.details["artifacts"]["recheck"] = "recheck.json"
+        result.details["rechecks"] = [
+            {"biome": r["biome"], "item": r["item"], "verified": r.get("verified", False)} for r in rechecks
+        ]
     return result
 
 

@@ -529,7 +529,7 @@ def _dedent_point(lines: list[str], opener: int, limit: int) -> int:
     return limit
 
 
-def check_world(html_path: Path) -> list[str]:
+def check_world(html_path: Path, modules: dict[str, str] | None = None) -> list[str]:
     """Static lint, then headless console capture.
 
     Static findings come first so a mashed-together file is named as such
@@ -545,5 +545,5 @@ def check_world(html_path: Path) -> list[str]:
     errors = lint_world_html(html)
     if has_syntax_error(errors):
         return errors
-    errors.extend(check_console_errors(html_path))
+    errors.extend(check_console_errors(html_path, modules=modules))
     return errors

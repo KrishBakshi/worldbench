@@ -103,7 +103,11 @@ def _loc_suffix(lineno: int | None, colno: int | None, callers: list[int] | None
     two must change together — the whole parenthesized group is isolated
     there and every `line N` inside it becomes a fix-context window.
     """
-    if lineno is None:
+    if not lineno:
+        # 0 is not a line: the browser reports lineno 0 for failures with no
+        # position in the page (a module that fails to resolve inside an
+        # imported file). Printing `(line 0, col 0)` pointed the fix node at
+        # the top of world.html for a problem that wasn't in it.
         return ""
     head = f"line {lineno}, col {colno}" if colno is not None else f"line {lineno}"
     if callers:
@@ -128,11 +132,26 @@ def _stack_frames(stack: str, page_url: str) -> list[tuple[int, int]]:
     return list(frames.keys())
 
 
+_UNRESOLVED_RE = re.compile(r'Failed to resolve module specifier "([^"]+)"')
+
+
+def _importers(specifier: str, sources: dict[str, str]) -> list[tuple[str, int]]:
+    """(url, line) of every `from 'X'` / `import 'X'` / `import('X')` of `specifier`."""
+    rx = re.compile(r"""(?:\bfrom|\bimport)\s*\(?\s*['"]""" + re.escape(specifier) + r"""['"]""")
+    hits = []
+    for url, text in sources.items():
+        for i, line in enumerate(text.split("\n"), 1):
+            if rx.search(line):
+                hits.append((url, i))
+    return hits
+
+
 def check_console_errors(
     html_path: Path,
     *,
     timeout_ms: int = DEFAULT_TIMEOUT_MS,
     nav_timeout_ms: int = DEFAULT_NAV_TIMEOUT_MS,
+    modules: dict[str, str] | None = None,
 ) -> list[str]:
     """Load `html_path` headless and return distinct console/page errors seen,
     each suffixed with `(line N, col N)` when a location could be found, plus
@@ -144,6 +163,12 @@ def check_console_errors(
     and would otherwise flood the result with hundreds of copies of the same
     error (seen for real: 604 identical entries for one bug) — collapsed to
     one here since that's one bug, not six hundred.
+
+    `modules`, if given, is filled with {url: source} for every script module
+    the page fetched over http(s) — the imported files an error can live in
+    but that no tool looking at world.html alone can see. A bare-specifier
+    failure (`Failed to resolve module specifier "three"`) raised inside an
+    imported file is annotated with the file and line that imported it.
     """
     html_path = Path(html_path).resolve()
     page_url = f"file://{html_path}"
@@ -198,7 +223,7 @@ def check_console_errors(
         lineno = colno = None
         if loc_queue:
             lineno, colno = loc_queue.pop(0)
-        if lineno is None and frames:
+        if not lineno and frames:
             lineno, colno = frames[0]
         callers = [ln for ln, _ in frames if ln != lineno][:MAX_CALLER_FRAMES]
         _record(f"[uncaught] {exc}{_loc_suffix(lineno, colno, callers)}")
@@ -209,6 +234,13 @@ def check_console_errors(
         page.add_init_script(_LOCATION_INIT_SCRIPT)
         page.on("console", _on_console)
         page.on("pageerror", _on_pageerror)
+        script_responses: list = []
+        page.on(
+            "response",
+            lambda r: script_responses.append(r)
+            if r.request.resource_type == "script" and r.url.startswith(("http://", "https://"))
+            else None,
+        )
 
         try:
             page.goto(page_url, timeout=nav_timeout_ms)
@@ -217,6 +249,44 @@ def check_console_errors(
         else:
             page.wait_for_timeout(timeout_ms)
 
+        # Read bodies after the page settled, not inside the event callback
+        # (the sync API must not block inside its own event dispatch).
+        fetched: dict[str, str] = {}
+        for response in script_responses:
+            try:
+                fetched.setdefault(response.url, response.text())
+            except Exception:  # noqa: BLE001 — a body that can't be read is simply not available
+                pass
         browser.close()
 
-    return list(seen.keys())
+    if modules is not None:
+        modules.update(fetched)
+    page_source = html_path.read_text(encoding="utf-8", errors="ignore")
+    return [_annotate_unresolved(e, fetched, page_source) for e in seen]
+
+
+def _annotate_unresolved(error: str, fetched: dict[str, str], page_source: str) -> str:
+    """Name where an unresolvable import actually is.
+
+    The browser gives no position for this failure, and the culprit is often
+    not the page: a CDN module like OrbitControls.js does `from 'three'`, a
+    bare specifier that only resolves through an import map in the page. A
+    fix agent told only the message searches world.html, finds nothing but
+    full URLs, and has nothing left but guesses.
+    """
+    m = _UNRESOLVED_RE.search(error)
+    if not m or "imported by" in error:
+        return error
+    spec = m.group(1)
+    in_page = _importers(spec, {"": page_source})
+    if in_page:
+        return f"{error} (line {in_page[0][1]})"
+    where = _importers(spec, fetched)
+    if not where:
+        return error
+    by = "; ".join(f"{url} line {line}" for url, line in where[:4])
+    return (
+        f"{error} — imported by {by}, not by world.html. A bare specifier in an "
+        f"imported module only resolves through an import map in the page "
+        f"(<script type=\"importmap\">) that maps \"{spec}\" to a URL."
+    )

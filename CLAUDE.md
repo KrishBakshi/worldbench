@@ -331,6 +331,16 @@ property of the world.
       cases, correlated back to the matching `pageerror` event by a FIFO
       queue (both fire for the same underlying event, in the same
       order).
+    - **No fake locations, and imported files are named.** `(line 0,
+      col 0)` is never printed: the browser reports lineno 0 for failures
+      with no position in the page, and printing it sent the fix model to
+      the top of world.html. `check_console_errors(..., modules=)` fills
+      `{url: source}` for every http(s) script module the page fetched
+      (read after load, not inside Playwright's event callback), and a
+      `Failed to resolve module specifier "X"` error is annotated with the
+      file + line that actually imports `X` — `imported by …/
+      OrbitControls.js line 9, not by world.html` — plus the browser rule
+      (bare specifiers in imported modules need an import map).
     - **`console.error` gets a stack too.** An init-script wrapper records
       `new Error().stack` per call, matched to its console message by first
       argument (not arrival order — the browser logs errors of its own that

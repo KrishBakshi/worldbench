@@ -55,6 +55,52 @@ A first-pass flag is re-voted twice and kept only on a majority. The score is `2
 
 `water_void` is scored once per world, not once per frame. A single ocean sheet shows up in most views: on kimi-k-3 it appeared in 6 of 15, and counting it per frame cost that one defect two thirds of the test. When at least two orbit views agree, it is reported as `ocean_void`.
 
+## Scoring formulas
+
+WC000 is worth **40** = source judge (20) + visual bug-hunt (20). No logarithms or exponentials are used anywhere; every score is a weighted sum or a ratio, rounded to 2 decimals.
+
+### Quote check (`eval/evidence.py`, shared by every code-evidence test)
+
+Let $\nu(s)$ be $s$ with all whitespace removed and $S = \nu(\text{inline JS})$. A quote $q$ is **verified**, $V(q) = 1$, when any of these holds:
+
+$$
+|\nu(q)| \ge 8 \;\wedge\; \Big(\nu(q) \subseteq S \;\;\vee\;\; \text{single line with } \mathrm{pre}(\nu(q)) \ge 0.85\,|\nu(q)| \;\;\vee\;\; \frac{\#\{\ell : \mathrm{match}(\ell)\}}{\#\{\ell : |\nu(\ell)| \ge 8\}} \ge 0.8\Big)
+$$
+
+where $\ell$ ranges over the quote's lines with `//` comments stripped, $\mathrm{pre}(x)$ is the length of the longest prefix of $x$ found in $S$, and $\mathrm{match}(\ell) = [\nu(\ell) \subseteq S] \vee [\mathrm{pre}(\nu(\ell)) \ge 0.85\,|\nu(\ell)|]$. The 0.85 prefix rule tolerates a garbled line *tail*; an invented line fails early.
+
+### Source judge (`voxel_judge.py`, max 20)
+
+For each item $i$ with points $w_i$ (table above, $\sum_i w_i = 20$), the judge returns a probability $p_i \in [0,1]$ and a quote $q_i$:
+
+$$
+\text{score}_\text{src} = \operatorname{round}\Big(\sum_{i} \operatorname{round}\big(w_i \cdot p_i \cdot V(q_i),\,2\big),\;2\Big)
+$$
+
+An item **passes** when $V(q_i) = 1 \wedge p_i \ge 0.5$; otherwise it is listed in `missing` (reported only; the score already carries $p_i$).
+
+### Visual bug-hunt (`visual_check.py`, max 20)
+
+Per frame $f$, defects $D = \{\text{floating\_blocks}, \text{hollow\_mass}, \text{non\_voxel}, \text{water\_void}\}$. The first vote runs at temperature 0; if it flags anything, two more votes run at temperature 0.8, so $n_f \in \{1, 3\}$. A defect $d$ is confirmed when its vote count reaches a strict majority:
+
+$$
+\text{confirmed}_f(d) = \Big[\textstyle\sum_{k=1}^{n_f} \text{flag}_k(d) \;\ge\; \lfloor n_f/2 \rfloor + 1\Big]
+$$
+
+A frame is **buggy** if it has a confirmed defect among the per-view ones $\{\text{floating\_blocks}, \text{hollow\_mass}, \text{non\_voxel}\}$. With $J$ = frames judged without error and $B$ = buggy frames:
+
+$$
+\text{score}_\text{vis} = \operatorname{round}\Big(20 \cdot \frac{|J| - |B|}{|J|},\;2\Big) \qquad (0 \text{ if } |J| = 0)
+$$
+
+A frame whose call errored is left out of both $J$ and $B$. `water_void` never makes a frame buggy; instead, over the `overview`/`direction` frames:
+
+$$
+\text{ocean\_void} = \Big[\#\{f \in \text{orbit frames} : \text{confirmed}_f(\text{water\_void})\} \ge 2\Big]
+$$
+
+`ocean_void` costs nothing here. It is read by WC004's island gate (the delta biome's WC004 points are subtracted, see WC004), and WC003 zeroes its delta biome from its own frames.
+
 ## Run
 
 ```bash

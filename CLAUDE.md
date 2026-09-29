@@ -49,7 +49,18 @@ property of the world.
     VLM "it moves" only counts if the burst's pixels really changed. Kept
     small on purpose (one zoom-out, no pivots, no waiting for weather
     cycles); don't grow it into a camera-choreography project. WC005's
-    cloud/weather items stay code-only. WC005 measures "does X change" from pixels
+    cloud/weather items stay code-only. A probe may quote one line as both
+    "look" and "motion": WC005 accepts that when the line is an update
+    (`sunLight.intensity=.04+daylight*3.1`) and rejects it as spawn-only
+    only when it constructs the object (`new …(`) — and only if the line
+    provably runs every frame (`_runs_every_frame`: inside the
+    `requestAnimationFrame`/`setAnimationLoop` callback or a function it
+    calls, 4 deep; unknown → the strict rule). Rejecting every same-line
+    quote failed 9 real per-frame lines; the frame-loop condition keeps a
+    one-time setup line from passing. WC004 keeps the strict rule on
+    purpose: its motion items are specific movements (flow, drift, fall),
+    and the one real same-line case was a whole-water bob quoted as river
+    flow — rejected for the wrong reason, but rightly. WC005 measures "does X change" from pixels
     (brightness, frame diff, chromaticity) rather than asking the VLM: on
     kimi-k-3 the VLM called lighting "identical" across frames whose mean
     brightness was 11.9 / 35.0 / 11.6 / 11.5.

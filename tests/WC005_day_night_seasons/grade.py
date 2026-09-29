@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import hashlib
 import re
 import sys
@@ -50,6 +51,94 @@ _MOTION_MUTATION = re.compile(
 _CALL = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
 _DART_THROW = re.compile(r"Math\.random\s*\(\s*\)\s*\*\s*GRID")
 _CELL_WALK = re.compile(r"for\s*\([^;]*\bz\b")
+# A quote that builds the object rather than changing it.
+_CONSTRUCTS = re.compile(r"\bnew\s+(?:THREE\.)?[A-Z]\w*\s*\(")
+
+# Frame-loop reachability, on whitespace-free source (eval.evidence.normalize).
+_LOOP_ROOT = re.compile(r"(?:requestAnimationFrame|setAnimationLoop)\((\w+)\)")
+_LOOP_OPEN = re.compile(r"(?:requestAnimationFrame|setAnimationLoop)\((?:function\w*)?\([^()]*\)(?:=>)?$")
+_FUNC_HEAD = re.compile(
+    r"(?:function(\w+)\([^()]*\)"            # function name(...)
+    r"|(\w+)=(?:async)?function\w*\([^()]*\)"  # name=function(...)
+    r"|(\w+)=(?:async)?\(?[\w,]*\)?=>"          # name=(...)=>  /  name=x=>
+    r"|(?<![.\w])(\w+)\([^()]*\))$"           # method name(...)
+)
+_NOT_FUNCS = {"if", "for", "while", "switch", "catch", "with", "function", "return"}
+# Without whitespace, a keyword glues onto the word before it (`else if(` ->
+# `elseif(`, `// animals` + `for(` -> `animalsfor(`): those are blocks, not functions.
+_GLUED_KEYWORD = re.compile(r"(?:if|for|while|switch|catch|else)$")
+_CALLED = re.compile(r"(\w+)\(")
+LOOP_DEPTH = 4
+
+
+def _open_brace_before(src: str, pos: int) -> int:
+    """Index of the `{` that encloses src[pos], or -1."""
+    depth = 0
+    for i in range(pos - 1, -1, -1):
+        c = src[i]
+        if c == "}":
+            depth += 1
+        elif c == "{":
+            if depth == 0:
+                return i
+            depth -= 1
+    return -1
+
+
+def _body(src: str, open_at: int) -> str:
+    depth = 0
+    for i in range(open_at, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[open_at + 1 : i]
+    return src[open_at + 1 :]
+
+
+@functools.lru_cache(maxsize=8)
+def _per_frame_functions(src: str) -> frozenset[str]:
+    """Names of the frame-loop callbacks and everything they call, LOOP_DEPTH deep."""
+    heads = {}
+    for m in re.finditer(r"\{", src):
+        head = _FUNC_HEAD.search(src[max(0, m.start() - 160) : m.start()])
+        name = head and next((g for g in head.groups() if g), None)
+        if name and name not in _NOT_FUNCS and not _GLUED_KEYWORD.search(name) and name not in heads:
+            heads[name] = m.start()
+    frontier = set(_LOOP_ROOT.findall(src)) & set(heads)
+    seen = set(frontier)
+    for _ in range(LOOP_DEPTH):
+        called = set()
+        for name in frontier:
+            called |= {c for c in _CALLED.findall(_body(src, heads[name])) if c in heads and c not in seen}
+        seen |= called
+        frontier = called
+    return frozenset(seen)
+
+
+def _runs_every_frame(quote: str, src: str) -> bool:
+    """True only if the quote's line sits inside the frame loop: the function
+    registered with requestAnimationFrame / setAnimationLoop, an anonymous
+    callback passed to it, or a function those call (LOOP_DEPTH deep).
+    Anything it can't establish is False, so the fallback is the strict rule."""
+    code = re.sub(r"\s+", "", _code_only(quote))
+    at = src.find(code) if code else -1
+    if at < 0:
+        return False
+    per_frame = _per_frame_functions(src)
+    pos = at
+    while (open_at := _open_brace_before(src, pos)) >= 0:
+        before = src[max(0, open_at - 160) : open_at]
+        if _LOOP_OPEN.search(before):
+            return True
+        head = _FUNC_HEAD.search(before)
+        name = head and next((g for g in head.groups() if g), None)
+        if name and name not in _NOT_FUNCS and not _GLUED_KEYWORD.search(name) and name in per_frame:
+            return True
+        pos = open_at
+    return False
+
 _TIME_UPDATE = re.compile(
     r"\b(?:dt|delta|clock\.getDelta|\btime\b|\bnow\b|performance\.now"
     r"|requestAnimationFrame|animate\b|updateSun|updateSeasons|updateWeather"
@@ -342,7 +431,15 @@ def _grade_entity(entity: dict, judgement, used_hashes: set[str], source_normali
             return False, "no_motion", meta
         if _empty_motion(motion):
             return False, "no_motion", meta
-        if motion == look:
+        # One line may both show the entity and move it: an assignment inside
+        # the frame loop (`light.intensity=0.1+0.5*dayFactor`) is the update.
+        # It counts only when the line provably runs every frame and doesn't
+        # construct the object; otherwise the old strict rule stands.
+        if motion == look and (
+            _CONSTRUCTS.search(_code_only(motion))
+            or source_normalized is None
+            or not _runs_every_frame(motion, source_normalized)
+        ):
             return False, "spawn_only_no_update", meta
         motion_reason = _reject_reason(motion, allow_config=False)
         if motion_reason:
@@ -358,7 +455,7 @@ def _grade_entity(entity: dict, judgement, used_hashes: set[str], source_normali
     if look_hash in used_hashes:
         return False, "duplicate_evidence", meta
     used_hashes.add(look_hash)
-    if requires_motion and motion:
+    if requires_motion and motion and motion != look:
         motion_hash = _evidence_hash(motion)
         if motion_hash in used_hashes:
             return False, "duplicate_evidence", meta

@@ -61,14 +61,15 @@ WC005 is worth **20**: 10 items × 2 points, one pool for the whole world, not p
 From the probe's `looks_ok`, `moves_ok`, `axis`, `look_evidence` $q_L$ and `motion_evidence` $q_M$ (every item has `requires_motion`):
 
 $$
-C(x) = \neg\text{notInScope}(q_L) \wedge \text{looks\_ok} \wedge \neg\text{hint}(q_L) \wedge V(q_L) \wedge V(q_M) \wedge \text{moon}(x) \wedge \text{moves\_ok} \wedge q_M \ne \varnothing \wedge q_M \ne q_L \wedge \neg\text{hint}(q_M) \wedge \text{timeUpdate}(q_M) \wedge \text{ax}(e_x, \text{axis}) \wedge \text{unused}(q_L, q_M)
+C(x) = \neg\text{notInScope}(q_L) \wedge \text{looks\_ok} \wedge \neg\text{hint}(q_L) \wedge V(q_L) \wedge V(q_M) \wedge \text{moon}(x) \wedge \text{moves\_ok} \wedge q_M \ne \varnothing \wedge \big(q_M \ne q_L \vee (\neg\text{constructs}(q_M) \wedge \text{perFrame}(q_M))\big) \wedge \neg\text{hint}(q_M) \wedge \text{timeUpdate}(q_M) \wedge \text{ax}(e_x, \text{axis}) \wedge \text{unused}(q_L, q_M)
 $$
 
 - $V$ is the shared quote check (`eval/evidence.py`; full form in the WC000 README).
 - $\text{hint}$ rejects a comment-only quote, a bare token, a lone waypoint, or a legend/HUD row.
 - $\text{timeUpdate}$ is a regex hit for a clock driver (`dt`, `delta`, `time`, `now`, `requestAnimationFrame`, `DAY_LEN`, `SEASON_LEN`, `seasonProgress`, `% 4`, `.intensity =`, `.position.set(`, `.visible =`, …).
 - $\text{ax}$ is axis compatibility, as in WC004.
-- $\text{unused}$ means neither quote's hash (sha256 of the comment-stripped, whitespace-collapsed code) was already used by an earlier item.
+- $\text{constructs}$ is a `new X(` constructor. One line may be both the look and the motion quote when it is an update in the frame loop (`sunLight.intensity=.04+daylight*3.1`); it is spawn-only only when that line creates the object. It also needs $\text{perFrame}(q_M)$: the line sits in the frame-loop callback (`requestAnimationFrame` / `setAnimationLoop`) or a function it calls, up to 4 calls deep; a line that runs once at start-up does not count, and anything that can't be established falls back to the strict rule.
+- $\text{unused}$ means neither quote's hash (a same-line quote is hashed once; sha256 of the comment-stripped, whitespace-collapsed code) was already used by an earlier item.
 - $\text{moon}(x)$ applies only to `moon`: the look quote must reference a moon (`moon`, `moonMesh`, `createMoon`, …) and must not be only stars or a dome. For every other item it is true.
 
 ### Visual verdict $S(x)$: measured from pixels

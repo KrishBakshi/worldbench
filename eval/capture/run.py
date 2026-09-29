@@ -391,7 +391,7 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Capture views of outputs/<model>/world.html for the visual judges")
     parser.add_argument("output_dir")
     parser.add_argument("--force", action="store_true", help="recapture even if the manifest matches")
-    parser.add_argument("--model", help="judge/agent model (default CAPTURE_MODEL or WC002_MODEL)")
+    parser.add_argument("--model", help="use this model for every judge/agent call (default: roles in eval/judge.yaml)")
     args = parser.parse_args(argv)
     manifest = capture(Path(args.output_dir), force=args.force, model=args.model)
     print(json.dumps({k: manifest[k] for k in ("time", "biomes")}, indent=2))

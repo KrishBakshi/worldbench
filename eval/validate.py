@@ -14,7 +14,6 @@ run auditable.
 from __future__ import annotations
 
 import json
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -29,9 +28,6 @@ from eval.capture.run import capture
 from eval.loader import discover_tests, load_check, resolve_test
 from eval.score import score_records
 from harness.status import log, timed
-
-# WC003 is 10 Gemini probes; WC004 is 10 more. Free-tier RPM needs a gap.
-_GEMINI_PAUSE_AFTER_WC003_S = 20
 
 
 def validate(
@@ -162,9 +158,6 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
                 status = "pass" if record.get("passed") else "fail"
                 info["detail"] = f"{record.get('score', 0)}/{record.get('max_score', 0)}  {status}"
             result["checks"][key] = record
-        if test.get("id") == "WC003" and any(t.get("id") == "WC004" for t in selected[i:]):
-            log(f"waiting  {_GEMINI_PAUSE_AFTER_WC003_S}s  Gemini free-tier rate limit")
-            time.sleep(_GEMINI_PAUSE_AFTER_WC003_S)
 
     present = []
     for test in discover_tests():

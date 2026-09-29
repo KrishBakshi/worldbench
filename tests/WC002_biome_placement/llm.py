@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
-DEFAULT_MODEL = os.environ.get("WC002_MODEL")
+DEFAULT_MODEL = None  # the role's model from eval/judge.yaml
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
 

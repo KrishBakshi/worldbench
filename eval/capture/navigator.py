@@ -17,6 +17,7 @@ filtered to clickable/text lines, and a hard step budget.
 from __future__ import annotations
 
 import asyncio
+import time
 import re
 import sys
 import uuid
@@ -30,11 +31,20 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from eval.capture.browser import DevToolsBrowser  # noqa: E402
-from eval.capture.llm import acall_with_retry, chat, image_part  # noqa: E402
+from eval.capture.llm import (  # noqa: E402
+    acall_with_retry,
+    chat,
+    estimate_tokens,
+    image_part,
+    log_usage,
+    nav_model_name,
+    setting,
+)
 from harness.status import log  # noqa: E402
 
-MAX_STEPS = 8
-AGENT_IMAGE_WIDTH = 640
+# From eval/judge.yaml `navigator:` (hyperparameters live there, not here).
+MAX_STEPS = int(setting("navigator", "max_steps"))
+AGENT_IMAGE_WIDTH = int(setting("navigator", "image_width"))
 UI_MAX_LINES = 50
 
 SYSTEM = """Drive 3D voxel island viewer. Job: frame ONE biome, then save.
@@ -51,6 +61,19 @@ _UI_LINE = re.compile(r"uid=\S+\s+(?:button|link|StaticText|listitem|generic|opt
 def _filter_ui(snapshot: str) -> str:
     lines = [ln.strip() for ln in snapshot.splitlines() if _UI_LINE.search(ln)]
     return "\n".join(lines[:UI_MAX_LINES]) or "(no clickable/text UI found)"
+
+
+def _estimate(messages: list) -> int:
+    """Pre-call input-token estimate for the rate limiter: all text + kept frames."""
+    chars, images = 0, 0
+    for msg in messages:
+        content = msg.content if isinstance(msg.content, list) else [msg.content]
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                images += 1
+            else:
+                chars += len(part.get("text", "") if isinstance(part, dict) else str(part))
+    return estimate_tokens("", images) + chars // 4
 
 
 def _drop_old_images(messages: list) -> None:
@@ -115,7 +138,7 @@ async def frame_biome(
         return "done"
 
     tools = {t.name: t for t in (ui, click, orbit, pan, zoom, save, give_up)}
-    llm = chat(model, temperature=0).bind_tools(list(tools.values()))
+    llm = chat(nav_model_name(model), temperature=0).bind_tools(list(tools.values()))
 
     await browser.screenshot(scratch)
     messages: list = [
@@ -128,7 +151,12 @@ async def frame_biome(
 
     for step in range(1, MAX_STEPS + 1):
         outcome["steps"] = step
-        ai: AIMessage = await acall_with_retry(lambda: llm.ainvoke(messages))
+        started = time.monotonic()
+        nav = nav_model_name(model)
+        ai: AIMessage = await acall_with_retry(
+            lambda: llm.ainvoke(messages), model=nav, est_tokens=_estimate(messages)
+        )
+        log_usage(nav, "navigator", 1, ai, time.monotonic() - started)
         messages.append(ai)
         calls = ai.tool_calls[:1]
         if not calls:
@@ -146,7 +174,7 @@ async def frame_biome(
             except Exception as exc:  # bad uid, bad args: tell the agent, don't crash the capture
                 result = f"ERROR: {exc}"[:300]
         messages.append(ToolMessage(content=str(result), tool_call_id=call.get("id") or str(uuid.uuid4())))
-        # Gemini rejects extra tool calls in a turn we answered only once.
+        # The API rejects extra tool calls in a turn we answered only once.
         ai.tool_calls = calls
 
         if name in ("save", "give_up"):

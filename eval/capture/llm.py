@@ -1,8 +1,18 @@
 """Judge-model calls shared by capture and by any test that looks at captured views.
 
-One place builds the Gemini client and turns local PNGs into image parts, so
-a text probe, a vision judge and the navigator agent all use the same model
-setup. Model: CAPTURE_MODEL, else the WC002_MODEL every test already uses.
+One place builds the judge client and turns local PNGs into image parts, so
+a text probe, a vision judge, the navigator agent and the evidence agent all
+use the same model setup.
+
+Evaluation only (generation is separate and stays on OpenRouter). The API
+key lives in .env (GOOGLE_API_KEY); every other setting — which model does
+each role, each model's rate limits, and the call hyperparameters — lives in
+eval/judge.yaml (or the file JUDGE_CONFIG names). Nothing is hard-coded here:
+a missing file or value stops the run with a message naming it.
+
+Three roles (judge.yaml `roles`): `judge` for text-only calls (code probes,
+source judge, WC002, the clock patch), `vlm` for every call carrying images,
+`nav` for the navigator agent. Roles that share a model share its limits.
 """
 
 from __future__ import annotations
@@ -25,48 +35,210 @@ from pydantic import BaseModel
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-# gemini-3.5-flash-lite (the current WC002_MODEL) has fixed sampling and warns
-# on every call that `temperature` is ignored. The warning is true but says
-# nothing new per call; re-votes on that model still differ.
+# A model with fixed sampling warns on every call that `temperature` is
+# ignored. True, but it says nothing new per call.
 warnings.filterwarnings("ignore", message=r".*uses fixed sampling defaults.*")
 
-# Views go to the judge downscaled: 1280px wide costs ~2x the tokens of 896px
-# and the judges are asked about biome-scale features, not single pixels.
-JUDGE_IMAGE_WIDTH = 896
+
+class JudgeConfigError(RuntimeError):
+    """eval/judge.yaml is missing, unreadable, or lacks a required value."""
 
 
-# The judge model's free tier is 15 requests/minute. A full ladder is ~80
-# calls in bursts (bug-hunt re-votes, ten probes back to back), and on the
-# first kimi-k-3 run every WC003 probe hit 429 and the test scored 0/100 for
-# a quota reason, not a model one. So calls are spaced client-side
-# (JUDGE_RPM) and a 429 that still gets through waits the server's own
-# "retry in Xs" hint instead of failing.
-JUDGE_RPM = float(os.environ.get("JUDGE_RPM", "15"))
-MAX_RATE_RETRIES = 8
+CONFIG_FILE = Path(os.environ.get("JUDGE_CONFIG") or Path(__file__).resolve().parents[1] / "judge.yaml")
+
+
+def _load_config() -> dict:
+    import yaml
+
+    try:
+        data = yaml.safe_load(CONFIG_FILE.read_text(encoding="utf-8")) or {}
+    except FileNotFoundError as exc:
+        raise JudgeConfigError(f"judge config not found: {CONFIG_FILE}") from exc
+    return data
+
+
+CONFIG = _load_config()
+
+
+def setting(section: str, key: str):
+    """A required value from judge.yaml; a missing one names itself."""
+    try:
+        return CONFIG[section][key]
+    except (KeyError, TypeError) as exc:
+        raise JudgeConfigError(f"{CONFIG_FILE.name} is missing {section}.{key}") from exc
+
+
+# The call hyperparameters, all from judge.yaml `call:`.
+JUDGE_IMAGE_WIDTH = int(setting("call", "image_width"))
+JUDGE_MAX_TOKENS = int(setting("call", "max_output_tokens"))
+MAX_RATE_RETRIES = int(setting("call", "max_rate_retries"))
+MAX_TRANSIENT_RETRIES = int(setting("call", "max_transient_retries"))
+CHARS_PER_TOKEN = float(setting("call", "chars_per_token"))
+TOKENS_PER_IMAGE = int(setting("call", "tokens_per_image"))
+QUOTA_TZ = str(CONFIG.get("quota_day_timezone") or "UTC")
+
 _RETRY_IN = re.compile(r"retry in ([0-9.]+)s", re.I)
 _lock = threading.Lock()
-_last_call = 0.0
+# model -> list of [monotonic_time, input_tokens] reservations in the last 60s
+_window: dict[str, list[list[float]]] = {}
+DAILY_FILE = Path(__file__).resolve().parents[2] / "outputs" / ".judge_daily.json"
 
 
-def throttle() -> None:
-    """Block until one more call fits under JUDGE_RPM (process-wide)."""
-    global _last_call
-    if JUDGE_RPM <= 0:
+def limits_for(model: str) -> dict[str, int]:
+    """This model's rpm / tpm / rpd from judge.yaml `limits`. Required: a model
+    with no limits there stops the run rather than being driven unbounded."""
+    global _UNAVAILABLE
+    lim = (CONFIG.get("limits") or {}).get(model)
+    if not lim or not all(k in lim for k in ("rpm", "tpm", "rpd")):
+        # A run-stopping error, not a per-check one: every call to this model would fail the same way.
+        _UNAVAILABLE = f"{CONFIG_FILE.name} has no complete limits (rpm, tpm, rpd) for model {model!r}"
+        raise JudgeUnavailable(_UNAVAILABLE)
+    return {k: int(lim[k]) for k in ("rpm", "tpm", "rpd")}
+
+
+def estimate_tokens(text: str = "", images: int = 0) -> int:
+    return int(len(text) / CHARS_PER_TOKEN) + images * TOKENS_PER_IMAGE
+
+
+def _quota_day() -> str:
+    """The provider's quota day (judge.yaml quota_day_timezone)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    return datetime.now(ZoneInfo(QUOTA_TZ)).strftime("%Y-%m-%d")
+
+
+def _count_today(model: str) -> None:
+    """Add one request to today's count for `model`; stop the run at the daily cap.
+
+    Stored on disk (locked) so sequential and parallel runs share one count.
+    """
+    import fcntl
+
+    global _UNAVAILABLE
+    rpd = limits_for(model)["rpd"]
+    DAILY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(DAILY_FILE, "a+", encoding="utf-8") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        fh.seek(0)
+        try:
+            data = json.loads(fh.read() or "{}")
+        except json.JSONDecodeError:
+            data = {}
+        day = _quota_day()
+        data = {day: data.get(day, {})}  # older days are dropped
+        used = data[day].get(model, 0)
+        if used >= rpd:
+            _UNAVAILABLE = f"{model} reached its daily cap of {rpd} requests ({day}, resets at midnight {QUOTA_TZ})"
+            raise JudgeUnavailable(_UNAVAILABLE)
+        data[day][model] = used + 1
+        fh.seek(0)
+        fh.truncate()
+        fh.write(json.dumps(data))
+
+
+def throttle(model: str | None = None, est_tokens: int = 0) -> list[float]:
+    """Block until one more call to `model` fits its per-minute caps; reserve it.
+
+    Returns the reservation [time, tokens]; the caller replaces the estimate
+    with the real input-token count once the reply arrives (settle()).
+    """
+    model = model or judge_model_name()
+    lim = limits_for(model)
+    _count_today(model)
+    while True:
+        with _lock:
+            now = time.monotonic()
+            win = [e for e in _window.get(model, []) if now - e[0] < 60.0]
+            _window[model] = win
+            used = sum(e[1] for e in win)
+            # An empty window always admits one call, even one larger than tpm.
+            if len(win) < lim["rpm"] and (not win or used + est_tokens <= lim["tpm"]):
+                entry = [now, float(est_tokens)]
+                win.append(entry)
+                return entry
+            wait = 60.0 - (now - win[0][0]) + 0.05
+        time.sleep(max(0.05, wait))
+
+
+def settle(entry: list[float] | None, result) -> None:
+    """Replace a reservation's estimated tokens with the reply's real input count."""
+    if entry is None:
         return
-    gap = 60.0 / JUDGE_RPM
-    with _lock:
-        wait = _last_call + gap - time.monotonic()
-        if wait > 0:
-            time.sleep(wait)
-        _last_call = time.monotonic()
+    msg = result.get("raw") if isinstance(result, dict) else result
+    usage = getattr(msg, "usage_metadata", None) or {}
+    if usage.get("input_tokens"):
+        with _lock:
+            entry[1] = float(usage["input_tokens"])
+
+
+_RATE_LIMIT_RE = re.compile(r"\b429\b|RESOURCE_EXHAUSTED|rate.?limit", re.I)
+
+
+class JudgeUnavailable(RuntimeError):
+    """The judge model can't be used at all: no credit, a bad key, access
+    denied, or an unknown model id. Unlike a rate limit or one bad reply,
+    nothing that follows can succeed, so callers must not catch it per item
+    and carry on: with credits exhausted, capture used to swallow each
+    episode's 402 as "one broken biome", then go on taking screenshots and
+    motion bursts for all ten biomes that no model would ever judge.
+
+    Sticky: once raised, every later judge call in the process raises it
+    again immediately, without a network round trip.
+    """
+
+
+_UNAVAILABLE: str | None = None
+_FATAL_STATUS = {401, 402, 403}
+_FATAL_RE = re.compile(
+    r"requires more credits|insufficient credits|no auth credentials|invalid api key|"
+    r"user not found|is not a valid model id|model .* (?:not found|does not exist)|"
+    # Provider: a bad key, no access, an unknown model, and the free tier's
+    # per-day cap (retrying a daily quota minute by minute only burns the run).
+    r"API key not valid|API_KEY_INVALID|PERMISSION_DENIED|NOT_FOUND.*models/|PerDay",
+    re.I,
+)
+
+
+def _raise_if_unavailable() -> None:
+    if _UNAVAILABLE:
+        raise JudgeUnavailable(_UNAVAILABLE)
+
+
+def _check_fatal(exc: Exception) -> None:
+    """Turn an unrecoverable provider error into JudgeUnavailable (and latch it)."""
+    global _UNAVAILABLE
+    status = getattr(exc, "status_code", None)
+    text = f"{exc} {getattr(exc, 'body', '') or ''}"
+    if status in _FATAL_STATUS or (status == 404 and "model" in text.lower()) or _FATAL_RE.search(text):
+        _UNAVAILABLE = f"judge model {judge_model_name()} unusable (HTTP {status}): {str(exc)[:300]}"
+        raise JudgeUnavailable(_UNAVAILABLE) from exc
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    """A 429 / quota error, from OpenRouter or from the provider behind it.
+
+    By HTTP status first: a client can raise a 429 whose text is only
+    "Provider returned error" — no "429" to match — so a text-only check let
+    real rate limits fail the call instead of waiting.
+    """
+    if getattr(exc, "status_code", None) == 429:
+        return True
+    return bool(_RATE_LIMIT_RE.search(str(exc)) or _RATE_LIMIT_RE.search(str(getattr(exc, "body", "") or "")))
 
 
 def _rate_limited(exc: Exception) -> float | None:
-    """Seconds to wait if `exc` is a 429 / quota error, else None."""
-    text = str(exc)
-    if "429" not in text and "RESOURCE_EXHAUSTED" not in text:
+    """Seconds the server asked us to wait, if `exc` is a rate limit that says; else None."""
+    if not _is_rate_limit(exc):
         return None
-    match = _RETRY_IN.search(text)
+    headers = getattr(exc, "headers", None) or getattr(getattr(exc, "response", None), "headers", None) or {}
+    retry_after = headers.get("retry-after") if hasattr(headers, "get") else None
+    if retry_after:
+        try:
+            return float(retry_after) + 1.0
+        except ValueError:
+            pass
+    match = _RETRY_IN.search(f"{exc} {getattr(exc, 'body', '') or ''}")
     return float(match.group(1)) + 1.0 if match else None
 
 
@@ -74,15 +246,39 @@ def _backoff(attempt: int, hinted: float | None) -> float:
     return min(65.0, max(hinted or 0.0, 5.0 * attempt))
 
 
-def call_with_retry(fn):
-    """Run fn() under the throttle, retrying rate-limit errors only."""
+# Server-side 5xx ("500 INTERNAL" came and went on one vision model: one call
+# failed, the next one on the same model worked). Temporary, so retried
+# call.max_transient_retries times with backoff; never treated as a verdict
+# or as JudgeUnavailable.
+_TRANSIENT_RE = re.compile(r"\b(500|502|503|504)\b|INTERNAL|UNAVAILABLE|DEADLINE_EXCEEDED|timed out", re.I)
+
+
+def _is_transient(exc: Exception) -> bool:
+    if getattr(exc, "status_code", None) in (500, 502, 503, 504):
+        return True
+    return bool(_TRANSIENT_RE.search(str(exc))) and not _is_rate_limit(exc)
+
+
+def call_with_retry(fn, model: str | None = None, est_tokens: int = 0):
+    """Run fn() under `model`'s caps, retrying rate limits and brief server errors."""
+    transient_left = MAX_TRANSIENT_RETRIES
     for attempt in range(1, MAX_RATE_RETRIES + 1):
-        throttle()
+        _raise_if_unavailable()
+        entry = throttle(model, est_tokens)
         try:
-            return fn()
+            result = fn()
+            settle(entry, result)
+            return result
+        except JudgeUnavailable:
+            raise
         except Exception as exc:
+            _check_fatal(exc)
+            if _is_transient(exc) and transient_left > 0:
+                transient_left -= 1
+                time.sleep(5.0 * (MAX_TRANSIENT_RETRIES - transient_left))
+                continue
             hinted = _rate_limited(exc)
-            if hinted is None and "429" not in str(exc) and "RESOURCE_EXHAUSTED" not in str(exc):
+            if not _is_rate_limit(exc):
                 raise
             if attempt == MAX_RATE_RETRIES:
                 raise
@@ -93,15 +289,26 @@ def call_with_retry(fn):
             time.sleep(delay)
 
 
-async def acall_with_retry(make_coro):
+async def acall_with_retry(make_coro, model: str | None = None, est_tokens: int = 0):
     """Async twin of call_with_retry: make_coro() returns a fresh awaitable per attempt."""
+    transient_left = MAX_TRANSIENT_RETRIES
     for attempt in range(1, MAX_RATE_RETRIES + 1):
-        await asyncio.to_thread(throttle)
+        _raise_if_unavailable()
+        entry = await asyncio.to_thread(throttle, model, est_tokens)
         try:
-            return await make_coro()
+            result = await make_coro()
+            settle(entry, result)
+            return result
+        except JudgeUnavailable:
+            raise
         except Exception as exc:
+            _check_fatal(exc)
+            if _is_transient(exc) and transient_left > 0:
+                transient_left -= 1
+                await asyncio.sleep(5.0 * (MAX_TRANSIENT_RETRIES - transient_left))
+                continue
             hinted = _rate_limited(exc)
-            if hinted is None and "429" not in str(exc) and "RESOURCE_EXHAUSTED" not in str(exc):
+            if not _is_rate_limit(exc):
                 raise
             if attempt == MAX_RATE_RETRIES:
                 raise
@@ -121,17 +328,58 @@ def raise_if_mostly_failed(results: dict, label: str) -> None:
         raise RuntimeError(f"{label}: {len(errors)}/{len(results)} model calls failed; first: {errors[0]['error'][:300]}")
 
 
-def judge_model_name(override: str | None = None) -> str:
-    name = override or os.environ.get("CAPTURE_MODEL") or os.environ.get("WC002_MODEL")
+def _role_model(role: str, what: str) -> str:
+    """judge.yaml `roles.<role>`: never a built-in default. The judge decides
+    every score, so a missing value stops the run rather than silently
+    picking a model."""
+    name = (CONFIG.get("roles") or {}).get(role)
     if not name:
-        raise RuntimeError("set CAPTURE_MODEL or WC002_MODEL in .env")
-    return name
+        global _UNAVAILABLE
+        _UNAVAILABLE = f"{CONFIG_FILE.name} has no roles.{role} ({what})"
+        raise JudgeUnavailable(_UNAVAILABLE)
+    return str(name)
+
+
+def vlm_model_name(override: str | None = None) -> str:
+    """The model for every judge call that carries images."""
+    return override or _role_model("vlm", "the model for judge calls with images")
+
+
+def nav_model_name(override: str | None = None) -> str:
+    """The navigator agent's model (tool calls on frames)."""
+    return override or _role_model("nav", "the navigator agent's model")
+
+
+def extract_model_name(override: str | None = None) -> str:
+    """WC002's classify + extract: slicing the source per biome, reading layout."""
+    return override or _role_model("extract", "the model for WC002 classify/extract")
+
+
+def probe_model_name(override: str | None = None) -> str:
+    """WC003/WC004/WC005 code probes: quoting the code that builds each item."""
+    return override or _role_model("probe", "the model for the WC003-WC005 code probes")
+
+
+def judge_model_name(override: str | None = None) -> str:
+    """The model for text-only judge calls."""
+    return override or _role_model("judge", "the model for text-only judge calls")
 
 
 def chat(model: str | None = None, temperature: float | None = None) -> ChatGoogleGenerativeAI:
+    key = os.environ.get("GOOGLE_API_KEY")
+    if not key:
+        # Unusable, not flaky: stop the run the same way a rejected key does.
+        global _UNAVAILABLE
+        _UNAVAILABLE = "GOOGLE_API_KEY is not set in .env (the judge models' key)"
+        raise JudgeUnavailable(_UNAVAILABLE)
     # Retries are ours (call_with_retry), so the client's own are off: two
     # retry layers multiply into a burst exactly when the quota is exhausted.
-    kwargs = {"model": judge_model_name(model), "google_api_key": os.environ.get("GOOGLE_API_KEY"), "max_retries": 0}
+    kwargs = {
+        "model": judge_model_name(model),
+        "google_api_key": key,
+        "max_retries": 0,
+        "max_output_tokens": JUDGE_MAX_TOKENS,
+    }
     if temperature is not None:
         kwargs["temperature"] = temperature
     return ChatGoogleGenerativeAI(**kwargs)
@@ -149,6 +397,33 @@ def image_part(path: Path, width: int = JUDGE_IMAGE_WIDTH) -> dict:
     return {"type": "image_url", "image_url": f"data:image/jpeg;base64,{b64}"}
 
 
+def log_usage(model: str, role: str, n_images: int, message, seconds: float) -> None:
+    """Append one judge call's token use to $JUDGE_USAGE_LOG (JSON lines), if set.
+
+    Off unless the env var names a file. Exists so cost/efficiency decisions
+    are made from measured tokens per role (text / vision / navigator)
+    rather than guesses.
+    """
+    path = os.environ.get("JUDGE_USAGE_LOG")
+    if not path:
+        return
+    usage = getattr(message, "usage_metadata", None) or {}
+    row = {
+        "t": round(time.time(), 1),
+        "model": model,
+        "role": role,
+        "images": n_images,
+        "input_tokens": usage.get("input_tokens"),
+        "output_tokens": usage.get("output_tokens"),
+        "seconds": round(seconds, 2),
+    }
+    try:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row) + "\n")
+    except OSError:
+        pass
+
+
 def invoke_structured(
     schema: type[BaseModel],
     prompt: str,
@@ -161,13 +436,23 @@ def invoke_structured(
     Judges run at temperature 0 so a re-grade of the same frame agrees with
     itself; a caller that re-votes on purpose passes a higher temperature.
     """
+    # Calls with frames go to the vision model; text-only calls to the judge.
+    if model is None and images:
+        model = vlm_model_name()
     content: list[dict] = [{"type": "text", "text": prompt}]
     for path in images or []:
         content.append({"type": "text", "text": f"[image: {Path(path).stem}]"})
         content.append(image_part(Path(path)))
+    model = model or judge_model_name()
     runnable = chat(model, temperature).with_structured_output(schema, include_raw=True, method="json_schema")
-    payload = call_with_retry(lambda: runnable.invoke([HumanMessage(content=content)]))
+    started = time.monotonic()
+    payload = call_with_retry(
+        lambda: runnable.invoke([HumanMessage(content=content)]),
+        model=model,
+        est_tokens=estimate_tokens(prompt, len(images or [])),
+    )
     raw, parsed, err = payload["raw"], payload["parsed"], payload["parsing_error"]
+    log_usage(model, "vision" if images else "text", len(images or []), raw, time.monotonic() - started)
     if parsed is not None:
         return parsed
     text = raw.content if isinstance(raw.content, str) else str(raw.content)

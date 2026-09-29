@@ -67,7 +67,7 @@ uv run python scripts/export_to_web.py --all
 
 `eval.run` copies `inputs/<model>/world.html` into `outputs/<model>/`, captures views if any selected test needs them (reused while `world.html` is unchanged), runs the tests, and writes `validation.json`. Direct `uv run python tests/WC00N/...` skips LangSmith.
 
-Capture needs Node (`npx chrome-devtools-mcp`). Judges use `CAPTURE_MODEL`, falling back to `WC002_MODEL`.
+Capture needs Node (`npx chrome-devtools-mcp`). Judging settings live in `eval/judge.yaml`: which model does text judging, calls with images, and navigation; each model's rate limits (requests/min, input tokens/min, requests/day); and the call hyperparameters. `.env` holds only the API keys. A missing or unusable setting stops the run with a clear message rather than scoring anything.
 
 ## Layout
 

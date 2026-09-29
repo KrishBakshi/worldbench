@@ -444,9 +444,43 @@ property of the world.
       is not trusted**: on kimi-k-3 it saved the volcano as "Backwater
       Swamp" at confidence 1.0 — judges re-confirm `shows_biome`.
     - `judge.py` — the shared per-biome visual item judge (WC003/WC004).
-    - `llm.py` — judge model (`CAPTURE_MODEL` → `WC002_MODEL`), images
-      downscaled to 896px JPEG. `gemini-3.5-flash-lite` ignores
-      `temperature` (fixed sampling), so judges are not bit-repeatable.
+    - `llm.py` — the judge client, images downscaled to 896px JPEG.
+      Generation is separate and stays on OpenRouter. **Every judge
+      setting lives in `eval/judge.yaml`** (or the file `JUDGE_CONFIG`
+      names), nothing in code: `roles` (which model does text-only judging,
+      calls with images, navigation, WC002's classify/extract (`extract`)
+      and the WC003–WC005 code probes (`probe`)), per-model `limits` (requests/min,
+      input tokens/min, requests/day), the quota-day timezone, `call`
+      hyperparameters (output-token cap, image width, retry counts, the
+      pre-call token-estimate factors) and `navigator` (step budget, frame
+      width). `.env` holds only API keys. A missing file or value stops the
+      run with a message naming it (`JudgeConfigError` at load,
+      `JudgeUnavailable` at call time) — never a silent built-in default.
+      - **Rate limiting is per model, enforced before every call:** a
+        60-second sliding window checked against both `rpm` and `tpm` (the
+        call's input size is estimated first, then replaced by the real
+        count from the reply), plus a daily count in
+        `outputs/.judge_daily.json` (file-locked, shared across runs,
+        keyed by the provider's quota day) that stops the run at `rpd`.
+        Every attempt counts, retries included. Roles sharing a model share
+        its counters. `invoke_structured` routes a call with images to the
+        `vlm` role unless the caller names a model.
+      - Brief server errors (500/502/503/504, timeouts) get
+        `call.max_transient_retries` spaced retries on the same model; a
+        daily-quota error is a `JudgeUnavailable`, not something to retry.
+      - `JUDGE_USAGE_LOG=<file>` (off by default) appends one JSON line per
+        judge call / navigator step: model, role, images, input/output
+        tokens, seconds — measure before optimising cost.
+      - **`JudgeUnavailable` stops the run.** 401/402/403, or an unknown
+        model id, means no later judge call can succeed. It used to be
+        swallowed by the per-item catches ("one broken biome must not lose
+        the other nine"): with credits exhausted, capture took screenshots
+        and motion bursts for all ten biomes that no model would ever
+        judge. Now it latches (every later call raises instantly, no
+        network), capture/preview/validate and each test's per-item catch
+        let it through, and `eval.run` prints one line and exits 2 with
+        `validation.json` untouched. Measured: a fresh capture stops in
+        2.5s with 0 screenshots; a WC000 run in 1.5s.
   - `evidence_agent.py` — `hunt(html, biome=, aliases=, feature=,
     visual_hint=)`: an agentic evidence hunter (LangChain `create_agent` +
     `harness/code_tools.py`) for **one item**. A one-shot probe reads the

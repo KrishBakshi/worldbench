@@ -4,7 +4,7 @@ Every code probe (WC003/WC004/WC005) quotes the code that builds an item, and
 the graders accept a quote only if `evidence.in_source` finds it, line by
 line. That check is what stops invented code from scoring, so it stays
 strict. But a probe can find the right code and still copy it badly. Seen on
-kimi-k-3 WC005 (probe on a newer text model): three features the world
+a real WC005 probe run: three features the world
 really has scored 0 because the quote
   - joined separate lines into one: lines 799, 801, 802 of the sun orbit
     quoted as `const sa=...; const sd=...; sunMesh.position...`, or

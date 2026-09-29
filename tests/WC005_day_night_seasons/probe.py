@@ -17,6 +17,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from harness.status import log  # noqa: E402
+from eval.capture.llm import probe_model_name  # noqa: E402
 
 
 def strip_html(html_path: str) -> str:
@@ -31,4 +32,4 @@ def probe_cycle(html_path: str, model: str | None = None) -> CycleReport:
     js = strip_html(html_path)
     templates = load_templates()
     prompt = load_prompt().replace("{TEMPLATES}", json.dumps(templates, indent=2)).replace("{SOURCE}", js)
-    return invoke_structured(CycleReport, prompt, model)
+    return invoke_structured(CycleReport, prompt, model=probe_model_name(model))

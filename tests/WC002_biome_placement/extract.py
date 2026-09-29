@@ -4,8 +4,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+if str(Path(__file__).resolve().parents[2]) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from llm import ClassifiedBiomeJS, ExtractedGraph, invoke_structured, load_prompt
+
+from eval.capture.llm import extract_model_name  # noqa: E402
 
 BIOME_LABELS = {
     "mountains": "Snow Mountains",
@@ -26,5 +30,5 @@ def extract_graph(classified: ClassifiedBiomeJS, model: str | None = None) -> Ex
     return invoke_structured(
         ExtractedGraph,
         prompt + "\n\nBIOMES:\n" + classified.model_dump_json(),
-        model,
+        model=extract_model_name(model),
     )

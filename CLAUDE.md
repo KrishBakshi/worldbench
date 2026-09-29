@@ -679,3 +679,19 @@ property of the world.
   was built to avoid.
 - Python via **uv** (`pyproject.toml` / `uv.lock`) — run scripts with
   `uv run python <path>`, not a bare venv/pip.
+- **Commit messages start with a lowercase type prefix and a colon:**
+  `add:` (something new: a file, test, check, feature), `fix:` (a bug
+  fix), `update:` (a change to existing behaviour, code or docs). Then a
+  short plain summary, e.g. `add: deterministic probe for water support`,
+  `fix: capture reused a manifest with failed episodes`, `update: WC004
+  scores motion from bursts`. Use the same lowercase `word:` form in the
+  rare case none of the three fits (e.g. `remove:`). Commits made before
+  this rule (sentence-style subjects like `Add a shared capture stage…`)
+  stay as they are; the rule applies from here on. Commit only when the
+  user says to.
+- **No hard-coded judge settings, and no provider names in docs.** Model
+  ids, rate limits, quotas and call hyperparameters go in
+  `eval/judge.yaml`; secrets go in `.env`. Code reads them and carries no
+  fallback values. README, CLAUDE.md, test READMEs and published pages
+  say "the judge model" and never name the judge models or their
+  provider (models under *test* can be named).

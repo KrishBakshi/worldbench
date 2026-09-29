@@ -516,6 +516,20 @@ property of the world.
     tolerant of a garbled line *tail* — ≥85% prefix — not of invented
     lines). Before this, graders only checked a quote *looked* like code,
     so a plausible invented `scene.add(new THREE.Mesh(palmGeo, …))` scored.
+  - `quote_repair.py` — makes a probe's quotes real source lines before
+    grading (WC003/WC004/WC005 probes). Seen on kimi-k-3 WC005: the probe
+    found the right code but **joined separate lines into one** or
+    **abbreviated with `...`**, so `in_source` rejected sun orbit, season
+    cycle and moon — 6 points, 14 → 8, for features the world has. Three
+    layers: `QUOTE_RULES` appended to every probe prompt; `validate()` flags
+    `*evidence` fields not in the source or containing an ellipsis;
+    repair — statement fragments located in the whitespace-free source and
+    replaced by the lines they cover (no model), else the `repair` role
+    (judge.yaml) picks **line numbers only** from a numbered window, and the
+    quote is rebuilt from the file, so it can choose lines but never write
+    code. A quote that can't be repaired stays and fails as before —
+    `in_source` itself is not loosened. On the saved kimi-k-3 report: 8 → 13
+    with no model call. Logged per quote and traced (`quote_repair::*`).
   - `loader.py` — `load_check(module_path, function_name)`: dynamically
     imports a check function from a test's own script by file path (not
     package import, since each test's checks live in that test's own

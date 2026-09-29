@@ -377,6 +377,11 @@ def probe_model_name(override: str | None = None) -> str:
     return override or _role_model("probe", "the model for the WC003-WC005 code probes")
 
 
+def repair_model_name(override: str | None = None) -> str:
+    """eval/quote_repair.py: picks the source lines a badly copied quote meant."""
+    return override or _role_model("repair", "the model that repairs probe quotes")
+
+
 def judge_model_name(override: str | None = None) -> str:
     """The model for text-only judge calls."""
     return override or _role_model("judge", "the model for text-only judge calls")

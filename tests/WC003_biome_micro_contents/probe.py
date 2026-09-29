@@ -18,6 +18,7 @@ if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from harness.status import log  # noqa: E402
 from eval.capture.llm import JudgeUnavailable, probe_model_name  # noqa: E402
+from eval.quote_repair import QUOTE_RULES, repair_quotes  # noqa: E402
 
 
 def strip_html(html_path: str) -> str:
@@ -34,7 +35,9 @@ def probe_biome(js: str, biome_id: str, model: str | None = None) -> BiomeMicroR
         .replace("{REQUIREMENTS}", json.dumps(requirements, indent=2))
         .replace("{SOURCE}", js)
     )
-    return invoke_structured(BiomeMicroReport, prompt, model=probe_model_name(model))
+    report = invoke_structured(BiomeMicroReport, prompt + QUOTE_RULES, model=probe_model_name(model))
+    repair_quotes(report, js, label=biome_id)
+    return report
 
 
 def probe_all(

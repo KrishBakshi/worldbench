@@ -64,7 +64,7 @@ $$
 C(x) = \neg\text{notInScope}(q_L) \wedge \text{looks\_ok} \wedge \neg\text{hint}(q_L) \wedge V(q_L) \wedge V(q_M) \wedge \text{moon}(x) \wedge \text{moves\_ok} \wedge q_M \ne \varnothing \wedge \big(q_M \ne q_L \vee (\neg\text{constructs}(q_M) \wedge \text{perFrame}(q_M))\big) \wedge \neg\text{hint}(q_M) \wedge \text{timeUpdate}(q_M) \wedge \text{ax}(e_x, \text{axis}) \wedge \text{unused}(q_L, q_M)
 $$
 
-- $V$ is the shared quote check (`eval/evidence.py`; full form in the WC000 README).
+- $V$ is the shared quote check (`eval/evidence.py`; full form in the WC001 README).
 - $\text{hint}$ rejects a comment-only quote, a bare token, a lone waypoint, or a legend/HUD row.
 - $\text{timeUpdate}$ is a regex hit for a clock driver (`dt`, `delta`, `time`, `now`, `requestAnimationFrame`, `DAY_LEN`, `SEASON_LEN`, `seasonProgress`, `% 4`, `.intensity =`, `.position.set(`, `.visible =`, …).
 - $\text{ax}$ is axis compatibility, as in WC004.

@@ -88,7 +88,7 @@ $$
 \text{covered}(b) = \text{src}(b) \vee [\,b \in F\,]
 $$
 
-$V(q)$ is the shared quote check (`eval/evidence.py`): the quote, stripped of whitespace, must be in the stripped source, or at least 80% of its lines (each $\ge 8$ characters) must match, where a line matches when at least 85% of it, from its start, is verbatim in the source. The WC000 README has the full form.
+$V(q)$ is the shared quote check (`eval/evidence.py`): the quote, stripped of whitespace, must be in the stripped source, or at least 80% of its lines (each $\ge 8$ characters) must match, where a line matches when at least 85% of it, from its start, is verbatim in the source. The WC001 README has the full form.
 
 ### Graph
 

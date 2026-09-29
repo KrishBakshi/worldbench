@@ -14,7 +14,7 @@ earns nothing, so the judge cannot talk a world into points.
 longer drive the island gate in eval/score.py: the frames decide that
 (visual_check.py's ocean_void).
 
-    uv run python tests/WC000_voxel_world/voxel_judge.py [world.html] [out_dir]
+    uv run python tests/WC001_voxel_world/voxel_judge.py [world.html] [out_dir]
 """
 
 from __future__ import annotations
@@ -152,8 +152,8 @@ if __name__ == "__main__":
     from harness.status import log
 
     html_path = sys.argv[1] if len(sys.argv) > 1 else "inputs/opus-5/world.html"
-    out_dir = Path(sys.argv[2]) / f"{Path(html_path).parent.name}__WC000_voxel_world" if len(sys.argv) > 2 else None
-    log(f"WC000  voxel judge  {html_path}")
+    out_dir = Path(sys.argv[2]) / f"{Path(html_path).parent.name}__WC001_voxel_world" if len(sys.argv) > 2 else None
+    log(f"WC001  voxel judge  {html_path}")
     result = check_voxel_judge(html_path, out_dir)
     print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
     print(result.reason)

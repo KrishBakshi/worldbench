@@ -48,7 +48,7 @@ $$
 
 - $\text{notInScope}$: the evidence says "not in … scope".
 - $\text{hint}$: after dropping comments, the evidence is empty, a bare biome token (`BIOMES.x.id`), a lone `{x:…, z:…}` waypoint, or a legend/HUD row (`label:` with `weather:`/`color:` and no world call).
-- $V$ is the shared quote check (`eval/evidence.py`; full form in the WC000 README): the whitespace-free quote is in the whitespace-free source, or at least 80% of its lines (each $\ge 8$ chars) match, where a line matches when at least 85% of it, from its start, is verbatim in the source.
+- $V$ is the shared quote check (`eval/evidence.py`; full form in the WC001 README): the whitespace-free quote is in the whitespace-free source, or at least 80% of its lines (each $\ge 8$ chars) match, where a line matches when at least 85% of it, from its start, is verbatim in the source.
 
 ### One biome $b$
 

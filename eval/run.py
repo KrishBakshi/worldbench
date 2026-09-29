@@ -5,10 +5,10 @@ LangSmith is on this path only (see eval/audit.py). Direct
 
 Usage:
     uv run python -m eval.run <model>
-        Full ladder: WC000 → WC005 against inputs/<model>/world.html
+        Full ladder: WC001 → WC005 against inputs/<model>/world.html
 
-    uv run python -m eval.run <model> --test WC000 --test WC001
-    uv run python -m eval.run <model> --test WC000,WC001
+    uv run python -m eval.run <model> --test WC001 --test WC002
+    uv run python -m eval.run <model> --test WC001,WC002
         A subset, still through eval. Existing scores for other tests are kept.
 
     uv run python -m eval.run <model>__WC002_biome_placement
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> None:
         "--test",
         action="append",
         metavar="WC",
-        help="run one test (WC000 or WC000_voxel_world). Repeat or comma-separate. Omit to run the full ladder.",
+        help="run one test (WC001 or WC001_voxel_world). Repeat or comma-separate. Omit to run the full ladder.",
     )
     args = parser.parse_args(argv)
 

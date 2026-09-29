@@ -1,8 +1,8 @@
-# WC000 Voxel island
+# WC001 Voxel island
 
 Is this a cube-built island in a void, with water that sits on a seabed, and does it look right from every side?
 
-![WC000 scoring](graph.svg)
+![WC001 scoring](graph.svg)
 
 ## Flow
 
@@ -57,7 +57,7 @@ A first-pass flag is re-voted twice and kept only on a majority. The score is `2
 
 ## Scoring formulas
 
-WC000 is worth **40** = source judge (20) + visual bug-hunt (20). No logarithms or exponentials are used anywhere; every score is a weighted sum or a ratio, rounded to 2 decimals.
+WC001 is worth **40** = source judge (20) + visual bug-hunt (20). No logarithms or exponentials are used anywhere; every score is a weighted sum or a ratio, rounded to 2 decimals.
 
 ### Quote check (`eval/evidence.py`, shared by every code-evidence test)
 
@@ -104,7 +104,7 @@ $$
 ## Run
 
 ```bash
-uv run python -m eval.run fable --test WC000
-uv run python tests/WC000_voxel_world/voxel_judge.py path/to/world.html [out_dir]
-uv run python tests/WC000_voxel_world/visual_check.py outputs/fable/world.html [out_dir]
+uv run python -m eval.run fable --test WC001
+uv run python tests/WC001_voxel_world/voxel_judge.py path/to/world.html [out_dir]
+uv run python tests/WC001_voxel_world/visual_check.py outputs/fable/world.html [out_dir]
 ```

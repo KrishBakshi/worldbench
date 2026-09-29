@@ -32,7 +32,7 @@ reported once, as "ocean_void" in `missing`, when at least OCEAN_VOID_VIEWS
 orbit views agree. WC003 charges the delta biome for it; the island gate in
 eval/score.py reads it for WC004.
 
-    uv run python tests/WC000_voxel_world/visual_check.py [world.html] [out_dir]
+    uv run python tests/WC001_voxel_world/visual_check.py [world.html] [out_dir]
 """
 
 from __future__ import annotations
@@ -182,8 +182,8 @@ if __name__ == "__main__":
     from harness.status import log
 
     html_path = sys.argv[1] if len(sys.argv) > 1 else "outputs/opus-5/world.html"
-    out_dir = Path(sys.argv[2]) / f"{Path(html_path).parent.name}__WC000_voxel_world" if len(sys.argv) > 2 else None
-    log(f"WC000  visual  {html_path}")
+    out_dir = Path(sys.argv[2]) / f"{Path(html_path).parent.name}__WC001_voxel_world" if len(sys.argv) > 2 else None
+    log(f"WC001  visual  {html_path}")
     result = check_visual_bughunt(html_path, out_dir)
     print(f"passed={result.passed} score={result.details['score']}/{result.details['max_score']}")
     print(result.reason)

@@ -24,7 +24,7 @@ TESTS_DIR = REPO_ROOT / "tests"
 
 
 def discover_tests() -> list[dict]:
-    """Every WC* folder with a test.yaml, in ladder order (WC000, WC002, …)."""
+    """Every WC* folder with a test.yaml, in ladder order (WC001, WC002, …)."""
     tests = []
     for yaml_path in sorted(TESTS_DIR.glob("WC*/test.yaml")):
         data = yaml.safe_load(yaml_path.read_text()) or {}

@@ -139,7 +139,7 @@ def write_wc002(path: Path) -> None:
     _write(path, _svg(w, h, body))
 
 
-def write_wc000(path: Path) -> None:
+def write_wc001(path: Path) -> None:
     w, h = 800, 520
     lattice = [
         ("cube_primitive", "Cube primitive", 1),
@@ -156,7 +156,7 @@ def write_wc000(path: Path) -> None:
         ("water_bed", "Seabed under still water", 5),
         ("grounded_props", "Props on the land", 3),
     ]
-    body = [_text(16, 28, "WC000  LLM reads source (20, probability x points)  +  VLM bug-hunt on frames (20)", size=14, anchor="start")]
+    body = [_text(16, 28, "WC001  LLM reads source (20, probability x points)  +  VLM bug-hunt on frames (20)", size=14, anchor="start")]
     body.append(_text(200, 64, "Source judge: lattice  7", size=13, fill=MUTED))
     body.append(_text(600, 64, "Source judge: island physics  13", size=13, fill=MUTED))
     for i, (_id, label, pts) in enumerate(lattice):
@@ -236,7 +236,7 @@ def write_ladder(path: Path) -> None:
     w, h = 800, 520
     rows = [
         ("CAP", "Capture", "", "Daytime preview + agent-framed views"),
-        ("WC000", "Voxel island", "40", "Source judge + VLM bug-hunt"),
+        ("WC001", "Voxel island", "40", "Source judge + VLM bug-hunt"),
         ("WC002", "Coverage + placement", "20", "Covered, then neighbors and elevation"),
         ("WC003", "Micro-contents", "100", "Code + frames: what each biome holds"),
         ("WC004", "Physics", "100", "Code + frames: look; code: motion"),
@@ -257,7 +257,7 @@ def write_ladder(path: Path) -> None:
 def main() -> None:
     tests = REPO / "tests"
     write_ladder(REPO / "docs" / "ladder.svg")
-    write_wc000(tests / "WC000_voxel_world" / "graph.svg")
+    write_wc001(tests / "WC001_voxel_world" / "graph.svg")
     write_wc002(tests / "WC002_biome_placement" / "graph.svg")
     write_probe_flow(
         tests / "WC003_biome_micro_contents" / "graph.svg",
@@ -266,7 +266,7 @@ def main() -> None:
     )
     write_probe_flow(
         tests / "WC004_biome_rendering" / "graph.svg",
-        "WC004  look: code + frames. Motion: code. Delta dropped if WC000 finds no seabed.",
+        "WC004  look: code + frames. Motion: code. Delta dropped if WC001 finds no seabed.",
         "grade look/move",
     )
     write_wc005(tests / "WC005_day_night_seasons" / "graph.svg")

@@ -20,7 +20,7 @@ flowchart TD
     vis --> grade
     mot --> grade
     grade --> score["10 points per biome, max 100"]
-    score --> gate["WC000 no seabed: drop delta points"]
+    score --> gate["WC001 no seabed: drop delta points"]
 ```
 
 1. The code probe works as before: each biome's `prompts/<id>/prompt.md` plus `templates.json` returns look evidence, motion evidence and an axis. Both quotes must really appear in the source.
@@ -32,7 +32,7 @@ flowchart TD
    - Fauna and other small movers are scored on code motion alone. They were "not visible" in most bursts, and the VLM also invented motion for them. Only weather, water and terrain (lava, glow) get a motion verdict from frames.
 5. Forbidden entities found by either the code or the frames subtract. A biome absent from both scores 0. An entity may carry a `weight`; the default is 1.
 
-If WC000's bug-hunt sees `ocean_void`, the Coastal Delta / Ocean points are removed from this total.
+If WC001's bug-hunt sees `ocean_void`, the Coastal Delta / Ocean points are removed from this total.
 
 Axes the grader accepts: falling, blowing, rising, still, flowing, grounded, pulsing, n/a. Close aliases map (down → falling, wind → blowing).
 
@@ -42,7 +42,7 @@ WC004 is worth **100** (10 biomes × 10 points). The arithmetic is linear: neste
 
 ### Shared pieces
 
-- $V(q)$ is the quote check (`eval/evidence.py`; full form in the WC000 README). The whitespace-free quote must be in the whitespace-free source, or at least 80% of its lines (each $\ge 8$ chars) must match, where a line matches when at least 85% of it, from its start, is verbatim in the source.
+- $V(q)$ is the quote check (`eval/evidence.py`; full form in the WC001 README). The whitespace-free quote must be in the whitespace-free source, or at least 80% of its lines (each $\ge 8$ chars) must match, where a line matches when at least 85% of it, from its start, is verbatim in the source.
 - $\text{hint}(q)$: after dropping comments, the quote is empty, a bare biome token, a lone `{x, z}` waypoint, or a legend/HUD row.
 - **Axis compatibility** $\text{ax}(e, r)$, for expected $e$ and reported $r$, after aliasing (`down`/`fall`/`drift`→falling, `wind`/`sideways`→blowing, `up`→rising, `glow`/`pulse`→pulsing, `hang`→still, `walk`/`idle`→grounded, `static`/`none`→n/a):
 
@@ -118,7 +118,7 @@ $$
 \text{score}_\text{WC004} = \sum_b s_b \;-\; [\,\text{ocean\_void}\,] \cdot s_\text{delta} \;\ge\; 0
 $$
 
-`ocean_void` comes from WC000's bug-hunt: at least 2 orbit frames show water running out over the void. When the gate fires, `eval/score.py` subtracts the delta biome's WC004 points and marks the test not passed. The test **passes** only when no biome has a lost row.
+`ocean_void` comes from WC001's bug-hunt: at least 2 orbit frames show water running out over the void. When the gate fires, `eval/score.py` subtracts the delta biome's WC004 points and marks the test not passed. The test **passes** only when no biome has a lost row.
 
 Re-score a saved probe:
 

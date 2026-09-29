@@ -20,12 +20,12 @@ property of the world.
   - `test.yaml` may set `needs_capture: true`: the test reads the shared
     capture (below), so `eval/validate.py` captures before running it.
   - Ladder (max 280, every max fixed so totals compare across models):
-    WC000 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
+    WC001 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
     coverage + placement 20, WC003 micro-contents 100, WC004 physics 100,
     WC005 temporal cycles 20. **The old keyword biome-coverage test is gone**:
     it was folded into WC002 and deleted — every scored model got 10/10
     and a one-line fake (`const pine=1,...,lava=9`) got 10/10 too.
-  - **WC000's regex voxel check (`voxel_check.py`) was removed**, not tuned:
+  - **WC001's regex voxel check (`voxel_check.py`) was removed**, not tuned:
     43 of its 83 pattern branches matched exactly one model's file, and
     consistently renaming variables (behaviour-preserving) moved scores by
     up to 14/38. `voxel_judge.py` asks an LLM for a probability + verbatim
@@ -503,7 +503,7 @@ property of the world.
         network), capture/preview/validate and each test's per-item catch
         let it through, and `eval.run` prints one line and exits 2 with
         `validation.json` untouched. Measured: a fresh capture stops in
-        2.5s with 0 screenshots; a WC000 run in 1.5s.
+        2.5s with 0 screenshots; a WC001 run in 1.5s.
   - `evidence_agent.py` — `hunt(html, biome=, aliases=, feature=,
     visual_hint=)`: an agentic evidence hunter (LangChain `create_agent` +
     `harness/code_tools.py`) for **one item**. A one-shot probe reads the
@@ -580,7 +580,7 @@ property of the world.
     `report.json`-shaped dict. `scripts/dry_run_regex_patterns.py` already
     uses this to print `score/max_score` per world, not just pass/fail.
     `apply_island_gate()` drops the delta biome's points on **WC004 only**
-    when any WC000 check's `missing` has `water_bed`, `water_physics` or
+    when any WC001 check's `missing` has `water_bed`, `water_physics` or
     `ocean_void`. WC003 is not gated: it judges the seabed from its own
     frames and zeroes delta itself — gating both would charge it twice.
   - `run.py` — **real CLI entrypoint.** `uv run python -m eval.run

@@ -58,7 +58,7 @@ def score_report(results: dict[str, object]) -> dict:
 
 
 # A hovering ocean is not a sea. WC004 still counts inland biomes, but Coastal
-# Delta / Ocean (delta) points are removed when WC000's bug-hunt sees an ocean
+# Delta / Ocean (delta) points are removed when WC001's bug-hunt sees an ocean
 # sheet over the void (ocean_void, >= 2 orbit views agree).
 # Only the frames decide this. The source judge's water_bed / water_physics
 # used to gate too, and the two disagreed both ways (fable: source said no
@@ -73,11 +73,11 @@ SEA_BIOME_ID = "delta"
 CONTENT_PREFIXES = ("WC004_",)
 
 
-def _wc000_lost_ids(records: dict[str, dict]) -> set[str]:
-    """Union of `missing` across every WC000 check (voxel judge + bug-hunt)."""
+def _wc001_lost_ids(records: dict[str, dict]) -> set[str]:
+    """Union of `missing` across every WC001 check (voxel judge + bug-hunt)."""
     lost: set[str] = set()
     for key, rec in records.items():
-        if "WC000_" not in key or not isinstance(rec, dict):
+        if "WC001_" not in key or not isinstance(rec, dict):
             continue
         details = rec.get("details") or {}
         missing = details.get("missing")
@@ -98,7 +98,7 @@ def _sea_biome_score(rec: dict) -> float:
 
 def apply_island_gate(records: dict[str, dict]) -> bool:
     """Drop ocean/sea (delta) points on WC004 when water has no seafloor."""
-    gated = bool(_wc000_lost_ids(records) & SEA_GATE_IDS)
+    gated = bool(_wc001_lost_ids(records) & SEA_GATE_IDS)
     for key, rec in records.items():
         if not isinstance(rec, dict) or not key.startswith(CONTENT_PREFIXES):
             continue

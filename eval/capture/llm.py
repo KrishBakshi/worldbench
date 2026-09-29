@@ -10,9 +10,18 @@ each role, each model's rate limits, and the call hyperparameters — lives in
 eval/judge.yaml (or the file JUDGE_CONFIG names). Nothing is hard-coded here:
 a missing file or value stops the run with a message naming it.
 
-Three roles (judge.yaml `roles`): `judge` for text-only calls (code probes,
-source judge, WC002, the clock patch), `vlm` for every call carrying images,
-`nav` for the navigator agent. Roles that share a model share its limits.
+Roles (judge.yaml `roles`): `judge` for other text-only calls (source judge,
+clock patch, evidence agent), `vlm` for every call carrying images, `nav` for
+the navigator agent, `extract` for WC002 classify/extract, `probe` for the
+WC003-WC005 code probes, `repair` for fixing their badly copied quotes. Roles that share a model share its limits.
+
+Fallbacks (judge.yaml `fallbacks`, optional per model): when a model is still
+overloaded after its own retries (503 / 500 / timeouts), invoke_structured
+asks its fallback instead. Only server-side unavailability falls back: a bad
+key, a spent quota or an unparseable reply is not the model being busy, and a
+different model would only hide it. Every fallback is logged, written to the
+usage log, and traced in LangSmith as its own run (judge::fallback) under the
+call's judge::invoke_structured run.
 """
 
 from __future__ import annotations
@@ -31,6 +40,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langsmith import get_current_run_tree, traceable
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
@@ -94,6 +104,13 @@ def limits_for(model: str) -> dict[str, int]:
         _UNAVAILABLE = f"{CONFIG_FILE.name} has no complete limits (rpm, tpm, rpd) for model {model!r}"
         raise JudgeUnavailable(_UNAVAILABLE)
     return {k: int(lim[k]) for k in ("rpm", "tpm", "rpd")}
+
+
+def fallback_for(model: str) -> str | None:
+    """judge.yaml `fallbacks.<model>`: who answers when `model` is overloaded.
+    Optional: no entry means no fallback, and the error stands."""
+    fb = (CONFIG.get("fallbacks") or {}).get(model)
+    return str(fb) if fb else None
 
 
 def estimate_tokens(text: str = "", images: int = 0) -> int:
@@ -397,7 +414,7 @@ def image_part(path: Path, width: int = JUDGE_IMAGE_WIDTH) -> dict:
     return {"type": "image_url", "image_url": f"data:image/jpeg;base64,{b64}"}
 
 
-def log_usage(model: str, role: str, n_images: int, message, seconds: float) -> None:
+def log_usage(model: str, role: str, n_images: int, message, seconds: float, fallback_from: str | None = None) -> None:
     """Append one judge call's token use to $JUDGE_USAGE_LOG (JSON lines), if set.
 
     Off unless the env var names a file. Exists so cost/efficiency decisions
@@ -417,6 +434,8 @@ def log_usage(model: str, role: str, n_images: int, message, seconds: float) -> 
         "output_tokens": usage.get("output_tokens"),
         "seconds": round(seconds, 2),
     }
+    if fallback_from:
+        row["fallback_from"] = fallback_from
     try:
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(row) + "\n")
@@ -424,6 +443,56 @@ def log_usage(model: str, role: str, n_images: int, message, seconds: float) -> 
         pass
 
 
+def _trace_inputs(inputs: dict) -> dict:
+    """What a judge call's LangSmith run records: sizes and ids, not the whole
+    source or base64 frames (those are in the check's own artifacts)."""
+    prompt = inputs.get("prompt") or ""
+    images = inputs.get("images") or []
+    schema = inputs.get("schema")
+    return {
+        "schema": getattr(schema, "__name__", str(schema)),
+        "model": inputs.get("model"),
+        "images": [Path(p).name for p in images],
+        "prompt_chars": len(prompt),
+        "prompt_head": prompt[:400],
+        "temperature": inputs.get("temperature"),
+    }
+
+
+def _answer(schema, content, model, temperature, est_tokens):
+    """One model's answer under its own caps and retries."""
+    runnable = chat(model, temperature).with_structured_output(schema, include_raw=True, method="json_schema")
+    return call_with_retry(
+        lambda: runnable.invoke([HumanMessage(content=content)]),
+        model=model,
+        est_tokens=est_tokens,
+    )
+
+
+@traceable(
+    name="judge::fallback",
+    run_type="chain",
+    process_inputs=lambda i: {k: i[k] for k in ("primary", "fallback", "reason", "policy")},
+)
+def _fallback(primary, fallback, reason, policy, schema, content, temperature, est_tokens):
+    """The fallback model answers a call the primary could not serve.
+
+    Its own LangSmith run, so a trace shows which model was asked first, why
+    it failed, and which model's answer the score was built on."""
+    from harness.status import log
+
+    log(f"      fallback  {primary} unavailable after retries; asking {fallback}  ({reason[:120]})")
+    return _answer(schema, content, fallback, temperature, est_tokens)
+
+
+_FALLBACK_POLICY = (
+    "primary retried call.max_transient_retries times on 5xx/timeout, still unavailable; "
+    "judge.yaml fallbacks.<primary> answers instead. Not used for bad key, spent quota "
+    "or parse errors."
+)
+
+
+@traceable(name="judge::invoke_structured", run_type="chain", process_inputs=_trace_inputs)
 def invoke_structured(
     schema: type[BaseModel],
     prompt: str,
@@ -444,15 +513,35 @@ def invoke_structured(
         content.append({"type": "text", "text": f"[image: {Path(path).stem}]"})
         content.append(image_part(Path(path)))
     model = model or judge_model_name()
-    runnable = chat(model, temperature).with_structured_output(schema, include_raw=True, method="json_schema")
+    est = estimate_tokens(prompt, len(images or []))
+    answered_by, fallback_from, reason = model, None, None
     started = time.monotonic()
-    payload = call_with_retry(
-        lambda: runnable.invoke([HumanMessage(content=content)]),
-        model=model,
-        est_tokens=estimate_tokens(prompt, len(images or [])),
-    )
+    try:
+        payload = _answer(schema, content, model, temperature, est)
+    except JudgeUnavailable:
+        raise
+    except Exception as exc:
+        fb = fallback_for(model)
+        if not (fb and _is_transient(exc)):
+            raise
+        reason = str(exc)[:300]
+        started = time.monotonic()
+        payload = _fallback(
+            primary=model, fallback=fb, reason=reason, policy=_FALLBACK_POLICY,
+            schema=schema, content=content, temperature=temperature, est_tokens=est,
+        )
+        answered_by, fallback_from = fb, model
+    run = get_current_run_tree()
+    if run is not None:
+        run.metadata.update({
+            "requested_model": model,
+            "answered_by": answered_by,
+            "fallback_used": fallback_from is not None,
+            **({"fallback_reason": reason} if reason else {}),
+        })
     raw, parsed, err = payload["raw"], payload["parsed"], payload["parsing_error"]
-    log_usage(model, "vision" if images else "text", len(images or []), raw, time.monotonic() - started)
+    log_usage(answered_by, "vision" if images else "text", len(images or []), raw,
+              time.monotonic() - started, fallback_from=fallback_from)
     if parsed is not None:
         return parsed
     text = raw.content if isinstance(raw.content, str) else str(raw.content)

@@ -468,6 +468,18 @@ property of the world.
       - Brief server errors (500/502/503/504, timeouts) get
         `call.max_transient_retries` spaced retries on the same model; a
         daily-quota error is a `JudgeUnavailable`, not something to retry.
+      - **Fallbacks** (`fallbacks:` in the yaml, optional per model): a
+        model still overloaded after its transient retries is answered by
+        its fallback instead. Added because the WC002 extract model
+        returned `503 UNAVAILABLE ... high demand` and the whole check
+        scored 0/0. Only 5xx/timeouts fall back — a bad key, a spent quota
+        or an unparseable reply is not the model being busy, and another
+        model would hide it. Each fallback prints a `fallback` line, tags
+        its usage-log row `fallback_from`, and is traced: the call's
+        `judge::invoke_structured` run carries `requested_model` /
+        `answered_by` / `fallback_used` metadata, with a `judge::fallback`
+        child run (primary, fallback, reason, policy) holding the fallback
+        model's call.
       - `JUDGE_USAGE_LOG=<file>` (off by default) appends one JSON line per
         judge call / navigator step: model, role, images, input/output
         tokens, seconds — measure before optimising cost.

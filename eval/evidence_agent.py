@@ -18,6 +18,21 @@ write, and the real file is hash-checked before and after).
 Its answer is not trusted either: every quoted line must really be in the
 source (eval/evidence.py), exactly like the one-shot probes'. The agent can
 only *find* evidence faster; it can't make any up.
+
+Bounded, and never thrown away. On two real worlds every hunt hit the step
+limit and returned nothing, ~50 judge calls per world: one re-ran `grep -n "biome\\[i\\]" world.html | grep "1"` seven times
+in a row after it had already read the right river code, and the
+GraphRecursionError discarded everything it had read. Now:
+  - a repeated identical tool call is not run again; the agent is told it
+    already has that answer and to try something else or answer;
+  - after judge.yaml evidence_agent.max_tool_calls calls, tools stop running
+    and the agent is told to give its final answer from what it has read;
+  - if it still hits the hard step limit (recursion_limit) or ends without
+    a structured answer, one salvage call turns the tool results it did
+    collect into a verdict, instead of losing them;
+  - it is told biomes are often numbered or positioned (BIO[3], cx/cz), and
+    given the biome's placement code from WC002 when that run left it.
+The salvaged verdict goes through the same in_source check as any other.
 """
 
 from __future__ import annotations
@@ -29,6 +44,7 @@ from pathlib import Path
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_model_call
 from langchain_core.messages import HumanMessage
+from langgraph.errors import GraphRecursionError
 from langsmith import traceable
 from pydantic import BaseModel, Field
 
@@ -36,15 +52,18 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from eval.capture.llm import call_with_retry, chat  # noqa: E402
+from eval.capture.llm import call_with_retry, chat, invoke_structured, setting  # noqa: E402
 from eval.evidence import in_source, normalize, strip_to_js  # noqa: E402
 from harness.code_tools import ReadOnlySource  # noqa: E402
 from harness.status import log  # noqa: E402
 
-# The agent is a judge, not the model under test, so its spend is bounded:
-# one LangGraph step is one model call or one tool call. 40 is ~15-20 tool
-# calls, enough to search, read, follow a helper, and confirm.
-RECURSION_LIMIT = 40
+# The agent is a judge, not the model under test, so its spend is bounded
+# (judge.yaml `evidence_agent:`). One LangGraph step is one model call or one
+# tool call; the recursion limit is only a backstop behind the tool budget.
+MAX_TOOL_CALLS = int(setting("evidence_agent", "max_tool_calls"))
+RECURSION_LIMIT = int(setting("evidence_agent", "recursion_limit"))
+# Salvage prompt: at most this much of the collected tool output.
+SALVAGE_CHARS = 12000
 
 
 class EvidenceVerdict(BaseModel):
@@ -103,6 +122,13 @@ Example 4 — genuinely absent. Feature: "dead bushes".
   Read the biome's flora placement: it places only cacti and rocks.
   found=false, evidence="", explanation says what you searched and read.
 
+Biomes are often not named in code: they may be numbers (BIO[3], case 3:, biome[i]=b1) or regions (cx, cz, a
+radius). If the task gives the biome's placement code, use its coordinates to decide whether the feature's code
+falls in that region; spend at most two calls working out an id mapping.
+
+You have a budget of {max_tool_calls} tool calls. Never repeat a call you already made: its answer will not change.
+When you have read the code that builds the feature, stop and answer.
+
 The rendered frames may be quoted to you as a hint. They can be wrong (a camera can frame the wrong region): confirm
 in code, never from the hint alone. Finish with the structured answer."""
 
@@ -114,19 +140,68 @@ def _judge_rate_limit(request, handler):
     return call_with_retry(lambda: handler(request))
 
 
-def _logged(tools: list, label: str) -> list:
-    """Print every tool call and a one-line result, like every other judge step."""
+class _Budget:
+    """What a hunt has spent and read: tool calls, and each call's result."""
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.calls = 0
+        self.repeats = 0
+        self.over = 0
+        self.seen: dict[str, str] = {}
+
+    def transcript(self) -> str:
+        out, used = [], 0
+        for call, result in self.seen.items():
+            block = f"$ {call}\n{result}\n"
+            if used + len(block) > SALVAGE_CHARS:
+                break
+            out.append(block)
+            used += len(block)
+        return "\n".join(out)
+
+
+def _logged(tools: list, label: str, budget: _Budget) -> list:
+    """Print every tool call and a one-line result, like every other judge step,
+    and enforce the budget: a repeated call isn't run again, and past
+    max_tool_calls no tool runs; the agent is told to answer instead."""
     for t in tools:
         original = t.func
 
         def run(*args, _original=original, _name=t.name, **kwargs):
-            out = _original(*args, **kwargs)
+            call = f"{_name}({', '.join(f'{k}={v!r}' for k, v in sorted(kwargs.items()))})"
+            if call in budget.seen:
+                budget.repeats += 1
+                out = (f"REPEATED CALL: you already ran {call}; its result is above and will not change. "
+                       "Try a different search, or give your final answer now.")
+            elif budget.calls >= budget.limit:
+                budget.over += 1
+                out = (f"TOOL BUDGET SPENT ({budget.limit} calls). Do not call tools again: "
+                       "give your final structured answer now, from the code you have read.")
+            else:
+                budget.calls += 1
+                out = _original(*args, **kwargs)
+                budget.seen[call] = out
             first = out.splitlines()[0] if out else ""
-            log(f"      {label}  {_name}({', '.join(f'{k}={v!r}' for k, v in kwargs.items())}) -> {first[:100]}")
+            log(f"      {label}  {call} -> {first[:100]}")
             return out
 
         t.func = run
     return tools
+
+
+def _salvage(task: str, budget: _Budget, model: str | None, why: str) -> EvidenceVerdict:
+    """One structured call over what the hunt read, when the agent itself
+    ended without an answer. Same verdict schema, same quote check after."""
+    if not budget.seen:
+        return EvidenceVerdict(found=False, explanation=f"{why}; no tool results to judge from")
+    prompt = (
+        SYSTEM_PROMPT.split("Examples (")[0].replace("{max_tool_calls}", str(budget.limit))
+        + f"\nThe search is over ({why}). Decide from ONLY these tool results; quote lines exactly as printed, "
+        "minus the `N: ` prefix.\n\n"
+        + task + "\n\nTOOL RESULTS:\n" + budget.transcript()
+    )
+    return invoke_structured(EvidenceVerdict, prompt, model=model)
 
 
 @traceable(name="evidence_agent::hunt", run_type="chain")
@@ -137,6 +212,7 @@ def hunt(
     aliases: list[str],
     feature: str,
     visual_hint: str | None = None,
+    location_hint: str | None = None,
     model: str | None = None,
 ) -> tuple[EvidenceVerdict, bool]:
     """Investigate one feature in one biome. Returns (verdict, verified):
@@ -150,29 +226,43 @@ def hunt(
         f"Biome: {biome} (source aliases: {', '.join(aliases) or 'unknown'})\n"
         f"Feature: {feature}\n"
         + (f"Hint — the rendered frames appear to show: {visual_hint}\n" if visual_hint else "")
+        + (f"Where the biome is placed (from the layout reading; a lead, not proof): {location_hint}\n"
+           if location_hint else "")
         + "Does world.html build this feature in this biome?"
     )
+    budget = _Budget(MAX_TOOL_CALLS)
+    verdict = None
     with ReadOnlySource(html_path.read_text(encoding="utf-8", errors="ignore")) as source:
         agent = create_agent(
             model=chat(model, temperature=0.0),
-            tools=_logged(source.tools(), label),
-            system_prompt=SYSTEM_PROMPT,
+            tools=_logged(source.tools(), label, budget),
+            system_prompt=SYSTEM_PROMPT.replace("{max_tool_calls}", str(MAX_TOOL_CALLS)),
             middleware=[_judge_rate_limit],
             response_format=EvidenceVerdict,
         )
         log(f"      {label}  start")
-        result = agent.invoke({"messages": [HumanMessage(content=task)]}, config={"recursion_limit": RECURSION_LIMIT})
+        try:
+            result = agent.invoke({"messages": [HumanMessage(content=task)]},
+                                  config={"recursion_limit": RECURSION_LIMIT})
+            verdict = result.get("structured_response")
+            ended = "agent returned no structured answer"
+        except GraphRecursionError:
+            ended = f"step limit ({RECURSION_LIMIT}) reached"
     if hashlib.sha256(html_path.read_bytes()).hexdigest() != before:
         raise RuntimeError(f"{html_path} changed during an evidence hunt — the read-only boundary failed")
 
-    verdict = result.get("structured_response")
+    salvaged = False
     if not isinstance(verdict, EvidenceVerdict):
-        verdict = EvidenceVerdict(found=False, explanation="agent returned no structured answer")
+        log(f"      {label}  {ended}; salvaging a verdict from {len(budget.seen)} tool result(s)")
+        verdict = _salvage(task, budget, model, ended)
+        salvaged = True
     verified = bool(
         verdict.found and verdict.evidence.strip() and in_source(verdict.evidence, normalize(strip_to_js(html_path)))
     )
     log(
         f"      {label}  -> found={verdict.found} verified={verified}"
         + (f" lines={verdict.lines}" if verdict.lines else "")
+        + f"  [{budget.calls} tool calls, {budget.repeats} repeats refused"
+        + (", salvaged" if salvaged else "") + "]"
     )
     return verdict, verified

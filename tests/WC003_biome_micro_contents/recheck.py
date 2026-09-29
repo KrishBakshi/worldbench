@@ -15,6 +15,7 @@ in recheck.json beside the other artifacts.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -51,6 +52,22 @@ def disagreements(reports: dict, visual: dict, biome_ids: tuple[str, ...], sourc
     return out
 
 
+def _placement(html_path: str, biome_id: str) -> str | None:
+    """The biome's placement code from WC002's classification, when that run
+    left one beside this world: a lead for the agent on where the biome is
+    (worlds often number or position biomes rather than name them)."""
+    path = Path(html_path).parent / "WC002_biome_placement" / "classified.json"
+    try:
+        block = json.loads(path.read_text(encoding="utf-8"))["biomes"][biome_id]
+    except (OSError, KeyError, TypeError, ValueError):
+        return None
+    parts = [f"{k}: {(block.get(k) or '').strip()[:300]}" for k in ("placement_code", "elevation_code")
+             if (block.get(k) or "").strip()]
+    if block.get("aliases"):
+        parts.insert(0, f"names in code: {', '.join(block['aliases'])}")
+    return " | ".join(parts) or None
+
+
 def recheck(
     html_path: str,
     reports: dict,
@@ -80,6 +97,7 @@ def recheck(
                 aliases=aliases,
                 feature=item.get("label", item["id"]),
                 visual_hint=seen,
+                location_hint=_placement(html_path, biome_id),
                 model=model,
             )
         except JudgeUnavailable:

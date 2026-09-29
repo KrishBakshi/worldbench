@@ -509,8 +509,22 @@ property of the world.
     prompt forbids inference** ("there are pools, so there must be banks"):
     without that rule it passed a swamp "mud banks" item whose quoted lines
     built pools and mangroves, not banks. Judge-side spend is bounded by
-    `RECURSION_LIMIT` (40 steps); every model call goes through the judge's
-    shared throttle/429 backoff via `wrap_model_call`.
+    `judge.yaml` `evidence_agent:` (`max_tool_calls` 10, `recursion_limit`
+    30 as a backstop); every model call goes through the judge's shared
+    throttle/429 backoff via `wrap_model_call`.
+    - **Bounded and never thrown away.** On two real worlds every
+      hunt hit the old 40-step limit and returned nothing, ~50 judge calls
+      per world: one re-ran `grep -n "biome\[i\]" … | grep "1"` seven times
+      after it had already read the right river code, and
+      `GraphRecursionError` discarded everything. Now a repeated identical
+      tool call is refused (the agent is told it has that answer), tools
+      stop after `max_tool_calls`, and if the agent still ends without an
+      answer one salvage call turns the tool results it collected into a
+      verdict — checked by `in_source` like any other.
+    - `recheck.py` passes WC002's `classified.json` (names, placement and
+      elevation code) as a location hint when that run left one: worlds
+      number or position biomes (`BIO[b]`, `case 1:`), and mapping an id
+      was exactly where the looping hunt got stuck.
   - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
     quote must really be in the source (whitespace-insensitive, per line,
     tolerant of a garbled line *tail* — ≥85% prefix — not of invented

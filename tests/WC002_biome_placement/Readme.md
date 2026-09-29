@@ -1,6 +1,6 @@
 # WC002 Coverage + placement
 
-Is each biome built at all, and does it sit where the prompt's water-flow graph puts it? (The old WC001 biome-coverage test is folded in here.)
+Is each biome built at all, and does it sit where the prompt's water-flow graph puts it? (The old keyword biome-coverage test is folded in here.)
 
 The prompt encodes a graph, not a list. Meltwater has to run in one wet corridor from the peaks to the coast. Desert and volcano stay off that corridor.
 
@@ -44,7 +44,7 @@ A biome is covered when either source shows it (`coverage.py`):
 
 One classify call used to decide this alone, and it missed opus-5's ocean.
 
-The old WC001 searched the JS for biome keywords. Every scored model got 10/10, and a one-line file with no world (`const pine=1,canopy=2,...,lava=9`) also got 10/10.
+The old keyword-coverage test searched the JS for biome keywords. Every scored model got 10/10, and a one-line file with no world (`const pine=1,canopy=2,...,lava=9`) also got 10/10.
 
 ## Scoring
 

@@ -11,7 +11,7 @@ Usage:
     uv run python -m eval.run <model> --test WC000,WC001
         A subset, still through eval. Existing scores for other tests are kept.
 
-    uv run python -m eval.run <model>__WC001_trying_all_the_biomes
+    uv run python -m eval.run <model>__WC002_biome_placement
         Legacy: inputs/<model>__<test_dir>/world.html, that test only.
 """
 

@@ -1,6 +1,6 @@
 """Turns a check's CheckResult into a score. Generic across any test's
 content check, not biome-specific — but built to match how
-tests/WC001_trying_all_the_biomes/biome_check.py already reports itself:
+the retired keyword-coverage test (now folded into WC002) reported itself:
 one point per item found (e.g. one biome), no point for each missing one,
 out of however many items that check looks for.
 

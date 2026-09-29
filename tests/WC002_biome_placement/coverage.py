@@ -1,6 +1,6 @@
-"""Is each biome covered at all? Folded in from the old WC001.
+"""Is each biome covered at all? Folded in from the old keyword-coverage test.
 
-WC001 searched the stripped JS for biome keywords. Every scored model got
+That test searched the stripped JS for biome keywords. Every scored model got
 10/10, and a one-line file with no world (`const pine=1,canopy=2,...,lava=9`)
 also scored 10/10: `grass` counts as grassland and `ocean` as delta the
 moment those materials exist. That measured vocabulary, not a built biome.

@@ -75,7 +75,7 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
     structural = check_input_ready(output_dir)
     existing_checks: dict = {}
     # Keys of checks that still exist in some test.yaml. Anything else in an
-    # old validation.json (a removed test like WC001, a removed check like
+    # old validation.json (a removed test like the retired keyword-coverage test, a removed check like
     # check_voxel_world or check_bedrock) is dropped, so totals only ever sum
     # the current ladder.
     live_keys = {f"{t['dir_name']}::{c['function']}" for t in discover_tests() for c in t["checks"]}

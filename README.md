@@ -14,7 +14,7 @@ A model gets one natural-language prompt and has to emit a single self-contained
 | WC004 | [Physics](tests/WC004_biome_rendering/README.md) | 100 | Entities look right and move on the right axis | Look: code + VLM. Motion: code |
 | WC005 | [Temporal cycles](tests/WC005_day_night_seasons/README.md) | 20 | Day clock and seasons change the world, not just HUD text | Code + frames with the clock pinned |
 
-Total is 280. Every maximum is fixed, so totals compare across models. There is no WC001: biome coverage now lives in WC002.
+Total is 280. Every maximum is fixed, so totals compare across models. The old keyword biome-coverage test was retired; biome coverage now lives in WC002.
 
 Two cross-test rules:
 - WC003 zeroes the Coastal Delta / Ocean biome when its frames show the ocean running out over the void with no seabed.

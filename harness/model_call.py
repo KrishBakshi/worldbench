@@ -87,7 +87,7 @@ _BOLD_STYLE = "\033[1;38;5;252m" if _USE_COLOR else ""  # bold near-white — **
 _RESET = "\033[0m" if _USE_COLOR else ""
 
 # Vocabulary this project's reasoning traces actually revolve around — the
-# canonical biomes (BiomeGraph.tsx, mirrored in tests/WC001*/biome_check.py)
+# canonical biomes (BiomeGraph.tsx, mirrored in tests/WC002_biome_placement)
 # plus the voxel/Three.js building blocks the prompt asks for. Highlighted
 # inline so a skimmed reasoning stream still shows *what* the model is
 # actually deciding on, not just that text is flowing.

@@ -22,8 +22,8 @@ property of the world.
   - Ladder (max 280, every max fixed so totals compare across models):
     WC000 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
     coverage + placement 20, WC003 micro-contents 100, WC004 physics 100,
-    WC005 temporal cycles 20. **There is no WC001**: its keyword coverage
-    check was folded into WC002 and deleted — every scored model got 10/10
+    WC005 temporal cycles 20. **The old keyword biome-coverage test is gone**:
+    it was folded into WC002 and deleted — every scored model got 10/10
     and a one-line fake (`const pine=1,...,lava=9`) got 10/10 too.
   - **WC000's regex voxel check (`voxel_check.py`) was removed**, not tuned:
     43 of its 83 pattern branches matched exactly one model's file, and

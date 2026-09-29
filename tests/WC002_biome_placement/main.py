@@ -1,6 +1,6 @@
 """strip → classify → coverage → extract → grade.
 
-Coverage + placement in one test (the old WC001 is folded in here). Per
+Coverage + placement in one test (the old keyword-coverage test is folded in here). Per
 biome: 1 point if covered (coverage.py), 1 more if its placement rules pass.
 An uncovered biome scores 0/2 and is drawn grey "not covered".
 

@@ -28,7 +28,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from eval.capture.llm import invoke_structured  # noqa: E402
+from eval.capture.llm import JudgeUnavailable, invoke_structured  # noqa: E402
 from harness.status import log  # noqa: E402
 
 MAX_EDITS = 6
@@ -112,6 +112,8 @@ def build_preview(world_html: Path, out_path: Path, model: str | None = None) ->
         log(f"      preview   (llm) patch clock, attempt {attempt}")
         try:
             patch = invoke_structured(PreviewPatch, prompt + feedback, model=model)
+        except JudgeUnavailable:
+            raise
         except Exception as exc:  # a failed call is retried like a bad patch
             feedback = f"\n\nYour previous reply failed to parse: {exc}. Return valid JSON."
             record["error"] = str(exc)

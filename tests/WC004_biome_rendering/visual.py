@@ -38,6 +38,7 @@ from eval.capture.judge import (  # noqa: E402
 )
 from eval.capture.run import BIOMES, ensure_capture  # noqa: E402
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 from llm import load_templates  # noqa: E402
 
 LABELS = {b["id"]: b["label"] for b in BIOMES}
@@ -81,6 +82,8 @@ def judge_all(
                 burst_gap=gap,
             )
             looks[biome_id] = confirm(report, manifest, biome_id)
+        except JudgeUnavailable:
+            raise
         except Exception as exc:
             log(f"      {i}/{len(biome_ids)}  {biome_id}  error: {exc}")
             looks[biome_id] = {"error": str(exc)[:500]}

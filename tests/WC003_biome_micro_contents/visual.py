@@ -20,6 +20,7 @@ if str(_ROOT) not in sys.path:
 from eval.capture.judge import VisualReport, biome_images, confirm, judge_biome  # noqa: E402
 from eval.capture.run import BIOMES, ensure_capture  # noqa: E402
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 from llm import load_requirements  # noqa: E402
 
 LABELS = {b["id"]: b["label"] for b in BIOMES}
@@ -53,6 +54,8 @@ def judge_all(html_path: str, biome_ids: tuple[str, ...], model: str | None = No
                 manifest,
                 biome_id,
             )
+        except JudgeUnavailable:
+            raise
         except Exception as exc:
             log(f"      {i}/{len(biome_ids)}  {biome_id}  error: {exc}")
             out[biome_id] = {"error": str(exc)[:500]}

@@ -48,7 +48,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from eval.capture.llm import invoke_structured, raise_if_mostly_failed  # noqa: E402
+from eval.capture.llm import JudgeUnavailable, invoke_structured, raise_if_mostly_failed  # noqa: E402
 from eval.capture.run import ensure_capture, view_paths  # noqa: E402
 
 MAX_SCORE = 20
@@ -141,6 +141,8 @@ def check_visual_bughunt(html_path: str, out_dir: Path | None = None, model: str
         log(f"      judge     (vlm) {view_id}")
         try:
             per_view[view_id] = judge_view(path, view_id, model)
+        except JudgeUnavailable:
+            raise
         except Exception as exc:  # a failed call is not a defect; leave it out of the ratio
             per_view[view_id] = {"error": str(exc)[:300], "defects": None}
         per_view[view_id]["screenshot"] = str(path)

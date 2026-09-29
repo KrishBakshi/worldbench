@@ -46,6 +46,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from eval.capture.browser import DevToolsBrowser  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 from eval.capture.navigator import frame_biome  # noqa: E402
 from eval.capture.preview import build_preview  # noqa: E402
 from harness.status import log  # noqa: E402
@@ -184,6 +185,8 @@ async def _frame_one(browser, day_url, biome, views_dir, cap_dir, manifest, day_
     manifest["views"].pop(view_id, None)
     try:
         outcome = await frame_biome(browser, day_url, biome, out, model)
+    except JudgeUnavailable:
+        raise  # not one broken episode: no episode can succeed, so stop the capture
     except Exception as exc:  # one broken episode must not lose the other nine
         outcome = {"status": "error", "reason": str(exc)[:300]}
     if out.is_file() and outcome.get("status") in ("found", "uncertain"):
@@ -267,6 +270,8 @@ def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = Non
             FrameLabels, IDENTIFY_PROMPT.format(options=options, names=", ".join(images)), list(images.values()), model
         )
         answers = {x.frame: x.biome.strip().lower() for x in result.labels}
+    except JudgeUnavailable:
+        raise
     except Exception as exc:
         log(f"      identify  error: {exc}")
         manifest["identify_error"] = str(exc)[:300]

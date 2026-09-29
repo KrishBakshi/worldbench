@@ -17,6 +17,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 
 
 def strip_html(html_path: str) -> str:
@@ -50,6 +51,8 @@ def probe_all(
         log(f"      {i}/{n}  {biome_id}")
         try:
             reports[biome_id] = probe_biome(js, biome_id, model)
+        except JudgeUnavailable:
+            raise
         except Exception as exc:
             log(f"      {i}/{n}  {biome_id}  error: {exc}")
             reports[biome_id] = {"error": str(exc)}

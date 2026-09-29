@@ -27,6 +27,7 @@ from eval.audit import run_audited_check
 from eval.capture.run import capture
 from eval.loader import discover_tests, load_check, resolve_test
 from eval.score import score_records
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 from harness.status import log, timed
 
 
@@ -126,6 +127,8 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
                     "time": manifest.get("time"),
                     "preview_ok": manifest.get("preview", {}).get("ok"),
                 }
+            except JudgeUnavailable:
+                raise  # every test is judged by this model: nothing left to run
             except Exception as exc:
                 info["detail"] = f"failed: {exc}"
                 result["capture"] = {"error": str(exc)}
@@ -147,6 +150,8 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
                         model=model,
                         out_dir=test_out,
                     )
+                except JudgeUnavailable:
+                    raise
                 except Exception as exc:
                     record = {
                         "passed": False,

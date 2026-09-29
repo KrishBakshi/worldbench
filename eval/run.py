@@ -31,6 +31,7 @@ from eval.ingest import ingest  # noqa: E402
 from eval.loader import resolve_test  # noqa: E402
 from eval.validate import validate  # noqa: E402
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 
 
 def parse_name(name: str) -> tuple[str, str | None]:
@@ -82,12 +83,19 @@ def main(argv: list[str] | None = None) -> None:
         log(f"test       {test_dir_name}")
     log()
 
-    if test_dir_names:
-        result = validate(output_dir, test_dir_names=test_dir_names)
-    elif test_dir_name:
-        result = validate(output_dir, test_dir_name)
-    else:
-        result = validate(output_dir)
+    try:
+        if test_dir_names:
+            result = validate(output_dir, test_dir_names=test_dir_names)
+        elif test_dir_name:
+            result = validate(output_dir, test_dir_name)
+        else:
+            result = validate(output_dir)
+    except JudgeUnavailable as exc:
+        # Stopped at the first unusable-model error rather than grinding
+        # through every biome and test; validation.json is left as it was.
+        log(f"error    {exc}")
+        log("         stopped: fix the judge model (credit / key / model id) and re-run")
+        sys.exit(2)
 
     print(f"model:  {result['model']}", flush=True)
     print(f"tests:  {', '.join(result['tests'])}", flush=True)

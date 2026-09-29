@@ -29,6 +29,7 @@ if str(_ROOT) not in sys.path:
 from eval.capture.judge import VisualReport  # noqa: E402
 from eval.evidence_agent import hunt  # noqa: E402
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 
 
 def disagreements(reports: dict, visual: dict, biome_ids: tuple[str, ...], source_normalized: str) -> list[tuple[str, dict, str]]:
@@ -81,6 +82,8 @@ def recheck(
                 visual_hint=seen,
                 model=model,
             )
+        except JudgeUnavailable:
+            raise
         except Exception as exc:  # noqa: BLE001 — a failed hunt leaves the probe's answer standing
             log(f"      recheck  {biome_id}/{item['id']}  error: {exc}")
             records.append({**record, "error": str(exc)})

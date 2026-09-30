@@ -467,15 +467,42 @@ property of the world.
       width). `.env` holds only API keys. A missing file or value stops the
       run with a message naming it (`JudgeConfigError` at load,
       `JudgeUnavailable` at call time) — never a silent built-in default.
-      - **Rate limiting is per model, enforced before every call:** a
-        60-second sliding window checked against both `rpm` and `tpm` (the
-        call's input size is estimated first, then replaced by the real
-        count from the reply), plus a daily count in
-        `outputs/.judge_daily.json` (file-locked, shared across runs,
-        keyed by the provider's quota day) that stops the run at `rpd`.
-        Every attempt counts, retries included. Roles sharing a model share
-        its counters. `invoke_structured` routes a call with images to the
-        `vlm` role unless the caller names a model.
+      - **Rate limiting is per model, enforced before every request:** a
+        60-second window checked against both `rpm` and `tpm`, plus a daily
+        count in `outputs/.judge_daily.json` that stops the run at `rpd`.
+        Roles sharing a model share its counters. `invoke_structured` routes
+        a call with images to the `vlm` role unless the caller names a model.
+        Measured on real runs, the first version crossed its own caps four
+        ways, each closed:
+        - **Shared window.** The window was per-process memory, so a smoke
+          test or a parallel run during a batch doubled the rate. It is now
+          `outputs/.judge_window.json`, file-locked, admitted against by
+          every process.
+        - **Oversized calls are refused, not sent.** An empty window used to
+          admit any call, so WC002 classify (~23k tokens, the whole source)
+          went to 14k-tpm models. A call whose input alone exceeds `tpm`
+          raises `OverTokenLimit`; `invoke_structured` moves it down the
+          `fallbacks` chain to the first model whose cap fits.
+        - **LangGraph steps are counted.** The evidence agent's middleware
+          throttled with no size and `settle` couldn't read a
+          `ModelResponse`, so every agent step — the largest prompts of a
+          run, since tool results accumulate — counted as 0 tokens and was
+          never logged. The middleware now estimates each step's input
+          (system prompt, all messages incl. tool results, tool schemas),
+          throttles against the agent's own model, settles from the
+          `ModelResponse`, and logs the step (`role: agent`).
+        - **Estimates run true.** The pre-call estimate (`chars_per_token`)
+          is scaled by each model's learned real/estimated ratio (never
+          below 1), updated from every reply.
+        Every attempt is admitted separately (retries included), the SDK's
+        own retries are off (`max_retries=1` = one attempt; `0` has meant
+        "SDK default, 5 attempts" in some versions, re-sending requests the
+        limiter never saw), and with `JUDGE_USAGE_LOG` each admission is
+        logged at the moment it is let through (`event: admit`) with the
+        window's call and token count, so peaks can be audited exactly.
+      - **Requests time out** (`call.timeout_seconds`, 300). With no timeout
+        an evidence-agent step once sat 20+ minutes on an open socket and
+        hung the run; a timeout is a transient error, retried like a 5xx.
       - Brief server errors (500/502/503/504, timeouts) get
         `call.max_transient_retries` spaced retries on the same model; a
         daily-quota error is a `JudgeUnavailable`, not something to retry.

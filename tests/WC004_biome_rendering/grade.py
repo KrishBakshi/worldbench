@@ -425,7 +425,14 @@ def _grade_one(
     motion_code, motion_visual = (MOTION_CODE, MOTION_VISUAL) if use_motion else (1.0, 0.0)
     # An unavailable/errored motion report leaves every sighting missing, so the
     # visual half of motion is lost, like the look half for an unframed biome.
-    moved = {x.id: x for x in motion.items} if use_motion and hasattr(motion, "items") else {}
+    # That report is a plain {"error": ...} dict, and a dict *has* `.items` (the
+    # method): checking hasattr alone iterated the method and crashed all of
+    # WC004 on the first world with an unframed biome.
+    moved = (
+        {x.id: x for x in motion.items}
+        if use_motion and not isinstance(motion, dict) and hasattr(motion, "items")
+        else {}
+    )
     fractions = dict(getattr(motion, "motion_fraction", {}) or {}) if use_motion else {}
 
     earned, lost = [], []

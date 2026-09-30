@@ -21,11 +21,15 @@ limits:
   gemma-4-26b-a4b-it: {rpm: 25, tpm: 14000, rpd: 14000}
   gemma-4-31b-it: {rpm: 25, tpm: 14000, rpd: 14000}
 
-# Who answers when a model is still overloaded (503/500/timeouts) after its
-# call.max_transient_retries. Optional per model; no entry = the error stands.
-# Never used for a bad key, a spent daily quota or an unparseable reply.
+# Who answers, in order, when a model is still overloaded (503/500/timeouts)
+# after its call.max_transient_retries, or when a call's input is larger than
+# its whole tpm cap (it is never sent over the cap). A fallback whose tpm the
+# call would also exceed is skipped. Optional per model; no entry = the error
+# stands. Never used for a bad key, a spent daily quota or an unparseable reply.
+# WC002 classify sends the whole source (~20-25k tokens): above both Gemma
+# caps, so it lands on the last entry.
 fallbacks:
-  gemma-4-31b-it: gemma-4-26b-a4b-it
+  gemma-4-31b-it: [gemma-4-26b-a4b-it, gemini-3.1-flash-lite]
 
 # The daily counter resets on the provider's quota day.
 quota_day_timezone: America/Los_Angeles

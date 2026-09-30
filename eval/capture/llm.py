@@ -82,6 +82,7 @@ JUDGE_IMAGE_WIDTH = int(setting("call", "image_width"))
 JUDGE_MAX_TOKENS = int(setting("call", "max_output_tokens"))
 MAX_RATE_RETRIES = int(setting("call", "max_rate_retries"))
 MAX_TRANSIENT_RETRIES = int(setting("call", "max_transient_retries"))
+REQUEST_TIMEOUT = int(setting("call", "timeout_seconds"))
 CHARS_PER_TOKEN = float(setting("call", "chars_per_token"))
 TOKENS_PER_IMAGE = int(setting("call", "tokens_per_image"))
 QUOTA_TZ = str(CONFIG.get("quota_day_timezone") or "UTC")
@@ -485,11 +486,17 @@ def chat(model: str | None = None, temperature: float | None = None) -> ChatGoog
         _UNAVAILABLE = "GOOGLE_API_KEY is not set in .env (the judge models' key)"
         raise JudgeUnavailable(_UNAVAILABLE)
     # Retries are ours (call_with_retry), so the client's own are off: two
-    # retry layers multiply into a burst exactly when the quota is exhausted.
+    # retry layers multiply into a burst exactly when the quota is exhausted,
+    # and requests the SDK re-sends on its own never pass the limiter.
+    # max_retries=1 is one attempt in every SDK version (0 has meant "SDK
+    # default, 5 attempts" in some).
     kwargs = {
         "model": judge_model_name(model),
         "google_api_key": key,
-        "max_retries": 0,
+        "max_retries": 1,
+        # Without it a request the server never answers hangs the run forever
+        # (seen: an evidence-agent step idle 20+ minutes on an open socket).
+        "timeout": REQUEST_TIMEOUT,
         "max_output_tokens": JUDGE_MAX_TOKENS,
     }
     if temperature is not None:

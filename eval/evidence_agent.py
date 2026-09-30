@@ -38,7 +38,9 @@ The salvaged verdict goes through the same in_source check as any other.
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
+import time
 from pathlib import Path
 
 from langchain.agents import create_agent
@@ -52,7 +54,15 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
-from eval.capture.llm import call_with_retry, chat, invoke_structured, setting  # noqa: E402
+from eval.capture.llm import (  # noqa: E402
+    call_with_retry,
+    chat,
+    estimate_tokens,
+    invoke_structured,
+    judge_model_name,
+    log_usage,
+    setting,
+)
 from eval.evidence import in_source, normalize, strip_to_js  # noqa: E402
 from harness.code_tools import ReadOnlySource  # noqa: E402
 from harness.status import log  # noqa: E402
@@ -133,11 +143,44 @@ The rendered frames may be quoted to you as a hint. They can be wrong (a camera 
 in code, never from the hint alone. Finish with the structured answer."""
 
 
+def _request_tokens(request) -> int:
+    """Pre-call input size of one LangGraph model step: the system prompt, every
+    message so far (tool results included, which is what grows), and the tool
+    schemas the model is sent."""
+    chars = 0
+    for msg in [request.system_message, *request.messages]:
+        if msg is None:
+            continue
+        content = msg.content if isinstance(msg.content, list) else [msg.content]
+        chars += sum(len(p.get("text", "") if isinstance(p, dict) else str(p)) for p in content)
+        chars += sum(len(json.dumps(c.get("args", {}))) for c in getattr(msg, "tool_calls", None) or [])
+    for t in request.tools or []:
+        schema = getattr(t, "args_schema", None)
+        chars += len(getattr(t, "description", "") or "") + len(
+            json.dumps(schema.model_json_schema()) if hasattr(schema, "model_json_schema") else json.dumps(t, default=str)
+        )
+    return estimate_tokens("x" * chars)
+
+
+def _model_name(request) -> str:
+    name = str(getattr(request.model, "model", "") or "")
+    return name.split("/", 1)[1] if name.startswith("models/") else (name or judge_model_name())
+
+
 @wrap_model_call
 def _judge_rate_limit(request, handler):
-    """Every model call this agent makes goes through the judge's shared
-    throttle and 429 backoff (eval/capture/llm.py), like any single judge call."""
-    return call_with_retry(lambda: handler(request))
+    """Every model call this agent's LangGraph loop makes goes through the
+    judge's shared limiter like any single judge call: throttled against the
+    agent's own model (not a default), with its real input size estimated up
+    front, settled from the ModelResponse, and written to the usage log.
+    Before this, agent steps were admitted as 0 tokens and never logged — the
+    largest prompts of a run were invisible to the tpm window."""
+    model = _model_name(request)
+    started = time.monotonic()
+    response = call_with_retry(lambda: handler(request), model=model, est_tokens=_request_tokens(request))
+    msg = next((m for m in reversed(getattr(response, "result", []) or []) if getattr(m, "usage_metadata", None)), None)
+    log_usage(model, "agent", 0, msg, time.monotonic() - started)
+    return response
 
 
 class _Budget:

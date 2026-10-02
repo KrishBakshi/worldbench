@@ -18,5 +18,41 @@
       "evidence": "if(t===T.RIVERBED&&water[i]<=12) riverCells.push(i); continue;"
     },
     "error": "Recursion limit of 40 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT"
+  },
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "Blue meltwater stream flowing down the mountain side.",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "repair": "2026-10-02T06:57:53Z",
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines rivers and pools in other biomes (like the jungle or general terrain), but there is no logic that specifically places or builds a meltwater stream within the 'Snow Mountains' biome (biome index 1). The biome logic for index 1 only handles height and terrain type (snow/rock), and no river paths or water emitters are associated with it."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "headwater_rills",
+    "seen": "Small blue stream originating here",
+    "probe": {
+      "found": true,
+      "evidence": "if(t===T.RIVERBED&&water[i]<=12) riverCells.push(i); continue;"
+    },
+    "repair": "2026-10-02T06:57:53Z",
+    "agent": {
+      "found": true,
+      "evidence": "if(fbm(x*0.09+50,z*0.09+50,3)>0.57){ water[i]=ground[i]; ground[i]-=1; type[i]=T.MUD; setW(i,POOL); }",
+      "lines": [
+        194
+      ],
+      "explanation": "The code identifies cells within the Highlands biome (biome[i]===5) and uses a noise function (fbm) to procedurally place small pools of water (POOL) at the ground level, which function as headwater springs."
+    },
+    "verified": true
   }
 ]

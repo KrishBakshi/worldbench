@@ -698,7 +698,105 @@
     }
   },
   "delta": {
-    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+    "biome": "delta",
+    "aliases": [
+      "delta",
+      "coast",
+      "ocean",
+      "beach",
+      "shoreline",
+      "estuary",
+      "OCEAN",
+      "BEACH",
+      "Coastal Ocean",
+      "Coast / Ocean"
+    ],
+    "entities": {
+      "turquoise_shallow_band": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "tmpA.copy(SHALLOW).lerp(DEEP,Math.pow(df,0.8)); setW(i,tmpA);",
+        "motion_evidence": ""
+      },
+      "deep_offshore_blue": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "tmpA.copy(SHALLOW).lerp(DEEP,Math.pow(df,0.8)); setW(i,tmpA);",
+        "motion_evidence": ""
+      },
+      "sand_beach_bright": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "if(!isl && bl>0.1 && ec-ow<3.5+2*n2){",
+        "motion_evidence": ""
+      },
+      "sand_seafloor_recipe": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "ground[i]=Math.round(sb); water[i]=8; type[i]=sb>5.5?T.SEABED:T.DEEPBED;",
+        "motion_evidence": ""
+      },
+      "palm_frond_silhouette": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "function palm(x,z,g){ const c=0x3faa4a; B(x,g,g+6,z,0x8a6a3a); B(x,g+6,g+6.7,z,c,1,1);",
+        "motion_evidence": ""
+      },
+      "kelp_or_seagrass": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in delta scope",
+        "motion_evidence": ""
+      },
+      "coral_reef_color": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(t===T.SEABED && g>=6 && r<0.06){ B(x,g,g+0.8+r2,z,pick([0xff7aa8,0xff9a3c,0xb56cff,0x4de0ff]),0.8,0.8);",
+        "motion_evidence": ""
+      },
+      "river_mouth_braid": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "flowing",
+        "look_evidence": "if(mi>=0&&inside[mi]&&isOcean(mi)) mouths.push([mx,mz]);",
+        "motion_evidence": "waterMesh.position.y=Math.sin(time*1.3)*0.06;"
+      },
+      "cliff_waterfall_fall": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "falling",
+        "look_evidence": "const fallMesh=buildInstanced(fallList,new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.55,depthWrite:false})); scene.add(fallMesh);",
+        "motion_evidence": "spray.update=function(dt,t){ const p=this.p; for(let i=0;i<this.n;i++){ const j=i*3; p[j+1]-=(14+6*Math.random())*dt;"
+      },
+      "coastal_fauna_motion": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('crab',beachCells,8); spawn('fish',shallowCells,14);",
+        "motion_evidence": "a.x+=dx/d*s; a.z+=dz/d*s; const want=Math.atan2(-dz,dx);"
+      }
+    },
+    "must_not_present": {
+      "cactus_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "lava_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "murky_swamp_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      }
+    }
   },
   "desert": {
     "biome": "desert",

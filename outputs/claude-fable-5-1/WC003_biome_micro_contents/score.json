@@ -1,9 +1,9 @@
 {
-  "score": 75.74,
+  "score": 76.29,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 75.74/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
+  "reason": "Scored 76.29/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 7.51,
@@ -164,7 +164,7 @@
       "biome_visible": true
     },
     "highlands": {
-      "score": 7.79,
+      "score": 8.34,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -202,6 +202,17 @@
           "evidence": "else if(r<0.09) B(x,g,g+1.5,z,0x8d9089,2,2);"
         },
         {
+          "id": "headwater_rills",
+          "label": "Headwater springs/rills, not a plains river maze",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 1.11,
+          "code": true,
+          "visual": true,
+          "seen": "Small blue stream originating here",
+          "evidence": "if(fbm(x*0.09+50,z*0.09+50,3)>0.57){ water[i]=ground[i]; ground[i]-=1; type[i]=T.MUD; setW(i,POOL); }"
+        },
+        {
           "id": "light_rain",
           "label": "Light rain / drizzle particles over the highlands (not persistent jungle rain)",
           "kind": "must_present",
@@ -225,18 +236,6 @@
         }
       ],
       "lost": [
-        {
-          "id": "headwater_rills",
-          "label": "Headwater springs/rills, not a plains river maze",
-          "kind": "must_present",
-          "points": 1.11,
-          "earned": 0.56,
-          "code": false,
-          "visual": true,
-          "seen": "Small blue stream originating here",
-          "evidence": "if(t===T.RIVERBED&&water[i]<=12) riverCells.push(i); continue;",
-          "why": "evidence_not_in_source"
-        },
         {
           "id": "mist_particles",
           "label": "Mist particles over highland coordinates (not a legend weather string)",

@@ -109,7 +109,77 @@
     }
   },
   "highlands": {
-    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+    "biome": "highlands",
+    "aliases": [
+      "highland",
+      "highlands",
+      "HIGHLAND",
+      "HIGHLANDS",
+      "HIG",
+      "HIGH",
+      "upland",
+      "Temperate Highlands"
+    ],
+    "must_present": {
+      "elevated_open_plain": {
+        "found": true,
+        "evidence": "case 2: return 14.5 + 2.5*fbm(x*.07+3,z*.07) + 6*Math.max(0,fbm(x*.16+9,z*.16)-.12);"
+      },
+      "exposed_stone": {
+        "found": true,
+        "evidence": "else if(r<.12) rock(x,y,z,pick(['#8d8d86','#7f7f78']),R(.7,1.6),1);"
+      },
+      "sparse_scrub_cubes": {
+        "found": true,
+        "evidence": "if(r<.07) bush(x,y,z,pick(['#7c8a63','#6f7d58','#8a9470']),R(.6,1),1);"
+      },
+      "headwater_rills": {
+        "found": true,
+        "evidence": "carve([[13,-54],[14,-43],[12,-33],[6,-23],[-4,-15],[-14,-9],[-24,-6]],.6,1.3,S_RIVER);"
+      },
+      "mist_particles": {
+        "found": true,
+        "evidence": "WX.highMist=makeMist('Mist \u00b7 highlands','#8a9a72',[[20,-27,10]],8,(x,z)=>gTop(x,z)+R(2,4));"
+      },
+      "light_rain": {
+        "found": true,
+        "evidence": "WX.high   = makePrecip({name:'Light rain \u00b7 highlands',sw:'#8a9a72',cx:20,cz:-27,rx:11,rz:9,y:34,count:380,color:'#b5d2f5',cloud:'#b8c0ca',cloudOp:.8,period:58,offset:.62,season:'rain',hold:.35});"
+      },
+      "downslope_into_grove": {
+        "found": true,
+        "evidence": "carve([[24,-30],[23,-18],[21,-7],[16,3],[8,9],[0,14],[-6,18]],.6,1.2,S_RIVER);"
+      },
+      "highland_fauna_spawn": {
+        "found": true,
+        "evidence": "spawn('goat',[BI.HIGH],5);"
+      },
+      "hardy_tussock_plants": {
+        "found": true,
+        "evidence": "else if(r<.14) flower(x,y,z,pick(['#b28ad9','#f0e68c']));"
+      }
+    },
+    "must_not_present": {
+      "dense_pine_cover": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "jungle_or_pink": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "cactus_or_desert": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "blizzard_or_lava": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "palms_or_mangrove": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      }
+    }
   },
   "jungle": {
     "biome": "jungle",
@@ -287,7 +357,67 @@
     }
   },
   "grassland": {
-    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+    "biome": "grassland",
+    "aliases": [
+      "grassland",
+      "grasslands",
+      "plains",
+      "prairie",
+      "meadow",
+      "savanna",
+      "GRA",
+      "GRASS",
+      "Central Grasslands",
+      "Grassland Plateau"
+    ],
+    "must_present": {
+      "flat_open_green": {
+        "found": true,
+        "evidence": "else if(b===BI.GRASS) tc=pickN(TOP[5],x,z,.15);"
+      },
+      "tributary_geometry": {
+        "found": true,
+        "evidence": "carve([[6,-2],[4,4],[-1,9],[-6,14]],.5,.8,S_RIVER,{meander:2.4});"
+      },
+      "scattered_oak_copses": {
+        "found": true,
+        "evidence": "const copse=fbm(x*.13+20,z*.13)>.3;\nif(copse&&r<.3) oak(x,y,z,R(.85,1.1)); else if(!copse&&r<.008) oak(x,y,z);"
+      },
+      "yellow_white_flowers": {
+        "found": true,
+        "evidence": "else if(r<.13) flower(x,y,z,pick(['#ffe14d','#ffffff','#fff3a6','#ffd23f']));"
+      },
+      "tall_grass": {
+        "found": true,
+        "evidence": "else if(r<.19) PB.add(x+R(-.3,.3),y,z+R(-.3,.3),.3,.5,.3,col('#7fbf4d'));"
+      },
+      "grassland_fauna_spawn": {
+        "found": true,
+        "evidence": "spawn('deer',[BI.GRASS],6); spawn('deer',[BI.GROVE],3); spawn('deer',[BI.JUNGLE,BI.GRASS],4); spawn('deer',[BI.SNOWF],3);\nspawn('snowfox',[BI.SNOWF],2); spawn('goat',[BI.HIGH],5); spawn('goat',[BI.MOUNT],2); spawn('rabbit',[BI.GRASS,BI.GROVE],6);"
+      }
+    },
+    "must_not_present": {
+      "pink_canopy": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "jungle_density": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "cactus_or_lava": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "snow_or_blizzard": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "mangrove_or_dunes": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      }
+    }
   },
   "delta": {
     "biome": "delta",

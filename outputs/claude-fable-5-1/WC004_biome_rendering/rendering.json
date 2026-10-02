@@ -1,0 +1,903 @@
+{
+  "mountains": {
+    "biome": "mountains",
+    "aliases": [
+      "mountain",
+      "mountains",
+      "snow_mountain",
+      "snow_rock",
+      "alpine",
+      "peak",
+      "SMT",
+      "PEAK",
+      "MOUNT",
+      "Snow Mountains"
+    ],
+    "entities": {
+      "alpine_peak_silhouette": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "for(const p of PEAKS){ const d=Math.hypot(x-p.x,z-p.z); h=Math.max(h,p.h-d*p.s+6*n2-3); }",
+        "motion_evidence": ""
+      },
+      "summit_snow_blocks": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "case 1: t=h>56?T.SNOW:(h>48&&n2>0.4?T.SNOW:T.ROCK); break;",
+        "motion_evidence": ""
+      },
+      "snow_over_stone": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "B(x,g-capT,g,z,capColor(type[i],x,z,g));",
+        "motion_evidence": ""
+      },
+      "snowline_gradient": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "h=lerp(hB,hA,0.5+0.5*smooth(0,bw,d2-d1));",
+        "motion_evidence": ""
+      },
+      "packed_ice_or_powder": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in mountains scope",
+        "motion_evidence": ""
+      },
+      "summit_blizzard_windsheet": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "blowing",
+        "look_evidence": "{ const mb=bounds[1]; systems.push(new PSys({count:3600,color:0xf0f6ff,size:1.3,opacity:0.8,box:{x0:mb.x0-6,x1:mb.x1+6,z0:mb.z0-4,z1:mb.z0+20,y0:42,y1:100},vel:[68,-1,-3],gust:true,env:ENV.blizz})); }",
+        "motion_evidence": "p[j]+=vx+(sw?Math.sin(t*2+i)*sw*dt:0); p[j+1]+=vy; p[j+2]+=vz+(sw?Math.cos(t*1.7+i*0.7)*sw*dt:0);"
+      },
+      "meltwater_descent": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "flowing",
+        "look_evidence": "if(d<=w){ water[i]=water[i]>-999?Math.min(water[i],L):L; ground[i]=Math.min(ground[i],L-2); if(type[i]!==T.MUD) type[i]=T.RIVERBED; setW(i,col); }",
+        "motion_evidence": "waterMesh.position.y=Math.sin(time*1.3)*0.06;"
+      },
+      "cold_water_tint": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "const SHALLOW=new THREE.Color(0x46d9cf), DEEP=new THREE.Color(0x173f8f), MIX=new THREE.Color(0x63e2c4), RIVER=new THREE.Color(0x4fd8f0), MURKY=new THREE.Color(0x556b3a), POOL=new THREE.Color(0x4a5a35);",
+        "motion_evidence": ""
+      },
+      "lower_rock_exposure": {
+        "looks_ok": true,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "case 1: t=h>56?T.SNOW:(h>48&&n2>0.4?T.SNOW:T.ROCK); break;",
+        "motion_evidence": ""
+      },
+      "alpine_fauna_grounded": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('fox',landCells[9],1,{c:0x3b3238});",
+        "motion_evidence": "const yb=heightAt(a.x,a.z); if(yb>-900) a.g.position.set(a.x,yb+a.yoff+(a.water?Math.sin(time*2+a.ph)*0.1:0),a.z);"
+      }
+    },
+    "must_not_present": {
+      "rain_on_peaks": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "sandstorm_on_peaks": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "jungle_canopy_on_peaks": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "lava_on_summit": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      }
+    }
+  },
+  "forest": {
+    "biome": "forest",
+    "aliases": [
+      "forest",
+      "conifer",
+      "conifer_forest",
+      "conifers",
+      "pine",
+      "spruce",
+      "taiga",
+      "SNOWF",
+      "CON",
+      "CONIF",
+      "Snowy Conifer Forest",
+      "Snow Forest"
+    ],
+    "entities": {
+      "pine_cone_silhouette": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "function pine(x,z,g){ const k=rnd()<0.3?1:0, p=pick([0x1e4d2b,0x27633a,0x1a4526]), s=0xf4f7ff; B(x,g,g+3,z,0x4b2e14);\n  B(x,g+2,g+4+k,z,p,5,5); B(x,g+4+k,g+4.5+k,z,s,5,5); B(x,g+4+k,g+6+k,z,p,3,3); B(x,g+6+k,g+6.5+k,z,s,3,3); B(x,g+6+k,g+8+k,z,p,1,1); B(x,g+8+k,g+8.6+k,z,s,1,1); occ[idx(x,z)]=1; }",
+        "motion_evidence": ""
+      },
+      "canopy_snow_cap": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "B(x,g+2,g+4+k,z,p,5,5); B(x,g+4+k,g+4.5+k,z,s,5,5); B(x,g+4+k,g+6+k,z,p,3,3); B(x,g+6+k,g+6.5+k,z,s,3,3); B(x,g+6+k,g+8+k,z,p,1,1); B(x,g+8+k,g+8.6+k,z,s,1,1); occ[idx(x,z)]=1; }",
+        "motion_evidence": ""
+      },
+      "snow_over_ground": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 2: t=T.SNOWG; break;",
+        "motion_evidence": ""
+      },
+      "understory_fern_clump": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in forest scope",
+        "motion_evidence": ""
+      },
+      "foothill_shelf_elevation": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in forest scope",
+        "motion_evidence": ""
+      },
+      "cold_foliage_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "p=pick([0x1e4d2b,0x27633a,0x1a4526])",
+        "motion_evidence": ""
+      },
+      "cloud_deck_layer": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "cloudDeck(2,7,ENV.snow,0xf2f5fa);",
+        "motion_evidence": "c.g.position.x+=c.speed*dt; if(c.g.position.x>Bd.x1+8) c.g.position.x=Bd.x0-8;"
+      },
+      "snowfall_particles": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "falling",
+        "look_evidence": "systems.push(new PSys({count:3200,color:0xffffff,size:0.9,opacity:0.9,box:rainBox(2,1,26),vel:[1.5,-5,0.8],sway:1.2,env:ENV.snow}));",
+        "motion_evidence": "p[j+1]+=vy;"
+      },
+      "forest_fauna_idle": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('deer',landCells[6],7);",
+        "motion_evidence": "a.g.position.set(a.x,yb+a.yoff+(a.water?Math.sin(time*2+a.ph)*0.1:0),a.z);"
+      },
+      "podzol_or_coarse_dirt": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in forest scope",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "blizzard_as_forest_weather": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "rain_as_forest_climate": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "pink_blossom_forest": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "cactus_in_forest": {
+        "found": false,
+        "evidence": "not in forest scope"
+      }
+    }
+  },
+  "highlands": {
+    "biome": "highlands",
+    "aliases": [
+      "highland",
+      "highlands",
+      "HIGHLAND",
+      "HIGHLANDS",
+      "HIG",
+      "HIGH",
+      "upland",
+      "Temperate Highlands"
+    ],
+    "entities": {
+      "open_upland_plain": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 5: return 10.6+1.2*n1;",
+        "motion_evidence": ""
+      },
+      "grass_over_stone": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 3: t=n2>0.7?T.HROCK:T.HIGH; break;",
+        "motion_evidence": ""
+      },
+      "exposed_granite_render": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 3: t=n2>0.7?T.HROCK:T.HIGH; break;",
+        "motion_evidence": ""
+      },
+      "sparse_scrub_cube": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in highlands scope",
+        "motion_evidence": ""
+      },
+      "tussock_grass_clump": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in highlands scope",
+        "motion_evidence": ""
+      },
+      "cool_grass_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "{name:'Highlands',            cx:60, cz:-50, sx:1.15,sz:1.15, col:0x8ea67a, wx:'mist \u00b7 light rain'},",
+        "motion_evidence": ""
+      },
+      "highland_mist_hang": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "systems.push(new PSys({count:600,color:0xd0d8dc,size:3,opacity:0.22,box:rainBox(3,-1,8),vel:[0.5,1.8,0.2],sway:0.5,env:t=>0.1+0.9*cyc(t,95,-22,0.2,0.3,0.3)}));",
+        "motion_evidence": "p[j]+=vx+(sw?Math.sin(t*2+i)*sw*dt:0); p[j+1]+=vy; p[j+2]+=vz+(sw?Math.cos(t*1.7+i*0.7)*sw*dt:0);"
+      },
+      "light_drizzle_rain": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "falling",
+        "look_evidence": "systems.push(new PSys({count:1600,color:0xa8c8ff,size:0.7,opacity:0.5,box:rainBox(3),vel:[1.5,-36,0.5],env:ENV.high}));",
+        "motion_evidence": "p[j+1]+=vy;"
+      },
+      "headwater_rill_flow": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in highlands scope",
+        "motion_evidence": ""
+      },
+      "highland_fauna_idle": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in highlands scope",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "dense_pine_highland": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "sandstorm_highland": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "blizzard_highland": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      }
+    }
+  },
+  "jungle": {
+    "biome": "jungle",
+    "aliases": [
+      "jungle"
+    ],
+    "entities": {
+      "dense_canopy_tower": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "B(x,g+H-1,g+H+1,z,e,5,5); B(x,g+H+1,g+H+3,z,e2,3,3); if(rnd()<0.6) B(x,g+H+3,g+H+4,z,e,1,1); occ[idx(x,z)]=1;",
+        "motion_evidence": ""
+      },
+      "hanging_vines_on_trunks": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in jungle scope",
+        "motion_evidence": ""
+      },
+      "cocoa_melon_or_bamboo": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in jungle scope",
+        "motion_evidence": ""
+      },
+      "lush_foliage_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case T.JUNGLE: return vary(0x2e7d32,r*0.07);",
+        "motion_evidence": ""
+      },
+      "pond_still_surface": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "for(const p of JPONDS) stampPool(p.x,p.z,p.r,RIVER);",
+        "motion_evidence": ""
+      },
+      "waterfall_cascade": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "falling",
+        "look_evidence": "const fallList=falls.map(f=>({x:f.x,y:(f.top+f.bot)/2,z:f.z,sx:f.dx?0.5:1,sy:f.top-f.bot,sz:f.dz?0.5:1,c:0x9fdcf5}));",
+        "motion_evidence": "p[j+1]-=(14+6*Math.random())*dt; if(p[j+1]<falls[fallOf[i]].bot) this.o.spawn(p,j,false);"
+      },
+      "rain_shaft_fall": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "falling",
+        "look_evidence": "systems.push(new PSys({count:5200,color:0x9cc4ff,size:0.7,opacity:0.75,box:rainBox(4),vel:[0.6,-38,0],env:ENV.jungle}));",
+        "motion_evidence": "p[j+1]+=vy;"
+      },
+      "rising_mist_after_rain": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "rising",
+        "look_evidence": "systems.push(new PSys({count:900,color:0xcfd8dc,size:3.2,opacity:0.3,box:rainBox(4,-1,9),vel:[0.4,2.2,0.3],sway:0.6,env:t=>0.15+0.85*cyc(t,70,-42,0.15,0.3,0.3)}));",
+        "motion_evidence": "p[j+1]+=vy;"
+      },
+      "jungle_fauna_ground": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('deer',jungleEdge.length?jungleEdge:landCells[4],4);",
+        "motion_evidence": "const yb=heightAt(a.x,a.z); if(yb>-900) a.g.position.set(a.x,yb+a.yoff+(a.water?Math.sin(time*2+a.ph)*0.1:0),a.z);"
+      },
+      "canopy_bird_motion": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in jungle scope",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "snow_in_jungle": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "cactus_jungle": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "pink_grove_jungle": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      }
+    }
+  },
+  "swamp": {
+    "biome": "swamp",
+    "aliases": [
+      "swamp"
+    ],
+    "entities": {
+      "mangrove_prop_root": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "function mangrove(x,z,g,W){ B(x,g,W+3,z,0x4a3520); const rc=0x3c2a18; B(x+0.7,g,W+0.9,z+0.7,rc,0.35,0.35); B(x-0.7,g,W+0.9,z+0.7,rc,0.35,0.35); B(x+0.7,g,W+0.9,z-0.7,rc,0.35,0.35); B(x-0.7,g,W+0.9,z-0.7,rc,0.35,0.35);",
+        "motion_evidence": ""
+      },
+      "hanging_moss_drape": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in swamp scope",
+        "motion_evidence": ""
+      },
+      "lily_pad_float": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in swamp scope",
+        "motion_evidence": ""
+      },
+      "sugar_cane_shore": {
+        "looks_ok": false,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "not in swamp scope",
+        "motion_evidence": ""
+      },
+      "murky_pool_surface": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "if(fbm(x*0.09+50,z*0.09+50,3)>0.57){ water[i]=ground[i]; ground[i]-=1; type[i]=T.MUD; setW(i,POOL); } }",
+        "motion_evidence": ""
+      },
+      "olive_water_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "const MURKY=new THREE.Color(0x556b3a), POOL=new THREE.Color(0x4a5a35);",
+        "motion_evidence": ""
+      },
+      "mud_bank_render": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(b1===5) t=T.MUD;",
+        "motion_evidence": ""
+      },
+      "mud_floor_recipe": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case T.MUD: return vary(0x4a4630,r*0.05);",
+        "motion_evidence": ""
+      },
+      "swamp_mist_low": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "systems.push(new PSys({count:700,color:0xb8c2a8,size:3.4,opacity:0.3,box:rainBox(5,-1,7),vel:[0.2,1.4,0.1],sway:0.5,env:t=>0.35+0.65*cyc(t,50,5,0.2,0.4,0.3)}));",
+        "motion_evidence": "p[j]+=vx+(sw?Math.sin(t*2+i)*sw*dt:0); p[j+1]+=vy; p[j+2]+=vz+(sw?Math.cos(t*1.7+i*0.7)*sw*dt:0);"
+      },
+      "marsh_fauna_idle": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('fox',landCells[5],4,{c:0x4b3a28});",
+        "motion_evidence": "a.x+=dx/d*s; a.z+=dz/d*s; const want=Math.atan2(-dz,dx); let da=want-a.ang; da=Math.atan2(Math.sin(da),Math.cos(da)); a.ang+=da*Math.min(1,dt*6); a.ph+=dt*10;"
+      }
+    },
+    "must_not_present": {
+      "turquoise_ocean_swamp": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "cactus_swamp": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "snow_swamp": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      }
+    }
+  },
+  "grove": {
+    "biome": "grove",
+    "aliases": [
+      "grove",
+      "flowering_grove",
+      "orchard",
+      "blossom",
+      "GRO",
+      "GROVE",
+      "Flowering Grove"
+    ],
+    "entities": {
+      "pink_blossom_canopy": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "if(big){ B(x,g+2,g+4,z,c,5,5); B(x,g+4,g+6,z,pick([0xffb0e0,0xff9ad6]),3,3); } else { B(x,g+2,g+5,z,c,3,3); B(x,g+5,g+6,z,0xffb0e0,1,1); }",
+        "motion_evidence": ""
+      },
+      "cherry_trunk_render": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "function groveTree(x,z,g){ const big=rnd()<0.25; B(x,g,g+3,z,0x6e4a2a);",
+        "motion_evidence": ""
+      },
+      "pink_petal_ground": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case T.GROVE: return vary(0xcf9fb8,r*0.08);",
+        "motion_evidence": ""
+      },
+      "pink_foliage_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "const c=pick([0xff8fd0,0xf26bb8,0xffa8dc,0xf57cc6]);",
+        "motion_evidence": ""
+      },
+      "moist_basin_bowl": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 4:{ let h=16+5*n1+3*n2; if(z+6*(n1-0.5)<-24) h+=7; return h; }",
+        "motion_evidence": ""
+      },
+      "feeder_stream_flow": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in grove scope",
+        "motion_evidence": ""
+      },
+      "petal_drift_particles": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in grove scope",
+        "motion_evidence": ""
+      },
+      "soft_warm_mist": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in grove scope",
+        "motion_evidence": ""
+      },
+      "grove_fauna_graze": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('deer',landCells[7],4);",
+        "motion_evidence": "if(d<0.4){ a.wait=1+Math.random()*4; pickTarget(a); } else { const s=Math.min(a.speed*dt,d); a.x+=dx/d*s; a.z+=dz/d*s;"
+      },
+      "bee_pollinator_buzz": {
+        "looks_ok": false,
+        "moves_ok": false,
+        "axis": "n/a",
+        "look_evidence": "not in grove scope",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "pine_grove": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "cactus_grove": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "mangrove_grove": {
+        "found": false,
+        "evidence": "not in grove scope"
+      }
+    }
+  },
+  "grassland": {
+    "biome": "grassland",
+    "aliases": [
+      "grassland",
+      "grasslands",
+      "plains",
+      "prairie",
+      "meadow",
+      "savanna",
+      "GRA",
+      "GRASS",
+      "Central Grasslands",
+      "Grassland Plateau"
+    ],
+    "entities": {
+      "open_meadow_green": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 6: t=n1>0.6?T.OLIVE:T.GRASS; break;",
+        "motion_evidence": ""
+      },
+      "grass_over_dirt": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "B(x,g-capT,g,z,capColor(type[i],x,z,g));",
+        "motion_evidence": ""
+      },
+      "scattered_oak_copse": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 6:{ const cop=fbm(x*0.15+200,z*0.15,3)>0.6; if(cop&&r<0.3) oak(x,z,g); else if(r<0.004) oak(x,z,g);",
+        "motion_evidence": ""
+      },
+      "wildflower_yellow_white": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(r<0.055) B(x+(r2-0.5)*0.6,g,g+0.5,z+(r3-0.5)*0.6,r2<0.5?0xffe24a:0xfff6e0,0.45,0.45);",
+        "motion_evidence": ""
+      },
+      "tall_grass_blade": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(nw&&r<0.1) B(x,g,g+0.8,z,0x7fbf4a,0.5,0.5);",
+        "motion_evidence": ""
+      },
+      "olive_grass_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case T.OLIVE: return vary(0x8aa63a,r*0.08);",
+        "motion_evidence": ""
+      },
+      "river_bank_render": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(d<=w+1.4&&water[i]<=-999) ground[i]=Math.max(ground[i],L);",
+        "motion_evidence": ""
+      },
+      "tributary_river_flow": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "flowing",
+        "look_evidence": "waterMesh.position.y=Math.sin(time*1.3)*0.06;",
+        "motion_evidence": "waterMesh.position.y=Math.sin(time*1.3)*0.06;"
+      },
+      "clear_river_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "const RIVER=new THREE.Color(0x4fd8f0)",
+        "motion_evidence": ""
+      },
+      "grassland_fauna_herd": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('deer',landCells[6],7);",
+        "motion_evidence": "const yb=heightAt(a.x,a.z); if(yb>-900) a.g.position.set(a.x,yb+a.yoff+(a.water?Math.sin(time*2+a.ph)*0.1:0),a.z);"
+      }
+    },
+    "must_not_present": {
+      "pink_canopy_grassland": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "jungle_density_grassland": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "cactus_grassland": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "blizzard_grassland": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      }
+    }
+  },
+  "delta": {
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  "desert": {
+    "biome": "desert",
+    "aliases": [
+      "desert",
+      "dune",
+      "arid",
+      "DES",
+      "DESERT",
+      "Desert Basin",
+      "desert_mountain",
+      "desert_mtn",
+      "sandstone"
+    ],
+    "entities": {
+      "flat_basin_horizon": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case 8: t=h>16.5?T.SANDST:T.DESERT; break;",
+        "motion_evidence": ""
+      },
+      "sandstone_mesa_render": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "const MESAS=[{x:76,z:28,h:42,s:1.5,cap:38},{x:60,z:44,h:34,s:1.6,cap:99},{x:58,z:68,h:30,s:1.4,cap:26},{x:76,z:56,h:26,s:1.5,cap:99}];",
+        "motion_evidence": ""
+      },
+      "sand_over_sandstone": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "case T.DESERT: return vary(0xe2c26a,r*0.07); case T.SANDST: return [0xc98a4a,0xd9a05a,0xb5713b][((g%3)+3)%3];",
+        "motion_evidence": ""
+      },
+      "cactus_column_arm": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "function cactus(x,z,g){ const c=pick([0x3e8f3a,0x4a9c44,0x357f33]); const H=2+Math.floor(rnd()*3); B(x,g,g+H,z,c); const r=rnd();",
+        "motion_evidence": ""
+      },
+      "dead_bush_twig": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(r<0.06) B(x,g,g+0.8,z,0xc9a06a,1.3,1.3); break;",
+        "motion_evidence": ""
+      },
+      "dry_wash_channel": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "{k:'wash',w:1.6,p:[[80,18],[75,30],[70,42],[68,52]]},",
+        "motion_evidence": ""
+      },
+      "sandstorm_dust_sheet": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "blowing",
+        "look_evidence": "systems.push(new PSys({count:3600,color:0xd9b46a,size:1.2,opacity:0.55,box:{x0:db.x0-4,x1:db.x1+4,z0:db.z0-2,z1:db.z1+2,y0:db.top-1,y1:db.top+14},vel:[-46,0.6,7],gust:true,env:ENV.sand}));",
+        "motion_evidence": "const vx=v[0]*dt*gust, vy=v[1]*dt*vm, vz=v[2]*dt*gust;"
+      },
+      "arid_fauna_idle": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "grounded",
+        "look_evidence": "spawn('fox',landCells[8],5,{c:0xe9c690});",
+        "motion_evidence": "if(yb>-900) a.g.position.set(a.x,yb+a.yoff+(a.water?Math.sin(time*2+a.ph)*0.1:0),a.z);"
+      },
+      "sand_ground_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "{name:'Desert',               cx:74, cz:44,  sx:1.4, sz:1.55, col:0xe3c46e, wx:'sandstorm'},",
+        "motion_evidence": ""
+      },
+      "dry_grass_clump": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "else if(r<0.052) B(x,g,g+0.7,z,0x9a7a48,0.7,0.7);",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "rain_in_desert": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "perennial_river_desert": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "lava_desert": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "lush_snow_desert": {
+        "found": false,
+        "evidence": "not in desert scope"
+      }
+    }
+  },
+  "volcano": {
+    "biome": "volcano",
+    "aliases": [
+      "volcano"
+    ],
+    "entities": {
+      "volcano_cone_silhouette": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "if(dv<VOL.rim){ h=rimH-3-(VOL.rim-dv)*1.5; volType=true; }",
+        "motion_evidence": ""
+      },
+      "glowing_crater_mouth": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "pulsing",
+        "look_evidence": "craterLight.position.set(VOL.x,craterTop+6,VOL.z); scene.add(craterLight);",
+        "motion_evidence": "craterLight.intensity=90+220*er+30*Math.sin(time*5);"
+      },
+      "basalt_over_ash": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "if(volType||b1===9){ t=(dv<11||n1>0.58)?T.ASH:T.BASALT; }",
+        "motion_evidence": ""
+      },
+      "lava_flow_stream": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "flowing",
+        "look_evidence": "{k:'lava',w:1.2,p:[[-60,38],[-64,45],[-70,50],[-76,56],[-84,62]],pool:{x:-74,z:53,r:3}},",
+        "motion_evidence": "water[i]=lavaC[i]?Math.min(water[i],L):L; lavaC[i]=1; ground[i]=Math.min(ground[i],L-1); type[i]=T.BASALT;"
+      },
+      "lava_pool_glow": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "pulsing",
+        "look_evidence": "push(lavas,x,g,w,z,vary(0xff6a00,(hash2(x,z)-0.5)*0.12));",
+        "motion_evidence": "lavaMat.color.setScalar(0.85+0.15*Math.sin(time*2.3)+0.25*er);"
+      },
+      "lava_orange_tint": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "push(lavas,x,g,w,z,vary(0xff6a00,(hash2(x,z)-0.5)*0.12));",
+        "motion_evidence": ""
+      },
+      "ash_plume_rise": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "rising",
+        "look_evidence": "systems.push(new PSys({count:1400,color:0x6b6b70,size:2.6,opacity:0.6,box:{x0:VOL.x-60,x1:VOL.x+60,z0:VOL.z-60,z1:VOL.z+60,y0:craterTop-5,y1:craterTop+60},vel:[3,7,1.5],sway:1.5,vyMul:t=>1+1.6*ENV.erupt(t),",
+        "motion_evidence": "p[j+1]+=vy;"
+      },
+      "eruption_burst": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "rising",
+        "look_evidence": "b.v.set(Math.cos(a)*sp,26+Math.random()*16,Math.sin(a)*sp); } }",
+        "motion_evidence": "b.v.y-=30*dt; b.m.position.addScaledVector(b.v,dt);"
+      },
+      "volcanic_dust_fog": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "still",
+        "look_evidence": "systems.push(new PSys({count:600,color:0xd8c38a,size:3.6,opacity:0.12,box:{x0:db.x0,x1:db.x1,z0:db.z0,z1:db.z1,y0:db.top,y1:db.top+8},vel:[-3,0.2,0.5],env:()=>1}));",
+        "motion_evidence": "p[j]+=vx+(sw?Math.sin(t*2+i)*sw*dt:0);"
+      },
+      "obsidian_quench_edge": {
+        "looks_ok": true,
+        "moves_ok": true,
+        "axis": "n/a",
+        "look_evidence": "if(wet){ lavaC[i]=0; ground[i]=water[i]; water[i]=-999; type[i]=T.OBSID; }",
+        "motion_evidence": ""
+      }
+    },
+    "must_not_present": {
+      "rain_on_volcano": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "sandstone_volcano": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "snow_volcano": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "beach_volcano": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      }
+    }
+  }
+}

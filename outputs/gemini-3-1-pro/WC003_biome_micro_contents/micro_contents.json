@@ -1,6 +1,53 @@
 {
   "mountains": {
-    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+    "biome": "mountains",
+    "aliases": [
+      "mountains"
+    ],
+    "must_present": {
+      "high_relief_peaks": {
+        "found": true,
+        "evidence": "baseHeight = 25 + Math.max(0, 30 - peakD*1.2) + n; break;"
+      },
+      "summit_snow_blocks": {
+        "found": true,
+        "evidence": "case 'mountains': topColor = (h > 30) ? C.snow : C.rock; break;"
+      },
+      "lower_slope_rock": {
+        "found": true,
+        "evidence": "case 'mountains': topColor = (h > 30) ? C.snow : C.rock; break;"
+      },
+      "meltwater_stream": {
+        "found": true,
+        "evidence": "drawRiver(0, -45, 5, -20, 1); // Mountain melt to Conifer"
+      },
+      "summit_blizzard": {
+        "found": true,
+        "evidence": "case 0: px = -15 + Math.random()*30; pz = -65 + Math.random()*15; py += 25; break; // Blizzard behind mountains"
+      },
+      "alpine_fauna_spawn": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      }
+    },
+    "must_not_present": {
+      "dense_summit_forest": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "volcanic_leak": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "jungle_or_cactus": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "desert_or_sand": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      }
+    }
   },
   "forest": {
     "biome": "forest",

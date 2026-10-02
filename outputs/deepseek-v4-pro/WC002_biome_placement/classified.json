@@ -1,0 +1,87 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "snow_mountain",
+        "snow_rock"
+      ],
+      "placement_code": "if (z < -38 && h > 18) return 'snow_mountain'; if (z < -38 && h > 10) return 'snow_rock';",
+      "elevation_code": "h += gaussian(x, z, -12, -48, 16, 12, 38); h += ridgeGaussian(x, z, -8, -52, 20, 7, 22, -0.3); h += gaussian(x, z, -20, -44, 10, 8, 25); h += gaussian(x, z, -4, -40, 9, 9, 18);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "conifer_forest"
+      ],
+      "placement_code": "if (z < -20 && z > -38 && x < 5 && x > -28 && h > 7) return 'conifer_forest';",
+      "elevation_code": "h += gaussian(x, z, -10, -30, 14, 10, 16); h += gaussian(x, z, -18, -28, 8, 7, 10);"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highlands"
+      ],
+      "placement_code": "if (x > 18 && x < 40 && z > -35 && z < -15 && h > 8) return 'highlands';",
+      "elevation_code": "h += gaussian(x, z, 26, -32, 14, 12, 13); h += gaussian(x, z, 30, -28, 8, 7, 8);"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "if (x > -22 && x < 10 && z > -20 && z < 5 && h < 10 && vdist > 15) return 'jungle';",
+      "elevation_code": "if (x > -25 && x < 10 && z > -20 && z < 5 && vdist > 15) { h = Math.max(h, 3.5); h += Math.abs(Math.sin(x * 0.4 + z * 0.35)) * 3; }"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "if (x < -20 && x > -42 && z > -5 && z < 15 && h < 5) return 'swamp';",
+      "elevation_code": "if (x < -20 && x > -42 && z > -5 && z < 15) { h = Math.min(h, 3.5); h += Math.abs(Math.sin(x * 0.35 + z * 0.3)) * 1.2; }"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "flowering_grove"
+      ],
+      "placement_code": "if (x > 20 && x < 38 && z > -18 && z < -2 && h < 7 && vdist > 15) return 'flowering_grove';",
+      "elevation_code": "if (x > 20 && x < 38 && z > -18 && z < -2 && vdist > 14) { h = Math.min(h, 6); h += Math.abs(Math.sin(x * 0.45 + z * 0.4)) * 1.8; }"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grassland"
+      ],
+      "placement_code": "if (x > 0 && x < 28 && z > 5 && z < 25 && h < 7 && vdist > 15) return 'grassland';",
+      "elevation_code": "if (x > 0 && x < 28 && z > 5 && z < 25 && vdist > 14) { h = Math.min(h, 4.5); h += Math.abs(Math.sin(x * 0.5 + z * 0.45)) * 1.5; }"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "beach"
+      ],
+      "placement_code": "if (mv(x, z) > 0.8 && h < 3) return 'beach';",
+      "elevation_code": ""
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert",
+        "desert_mountain"
+      ],
+      "placement_code": "if (x > 25 && z > 15 && z < 42 && x < 52 && vdist > 15 && h < 7) return 'desert'; if (x > 32 && z > 22 && h > 10 && vdist > 15) return 'desert_mountain';",
+      "elevation_code": "h += gaussian(x, z, 38, 30, 10, 8, 20); h += gaussian(x, z, 44, 28, 7, 6, 14); if (x > 25 && z > 15 && z < 42 && x < 50 && vdist > 14) { h = Math.min(h, 5 + Math.abs(Math.sin(x * 0.3 + z * 0.2)) * 3); }"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano",
+        "volcanic_ground"
+      ],
+      "placement_code": "if (vdist < 14 && h > 8) return 'volcano'; if (vdist < 16 && h > 5) return 'volcanic_ground';",
+      "elevation_code": "const vcone = Math.max(0, 36 - vdist * 2.8); h += vcone * (vdist < 13 ? 1.0 : Math.max(0, 1.0 - (vdist - 13) / 8));"
+    }
+  }
+}

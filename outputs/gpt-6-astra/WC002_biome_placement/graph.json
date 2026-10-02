@@ -1,0 +1,275 @@
+{
+  "viewBox": {
+    "width": 800,
+    "height": 560
+  },
+  "score": 17,
+  "max_score": 20,
+  "passed": false,
+  "elevation_order": [
+    "volcano",
+    "mountains",
+    "forest",
+    "highlands",
+    "jungle",
+    "swamp",
+    "grassland",
+    "desert",
+    "delta",
+    "grove"
+  ],
+  "nodes": [
+    {
+      "id": "mountains",
+      "label": "Snow Mountains",
+      "neighbors": [
+        "forest",
+        "highlands"
+      ],
+      "evidence": "else if(z<-41+boundary)biome='mountains';",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 52,
+      "w": 176,
+      "h": 46
+    },
+    {
+      "id": "forest",
+      "label": "Snowy Conifer Forest",
+      "neighbors": [
+        "mountains",
+        "highlands",
+        "jungle"
+      ],
+      "evidence": "else if(z<-25+boundary&&x<17+boundary)biome='conifers';",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 145,
+      "w": 190,
+      "h": 46
+    },
+    {
+      "id": "highlands",
+      "label": "Highlands",
+      "neighbors": [
+        "mountains",
+        "forest",
+        "jungle",
+        "swamp",
+        "grassland"
+      ],
+      "evidence": "else if(z<-17+boundary&&x>=17+boundary)biome='highlands';",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 130,
+      "cy": 172,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "jungle",
+      "label": "Dense Jungle",
+      "neighbors": [
+        "forest",
+        "highlands",
+        "swamp",
+        "grassland",
+        "desert"
+      ],
+      "evidence": "else if(x<-21+boundary&&z<10+boundary)biome='jungle';",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 362,
+      "cy": 252,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "swamp",
+      "label": "Backwater Swamp",
+      "neighbors": [
+        "highlands",
+        "jungle",
+        "grassland",
+        "delta"
+      ],
+      "evidence": "h=9+noise(x,z)*.5;",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 95,
+      "cy": 322,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grove",
+      "label": "Flowering Grove",
+      "neighbors": [],
+      "evidence": "not in source",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to any of ['highlands', 'grassland']",
+      "cx": 250,
+      "cy": 438,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland Plateau",
+      "neighbors": [
+        "highlands",
+        "jungle",
+        "swamp",
+        "delta",
+        "desert"
+      ],
+      "evidence": "else biome='grasslands';",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 372,
+      "cy": 372,
+      "w": 180,
+      "h": 46
+    },
+    {
+      "id": "delta",
+      "label": "Coastal Delta / Ocean",
+      "neighbors": [
+        "swamp",
+        "grassland",
+        "desert"
+      ],
+      "evidence": "let biome='coast',h=-B*(2+Math.floor(clamp((landShape-1)*15,0,4))),liquid='ocean',wy=SEA;",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 348,
+      "cy": 512,
+      "w": 200,
+      "h": 46
+    },
+    {
+      "id": "desert",
+      "label": "Desert Basin",
+      "neighbors": [
+        "jungle",
+        "grassland",
+        "delta"
+      ],
+      "evidence": "h=5.4+noise(x*.7,z*.7)*.45;for(const [px,pz,rx,rz,ph] of [[36,47,12,9,25],[20,58,9,7,18],[46,38,7,6,15]]){const d=ellipse(x,z,px,pz,rx,rz);h=Math.max(h,5.4+Math.min(.8,Math.max(0,1-d)*ph));}",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to jungle; incorrectly connected to delta",
+      "cx": 652,
+      "cy": 330,
+      "w": 180,
+      "h": 46,
+      "isolated": true
+    },
+    {
+      "id": "volcano",
+      "label": "Volcano",
+      "neighbors": [],
+      "evidence": "const r=Math.hypot(x-54,(z-6)*1.03);h=5.4+Math.max(0,1-r/22)*55;if(r<4.5)h=42.3+r*1.4;h+=noise(x,z)*.5;",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 662,
+      "cy": 128,
+      "w": 168,
+      "h": 46,
+      "isolated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "delta",
+      "to": "swamp"
+    },
+    {
+      "from": "desert",
+      "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "highlands"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "grassland",
+      "to": "highlands"
+    },
+    {
+      "from": "grassland",
+      "to": "jungle"
+    },
+    {
+      "from": "grassland",
+      "to": "swamp"
+    },
+    {
+      "from": "highlands",
+      "to": "jungle"
+    },
+    {
+      "from": "highlands",
+      "to": "mountains"
+    },
+    {
+      "from": "highlands",
+      "to": "swamp"
+    },
+    {
+      "from": "jungle",
+      "to": "swamp"
+    }
+  ]
+}

@@ -502,7 +502,7 @@
           "swamp": "failed items: lily_pads_or_surface_cover, marsh_fauna_spawn, mud_banks",
           "grove": "failed items: moist_basin_below_highland, feeder_streams, grove_fauna_spawn, pollinators",
           "grassland": "failed items: tall_grass",
-          "delta": "failed items: rocky_headlands, coral_or_reef_life, braided_river_mouths, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn, ocean_over_void",
+          "delta": "failed items: rocky_headlands, coral_or_reef_life, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn, ocean_over_void",
           "desert": "failed items: fading_washes, arid_fauna_spawn, dead_bush, swamp_or_palms",
           "volcano": "failed items: glowing_crater, obsidian_quench, snow_or_pine"
         },
@@ -551,7 +551,8 @@
             "depth_banded_water",
             "sand_bays",
             "palm_silhouettes",
-            "small_islands"
+            "small_islands",
+            "braided_river_mouths"
           ],
           "desert": [
             "flat_arid_basin",
@@ -607,7 +608,6 @@
           "delta": [
             "rocky_headlands",
             "coral_or_reef_life",
-            "braided_river_mouths",
             "fresh_salt_mix",
             "cliff_waterfalls_to_void",
             "coastal_fauna_spawn",
@@ -1334,6 +1334,17 @@
                   "visual": true,
                   "seen": "Small coastal islands with sand and palm trees.",
                   "evidence": "islet(-70, 30, 3, 3.0); islet(26, 68, 4, 3.2); islet(-48, 68, 3, 2.8); islet(64, 62, 2, 2.6);"
+                },
+                {
+                  "id": "braided_river_mouths",
+                  "label": "Braided delta / multiple river mouths into the ocean",
+                  "kind": "must_present",
+                  "points": 0.91,
+                  "earned": 0.91,
+                  "code": true,
+                  "visual": true,
+                  "seen": "River channels flowing into the ocean.",
+                  "evidence": "for(const m of [[0,51],[14,53],[27,49]]){\nwaterBlocks.push({x,y:2,z,c:jcol(0x8fe8e8,x,z,0.05)});"
                 }
               ],
               "lost": [
@@ -1354,24 +1365,12 @@
                   "label": "Coral / reef structures in shallow coastal water",
                   "kind": "must_present",
                   "points": 0.91,
-                  "earned": 0.0,
-                  "code": false,
+                  "earned": 0.46,
+                  "code": true,
                   "visual": false,
                   "seen": "Not visible",
-                  "evidence": "const reefCols=[0xff9d7a,0x59d8c8,0xf27ba7,0x7fe0d0];\n... blocks.push({x,y:1,z,c:jcol(reefCols[Math.floor(hash2(x,z)*4)],x,z,0.08)});",
-                  "why": "evidence_not_in_source"
-                },
-                {
-                  "id": "braided_river_mouths",
-                  "label": "Braided delta / multiple river mouths into the ocean",
-                  "kind": "must_present",
-                  "points": 0.91,
-                  "earned": 0.46,
-                  "code": false,
-                  "visual": true,
-                  "seen": "River channels flowing into the ocean.",
-                  "evidence": "for(const m of [[0,51],[14,53],[27,49]]){ ... waterBlocks.push({x,y:2,z,c:jcol(0x8fe8e8,x,z,0.05)});",
-                  "why": "evidence_not_in_source"
+                  "evidence": "const reefCols=[0xff9d7a,0x59d8c8,0xf27ba7,0x7fe0d0];\nif(hash2(x*11,z*13)<0.02) blocks.push({x,y:1,z,c:jcol(reefCols[Math.floor(hash2(x,z)*4)],x,z,0.08)});",
+                  "why": "not_visible"
                 },
                 {
                   "id": "fresh_salt_mix",
@@ -1630,9 +1629,18 @@
         "artifacts": {
           "micro_contents": "micro_contents.json",
           "score": "score.json",
-          "visual": "visual.json",
-          "recheck": "recheck.json"
+          "visual": "visual.json"
         },
+        "repairs": [
+          {
+            "at": "2026-10-02T07:05:57Z",
+            "did": [
+              "quote repair on ['delta'] (2 flagged; role repair=gemma-4-26b-a4b-it)",
+              "2 recheck hunt(s), 0 verified (role judge=gemini-3.1-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261002T070557Z"
+          }
+        ],
         "rechecks": [
           {
             "biome": "jungle",
@@ -1656,7 +1664,7 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 61.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 62.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1666,8 +1674,8 @@
           "jungle": "failed items: hanging_vines_on_trunks, cocoa_melon_or_bamboo, pond_still_surface, waterfall_cascade, rising_mist_after_rain, jungle_fauna_ground, canopy_bird_motion",
           "swamp": "failed items: hanging_moss_drape, lily_pad_float, sugar_cane_shore, olive_water_tint, mud_bank_render, mud_floor_recipe, marsh_fauna_idle",
           "grove": "failed items: moist_basin_bowl, feeder_stream_flow, soft_warm_mist, grove_fauna_graze, bee_pollinator_buzz",
-          "grassland": "failed items: open_meadow_green, tall_grass_blade, grassland_fauna_herd",
-          "delta": "failed items: sand_beach_bright, sand_seafloor_recipe, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
+          "grassland": "failed items: open_meadow_green, tall_grass_blade",
+          "delta": "failed items: sand_seafloor_recipe, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
           "desert": "failed items: sand_over_sandstone, dead_bush_twig, dry_wash_channel, dry_grass_clump",
           "volcano": "failed items: glowing_crater_mouth, lava_flow_stream, lava_pool_glow, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
         },
@@ -1717,11 +1725,13 @@
             "olive_grass_tint",
             "river_bank_render",
             "tributary_river_flow",
-            "clear_river_tint"
+            "clear_river_tint",
+            "grassland_fauna_herd"
           ],
           "delta": [
             "turquoise_shallow_band",
             "deep_offshore_blue",
+            "sand_beach_bright",
             "palm_frond_silhouette"
           ],
           "desert": [
@@ -1788,11 +1798,9 @@
           ],
           "grassland": [
             "open_meadow_green",
-            "tall_grass_blade",
-            "grassland_fauna_herd"
+            "tall_grass_blade"
           ],
           "delta": [
-            "sand_beach_bright",
             "sand_seafloor_recipe",
             "kelp_or_seagrass",
             "coral_reef_color",
@@ -1822,19 +1830,19 @@
           "jungle": 5.0,
           "swamp": 4.5,
           "grove": 6.5,
-          "grassland": 8.5,
-          "delta": 6.5,
+          "grassland": 9.0,
+          "delta": 7.0,
           "desert": 7.5,
-          "volcano": 6.75
+          "volcano": 7.0
         },
-        "score": 61.5,
+        "score": 62.25,
         "max_score": 100,
         "scorecard": {
-          "score": 68.0,
+          "score": 69.25,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 9.0,
@@ -3077,7 +3085,7 @@
               "biome_visible": true
             },
             "grassland": {
-              "score": 8.5,
+              "score": 9.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3213,6 +3221,25 @@
                   "llm_axis": "n/a",
                   "look_evidence": "jcol(0x35c4e8,x,z,0.06);",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "grassland_fauna_herd",
+                  "label": "Grazers (deer/horse/sheep) grounded on the plain",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": null,
+                  "motion_seen": "",
+                  "motion_axis_seen": "",
+                  "seen": "Quadruped animal figures standing on grassland",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "grounded",
+                  "look_evidence": "addAnimal(makeDeer,  6,26,10,1.1); addAnimal(makeDeer, 14,34,9,1.0);",
+                  "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp;\na.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;"
                 }
               ],
               "lost": [
@@ -3255,33 +3282,13 @@
                   "look_evidence": "blocks.push({x,y:h,z,s:0.12,sy:0.35,c:C(0x3d7a2a)});",
                   "motion_evidence": "",
                   "why": "not_visible"
-                },
-                {
-                  "id": "grassland_fauna_herd",
-                  "label": "Grazers (deer/horse/sheep) grounded on the plain",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.5,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": null,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Quadruped animal figures standing on grassland",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "grounded",
-                  "look_evidence": "addAnimal(makeDeer,  6,26,10,1.1); addAnimal(makeDeer, 14,34,9,1.0);",
-                  "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp; a.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;",
-                  "why": "evidence_not_in_source"
                 }
               ],
               "shows_biome": true,
               "biome_visible": true
             },
             "delta": {
-              "score": 6.5,
+              "score": 7.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3324,6 +3331,25 @@
                   "motion_evidence": ""
                 },
                 {
+                  "id": "sand_beach_bright",
+                  "label": "Bright pale sand beaches and curved bays",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": null,
+                  "visual_motion": null,
+                  "motion_seen": "",
+                  "motion_axis_seen": "",
+                  "seen": "Pale tan sand beach along the coastline.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "n/a",
+                  "look_evidence": "B[gi(x,z)] = BI.BEACH;\nH[id]=2.7+hash2(x*9,z*9)*0.7;",
+                  "motion_evidence": ""
+                },
+                {
                   "id": "palm_frond_silhouette",
                   "label": "Palm tree \u2014 trunk plus splayed frond canopy",
                   "kind": "entity",
@@ -3344,26 +3370,6 @@
                 }
               ],
               "lost": [
-                {
-                  "id": "sand_beach_bright",
-                  "label": "Bright pale sand beaches and curved bays",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.5,
-                  "code_look": false,
-                  "visual_look": true,
-                  "code_motion": null,
-                  "visual_motion": null,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Pale tan sand beach along the coastline.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "n/a",
-                  "look_evidence": "B[gi(x,z)]=BI.BEACH; H[id]=2.7+hash2(x*9,z*9)*0.7;",
-                  "motion_evidence": "",
-                  "why": "evidence_not_in_source"
-                },
                 {
                   "id": "sand_seafloor_recipe",
                   "label": "Sand (or gravel) seafloor under shallow water \u2014 not mud swamp bed",
@@ -3694,7 +3700,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 6.75,
+              "score": 7.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3781,8 +3787,8 @@
                   "label": "Glowing orange/red emissive crater at summit",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
-                  "code_look": false,
+                  "earned": 0.5,
+                  "code_look": true,
                   "visual_look": true,
                   "code_motion": false,
                   "visual_motion": false,
@@ -3792,9 +3798,9 @@
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "pulsing",
-                  "look_evidence": "if(d<3.2) h=25.0; lava.set(key(x,z), 26);",
+                  "look_evidence": "if(d<3.2) h=25.0;                                      // crater bowl\nif(Math.hypot(dx,dz)<=2.6 && H[gi(x,z)]>-900){ H[gi(x,z)]=25; lava.set(key(x,z), 26); water.delete(key(x,z)); }",
                   "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-                  "why": "evidence_not_in_source"
+                  "why": "no_time_update"
                 },
                 {
                   "id": "lava_flow_stream",
@@ -3907,15 +3913,24 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-02T07:05:57Z",
+            "did": [
+              "quote repair on ['grassland', 'delta', 'volcano'] (4 flagged; role repair=gemma-4-26b-a4b-it)"
+            ],
+            "backup": ".repair_backups/20261002T070839Z"
+          }
+        ]
       },
-      "score": 61.5,
+      "score": 62.25,
       "max_score": 100,
-      "probe_score": 68.0,
-      "probe_reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 69.25,
+      "probe_reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false,
       "gated": true,
-      "sea_deduction": 6.5
+      "sea_deduction": 7.0
     },
     "WC002_biome_placement::check_biome_placement": {
       "passed": false,
@@ -4842,8 +4857,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 192.61,
+  "total_score": 193.36,
   "total_max_score": 280.0,
-  "pct": 0.6878928571428572,
+  "pct": 0.6905714285714286,
   "island_gate": true
 }

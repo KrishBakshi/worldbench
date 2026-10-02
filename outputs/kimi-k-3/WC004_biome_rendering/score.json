@@ -1,9 +1,9 @@
 {
-  "score": 68.0,
+  "score": 69.25,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 9.0,
@@ -1246,7 +1246,7 @@
       "biome_visible": true
     },
     "grassland": {
-      "score": 8.5,
+      "score": 9.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1382,6 +1382,25 @@
           "llm_axis": "n/a",
           "look_evidence": "jcol(0x35c4e8,x,z,0.06);",
           "motion_evidence": ""
+        },
+        {
+          "id": "grassland_fauna_herd",
+          "label": "Grazers (deer/horse/sheep) grounded on the plain",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Quadruped animal figures standing on grassland",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "addAnimal(makeDeer,  6,26,10,1.1); addAnimal(makeDeer, 14,34,9,1.0);",
+          "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp;\na.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;"
         }
       ],
       "lost": [
@@ -1424,33 +1443,13 @@
           "look_evidence": "blocks.push({x,y:h,z,s:0.12,sy:0.35,c:C(0x3d7a2a)});",
           "motion_evidence": "",
           "why": "not_visible"
-        },
-        {
-          "id": "grassland_fauna_herd",
-          "label": "Grazers (deer/horse/sheep) grounded on the plain",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Quadruped animal figures standing on grassland",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "addAnimal(makeDeer,  6,26,10,1.1); addAnimal(makeDeer, 14,34,9,1.0);",
-          "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp; a.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;",
-          "why": "evidence_not_in_source"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "delta": {
-      "score": 6.5,
+      "score": 7.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1493,6 +1492,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "sand_beach_bright",
+          "label": "Bright pale sand beaches and curved bays",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": null,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Pale tan sand beach along the coastline.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "n/a",
+          "look_evidence": "B[gi(x,z)] = BI.BEACH;\nH[id]=2.7+hash2(x*9,z*9)*0.7;",
+          "motion_evidence": ""
+        },
+        {
           "id": "palm_frond_silhouette",
           "label": "Palm tree \u2014 trunk plus splayed frond canopy",
           "kind": "entity",
@@ -1513,26 +1531,6 @@
         }
       ],
       "lost": [
-        {
-          "id": "sand_beach_bright",
-          "label": "Bright pale sand beaches and curved bays",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": false,
-          "visual_look": true,
-          "code_motion": null,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Pale tan sand beach along the coastline.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "n/a",
-          "look_evidence": "B[gi(x,z)]=BI.BEACH; H[id]=2.7+hash2(x*9,z*9)*0.7;",
-          "motion_evidence": "",
-          "why": "evidence_not_in_source"
-        },
         {
           "id": "sand_seafloor_recipe",
           "label": "Sand (or gravel) seafloor under shallow water \u2014 not mud swamp bed",
@@ -1863,7 +1861,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 6.75,
+      "score": 7.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1950,8 +1948,8 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
-          "code_look": false,
+          "earned": 0.5,
+          "code_look": true,
           "visual_look": true,
           "code_motion": false,
           "visual_motion": false,
@@ -1961,9 +1959,9 @@
           "llm_looks_ok": true,
           "llm_moves_ok": true,
           "llm_axis": "pulsing",
-          "look_evidence": "if(d<3.2) h=25.0; lava.set(key(x,z), 26);",
+          "look_evidence": "if(d<3.2) h=25.0;                                      // crater bowl\nif(Math.hypot(dx,dz)<=2.6 && H[gi(x,z)]>-900){ H[gi(x,z)]=25; lava.set(key(x,z), 26); water.delete(key(x,z)); }",
           "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-          "why": "evidence_not_in_source"
+          "why": "no_time_update"
         },
         {
           "id": "lava_flow_stream",

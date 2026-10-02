@@ -682,7 +682,7 @@
         "moves_ok": true,
         "axis": "grounded",
         "look_evidence": "addAnimal(makeDeer,  6,26,10,1.1); addAnimal(makeDeer, 14,34,9,1.0);",
-        "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp; a.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;"
+        "motion_evidence": "a.g.position.x+=dx/d*sp; a.g.position.z+=dz/d*sp;\na.g.position.y=gy+1+Math.abs(Math.sin(T*6+a.ph))*0.06;"
       }
     },
     "must_not_present": {
@@ -737,7 +737,7 @@
         "looks_ok": true,
         "moves_ok": true,
         "axis": "n/a",
-        "look_evidence": "B[gi(x,z)]=BI.BEACH; H[id]=2.7+hash2(x*9,z*9)*0.7;",
+        "look_evidence": "B[gi(x,z)] = BI.BEACH;\nH[id]=2.7+hash2(x*9,z*9)*0.7;",
         "motion_evidence": ""
       },
       "sand_seafloor_recipe": {
@@ -933,7 +933,7 @@
         "looks_ok": true,
         "moves_ok": true,
         "axis": "pulsing",
-        "look_evidence": "if(d<3.2) h=25.0; lava.set(key(x,z), 26);",
+        "look_evidence": "if(d<3.2) h=25.0;                                      // crater bowl\nif(Math.hypot(dx,dz)<=2.6 && H[gi(x,z)]>-900){ H[gi(x,z)]=25; lava.set(key(x,z), 26); water.delete(key(x,z)); }",
         "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;"
       },
       "basalt_over_ash": {

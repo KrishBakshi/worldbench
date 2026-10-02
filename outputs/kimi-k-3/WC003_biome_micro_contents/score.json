@@ -692,6 +692,17 @@
           "visual": true,
           "seen": "Small coastal islands with sand and palm trees.",
           "evidence": "islet(-70, 30, 3, 3.0); islet(26, 68, 4, 3.2); islet(-48, 68, 3, 2.8); islet(64, 62, 2, 2.6);"
+        },
+        {
+          "id": "braided_river_mouths",
+          "label": "Braided delta / multiple river mouths into the ocean",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.91,
+          "code": true,
+          "visual": true,
+          "seen": "River channels flowing into the ocean.",
+          "evidence": "for(const m of [[0,51],[14,53],[27,49]]){\nwaterBlocks.push({x,y:2,z,c:jcol(0x8fe8e8,x,z,0.05)});"
         }
       ],
       "lost": [
@@ -712,24 +723,12 @@
           "label": "Coral / reef structures in shallow coastal water",
           "kind": "must_present",
           "points": 0.91,
-          "earned": 0.0,
-          "code": false,
+          "earned": 0.46,
+          "code": true,
           "visual": false,
           "seen": "Not visible",
-          "evidence": "const reefCols=[0xff9d7a,0x59d8c8,0xf27ba7,0x7fe0d0];\n... blocks.push({x,y:1,z,c:jcol(reefCols[Math.floor(hash2(x,z)*4)],x,z,0.08)});",
-          "why": "evidence_not_in_source"
-        },
-        {
-          "id": "braided_river_mouths",
-          "label": "Braided delta / multiple river mouths into the ocean",
-          "kind": "must_present",
-          "points": 0.91,
-          "earned": 0.46,
-          "code": false,
-          "visual": true,
-          "seen": "River channels flowing into the ocean.",
-          "evidence": "for(const m of [[0,51],[14,53],[27,49]]){ ... waterBlocks.push({x,y:2,z,c:jcol(0x8fe8e8,x,z,0.05)});",
-          "why": "evidence_not_in_source"
+          "evidence": "const reefCols=[0xff9d7a,0x59d8c8,0xf27ba7,0x7fe0d0];\nif(hash2(x*11,z*13)<0.02) blocks.push({x,y:1,z,c:jcol(reefCols[Math.floor(hash2(x,z)*4)],x,z,0.08)});",
+          "why": "not_visible"
         },
         {
           "id": "fresh_salt_mix",

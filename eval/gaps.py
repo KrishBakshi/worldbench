@@ -193,7 +193,8 @@ def _update_validation(model: str, test: str, result, note: dict) -> tuple[float
     v = json.loads(path.read_text())
     key = KEYS[test]
     old = v["checks"].get(key, {})
-    before, total_before = old.get("probe_score", old.get("score")), v["total_score"]
+    # both sides are the final, recorded score (after the WC004 island gate)
+    before, total_before = old.get("score"), v["total_score"]
     details = dict(result.details)
     details["repairs"] = list((old.get("details") or {}).get("repairs", [])) + [note]
     if test == WC003 and (old.get("details") or {}).get("rechecks"):
@@ -340,7 +341,7 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
         result = main.regrade_rendering(D / "rendering.json")
         note = {"at": stamp, "did": did, "backup": str(backup.relative_to(O))}
         b, a, tb, ta = _update_validation(model, WC004, result, note)
-        lines.append(f"{model} WC004: {'; '.join(did)} | {b} -> {a} (before island gate) | total {tb} -> {ta}")
+        lines.append(f"{model} WC004: {'; '.join(did)} | {b} -> {a} | total {tb} -> {ta}")
         log(f"      gaps      {lines[-1]}")
 
     # WC005: a failed cycle probe

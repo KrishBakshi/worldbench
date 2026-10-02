@@ -1179,7 +1179,7 @@
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
       "passed": false,
-      "reason": "Scored 73.64/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
+      "reason": "Scored 74.48/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
       "details": {
         "found": {
           "grassland": "ok"
@@ -1193,7 +1193,7 @@
           "grove": "failed items: pollinators",
           "delta": "failed items: rocky_headlands, coral_or_reef_life, small_islands, braided_river_mouths, fresh_salt_mix, coastal_fauna_spawn",
           "desert": "failed items: flat_arid_basin, sandstone_peaks, cacti_on_flats, fading_washes, sandstorm_particles, arid_fauna_spawn, dead_bush",
-          "volcano": "failed items: basalt_or_ash_surface, ash_or_eruption_particles"
+          "volcano": "failed items: ash_or_eruption_particles"
         },
         "item_hits": {
           "mountains": [
@@ -1252,6 +1252,7 @@
             "tall_cone",
             "glowing_crater",
             "lava_flows_on_volcanic_ground",
+            "basalt_or_ash_surface",
             "obsidian_quench"
           ]
         },
@@ -1303,7 +1304,6 @@
             "dead_bush"
           ],
           "volcano": [
-            "basalt_or_ash_surface",
             "ash_or_eruption_particles"
           ]
         },
@@ -1317,16 +1317,16 @@
           "grassland": 10.02,
           "delta": 7.31,
           "desert": 4.97,
-          "volcano": 8.34
+          "volcano": 9.18
         },
-        "score": 73.64,
+        "score": 74.48,
         "max_score": 100,
         "scorecard": {
-          "score": 73.64,
+          "score": 74.48,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 73.64/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
+          "reason": "Scored 74.48/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 9.18,
@@ -2202,7 +2202,7 @@
               "biome_visible": false
             },
             "volcano": {
-              "score": 8.34,
+              "score": 9.18,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2240,6 +2240,17 @@
                   "evidence": "if(r<3.35){h=41.4;wy=43.37;liquid='lava';}"
                 },
                 {
+                  "id": "basalt_or_ash_surface",
+                  "label": "Black basalt / ash surface blocks",
+                  "kind": "must_present",
+                  "points": 1.67,
+                  "earned": 1.67,
+                  "code": true,
+                  "visual": true,
+                  "seen": "Dark grey and black blocks",
+                  "evidence": "biome==='volcano'&&y>0?'#393940':\nblock(x,h+range(.5,1.2),z,range(.8,2.1),'#33333e');"
+                },
+                {
                   "id": "obsidian_quench",
                   "label": "Water + lava contact becomes obsidian",
                   "kind": "must_present",
@@ -2252,18 +2263,6 @@
                 }
               ],
               "lost": [
-                {
-                  "id": "basalt_or_ash_surface",
-                  "label": "Black basalt / ash surface blocks",
-                  "kind": "must_present",
-                  "points": 1.67,
-                  "earned": 0.83,
-                  "code": false,
-                  "visual": true,
-                  "seen": "Dark grey and black blocks",
-                  "evidence": "if(biome==='volcano'&&y>0?'#393940':",
-                  "why": "evidence_not_in_source"
-                },
                 {
                   "id": "ash_or_eruption_particles",
                   "label": "Ash plumes and/or periodic eruption particles",
@@ -2285,9 +2284,17 @@
         "artifacts": {
           "micro_contents": "micro_contents.json",
           "score": "score.json",
-          "visual": "visual.json",
-          "recheck": "recheck.json"
+          "visual": "visual.json"
         },
+        "repairs": [
+          {
+            "at": "2026-10-02T07:02:22Z",
+            "did": [
+              "3 recheck hunt(s), 1 verified (role judge=gemini-3.1-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261002T070222Z"
+          }
+        ],
         "rechecks": [
           {
             "biome": "mountains",
@@ -2306,7 +2313,7 @@
           }
         ]
       },
-      "score": 73.64,
+      "score": 74.48,
       "max_score": 100
     },
     "WC004_biome_rendering::check_biome_rendering": {
@@ -4814,8 +4821,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 199.89,
+  "total_score": 200.73000000000002,
   "total_max_score": 280.0,
-  "pct": 0.7138928571428571,
+  "pct": 0.7168928571428572,
   "island_gate": false
 }

@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const sunMesh = new THREE.Mesh(sunGeo, sunMat);",
+      "motion_evidence": "sunMesh.position.set(Math.cos(sunAngle) * 180, Math.sin(sunAngle) * 180, 0);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sunLight.position.copy(sunMesh.position);",
+      "motion_evidence": "sunLight.position.copy(sunMesh.position);"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "ambientLight.intensity = lightInt * 0.6 + 0.15; // never pure black",
+      "motion_evidence": "sunLight.intensity = lightInt * 1.5;"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool",
+      "motion_evidence": "sunLight.color.setHex(0xffeebb); // Summer warm"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "let seasonCycle = 0; // 0 to 1",
+      "motion_evidence": "seasonCycle = (seasonCycle + dt * 0.005) % 1;"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool",
+      "motion_evidence": "sunLight.color.setHex(0xffeebb); // Summer warm"
+    },
+    "season_modulates_weather": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "scene.background = new THREE.Color(0x000000); // Black void"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "score": 11.0,
+  "max_score": 20,
+  "items": [
+    {
+      "id": "cube_primitive",
+      "label": "Terrain is built from cube primitives (BoxGeometry or 8-corner cube faces), not only spheres/planes",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "const mesh=new THREE.Mesh(geo, matFor(col+biome+String(h).slice(0,3), col));",
+      "reason": "The terrain is constructed using BoxGeometry meshes."
+    },
+    {
+      "id": "bulk_placement",
+      "label": "Cubes are placed in bulk over the island (cell loops, InstancedMesh of boxes, merged cube buffers)",
+      "points": 1,
+      "probability": 0.0,
+      "evidence_verified": true,
+      "earned": 0.0,
+      "passed": false,
+      "why": "low_probability",
+      "evidence": "world.add(mesh);",
+      "reason": "Individual meshes are added to the scene in a loop rather than using InstancedMesh or merged buffers."
+    },
+    {
+      "id": "discrete_grid",
+      "label": "Land sits on a discrete cell grid, not continuous vertex displacement of a plane",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "for(let x=-58;x<=58;x+=2){",
+      "reason": "The terrain generation iterates over a discrete grid of x and z coordinates."
+    },
+    {
+      "id": "stacked_columns",
+      "label": "Columns and cliffs are stacks of unit cubes, not one stretched prism per cell",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "const geo=new THREE.BoxGeometry(1.95,bh,1.95);",
+      "reason": "The code creates a single box per cell representing the height, not stacked unit cubes."
+    },
+    {
+      "id": "cube_terrain",
+      "label": "The ground itself is cubes (a sun or UI may use planes)",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "const mesh=new THREE.Mesh(geo, matFor(col+biome+String(h).slice(0,3), col));",
+      "reason": "The ground is composed of box-shaped meshes."
+    },
+    {
+      "id": "grid_aligned",
+      "label": "Land cubes snap to integer cell positions; no fractional offsets or random world-space cubes",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "mesh.position.set(x,y,z);",
+      "reason": "The cubes are placed at integer-based grid coordinates."
+    },
+    {
+      "id": "unit_voxels",
+      "label": "One cell size for land/structure cubes, not scaled blobs",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "const blockGeo=new THREE.BoxGeometry(1.9,1,1.9);",
+      "reason": "The terrain uses a consistent cell size for the base blocks."
+    },
+    {
+      "id": "contained_water",
+      "label": "An ocean or river is actually built",
+      "points": 2,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 2.0,
+      "passed": true,
+      "why": "",
+      "evidence": "const deep=new THREE.Mesh(geo,mat);deep.position.y=-0.6;deep.receiveShadow=true;world.add(deep);",
+      "reason": "An ocean floor and shallow water layers are explicitly added to the scene."
+    },
+    {
+      "id": "water_physics",
+      "label": "Every water body is supported: resting on blocks or walled by a solid rim, or visibly falling (waterfalls off edges). Static water is fine; this is about support, not simulation",
+      "points": 3,
+      "probability": 0.0,
+      "evidence_verified": true,
+      "earned": 0.0,
+      "passed": false,
+      "why": "low_probability",
+      "evidence": "const deep=new THREE.Mesh(geo,mat);deep.position.y=-0.6;",
+      "reason": "The water is a flat plane placed at a fixed Y coordinate, not supported by terrain blocks."
+    },
+    {
+      "id": "water_bed",
+      "label": "Still water sits on solid terrestrial blocks (sand/stone/dirt/bedrock) beneath it, not a flat sheet over the void",
+      "points": 5,
+      "probability": 0.0,
+      "evidence_verified": true,
+      "earned": 0.0,
+      "passed": false,
+      "why": "low_probability",
+      "evidence": "const deep=new THREE.Mesh(geo,mat);deep.position.y=-0.6;",
+      "reason": "The ocean is a flat box geometry placed in the void, not sitting on terrestrial blocks."
+    },
+    {
+      "id": "grounded_props",
+      "label": "Flora, fauna and structures are placed on the island's own cells, not thrown at random world coordinates",
+      "points": 3,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 3.0,
+      "passed": true,
+      "why": "",
+      "evidence": "g.position.set(x,gh+0.6,z);",
+      "reason": "Trees and fauna are positioned based on the calculated height of the terrain at specific coordinates."
+    }
+  ],
+  "missing": [
+    "bulk_placement",
+    "water_physics",
+    "water_bed"
+  ]
+}

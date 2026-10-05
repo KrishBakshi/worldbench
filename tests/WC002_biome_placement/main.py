@@ -47,10 +47,11 @@ def check_biome_placement(html_path: str, out_dir: Path | None = None, model: st
     classified = classify_biome_js(html_path, model)
     manifest = ensure_capture(html_path, model)
     confirmed = {bid for bid in RULES if confirmed_biome_view(manifest, bid)}
-    coverage = biome_coverage(classified, strip_html(html_path), RULES, confirmed)
+    js = strip_html(html_path)
+    coverage = biome_coverage(classified, js, RULES, confirmed)
     log(f"      coverage  {sum(c['covered'] for c in coverage.values())}/{len(RULES)} covered")
-    log("      extract   (llm)")
-    graph = extract_graph(classified, model)
+    log("      extract   (llm, whole source)")
+    graph = extract_graph(js, model)
     log("      grade")
     result = grade_graph(graph, {bid: c["covered"] for bid, c in coverage.items()})
     result.details["coverage"] = coverage

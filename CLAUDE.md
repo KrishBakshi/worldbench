@@ -36,7 +36,8 @@ property of the world.
   - Example: `tests/WC002_biome_placement/` — coverage + placement. (1)
     classify (LLM) slices the JS per biome; `coverage.py` counts a biome
     covered only if marked present AND its quoted layout code is really in
-    the source; (2) extract (LLM) gives neighbors + elevation order; (3)
+    the source; (2) extract (LLM) reads the **whole source** (not classify's
+    slices) and gives neighbors + elevation order; (3)
     `grade_graph()` — pure Python — 1 point per covered biome + 1 if its
     `RULES` pass. An uncovered biome is 0/2 and drawn grey "not covered"
     (three node states in `plot.py`), and rules pointing at it are

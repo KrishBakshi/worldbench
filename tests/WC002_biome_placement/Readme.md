@@ -17,7 +17,8 @@ flowchart TD
     html["world.html"]
     html --> classify["classify LLM: JS slices per biome"]
     classify --> coverage["coverage: present + layout quote really in source"]
-    coverage --> extract["extract LLM: neighbors + elevation_order"]
+    html --> extract["extract LLM: neighbors + elevation_order, from the whole source"]
+    coverage --> grade
     extract --> grade["grade: deterministic rules"]
     grade --> artifacts["graph.json / graph.svg / score.json"]
 ```
@@ -34,6 +35,17 @@ flowchart TD
 ```
 
 Grade does not look at the original HTML. It only scores the extracted graph.
+
+**Extract reads the whole source, not classify's slices.** It used to get only the
+per-biome quotes from classify, and those often held just a shared nearest-centre
+loop without the table of centres it reads. With no positions, the extractor either
+returned no links (a world scored as if no biome touched any other) or every pair (one
+loop tests all biomes, so all 45 pairs were reported). Extract now finds the centres,
+boxes or bands itself, and may list a neighbour only when those numbers put the two
+regions side by side. Checked against layouts re-implemented from four worlds' own
+code (noise held at zero), it gets more of the rule-relevant pairs right and invents
+far fewer links. The whole source is larger than the extract model's per-minute token
+cap, so this call, like classify, is answered by the fallback model in `judge.yaml`.
 
 ## Coverage
 

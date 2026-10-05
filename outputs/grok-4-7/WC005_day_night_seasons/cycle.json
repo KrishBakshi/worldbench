@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const sunMesh = new THREE.Mesh(new THREE.BoxGeometry(36, 36, 36), new THREE.MeshBasicMaterial({ color: 0xfff2cc }));",
+      "motion_evidence": "sunMesh.position.set(orbit * 230, elev * 130 + 36, orbit * 36 - 20);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sun.position.set(140, 220, -60);",
+      "motion_evidence": "sun.position.copy(sunMesh.position);"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const amb = new THREE.AmbientLight(0xfff4e8, 0.45);",
+      "motion_evidence": "amb.intensity = 0.05 + day * 0.5; sun.intensity = 0.035 + day * 1.32;"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const duskC = new THREE.Color(0xff6a2c);",
+      "motion_evidence": "if (elev < 0.35) tmpC.lerp(duskC, smoothstep(0.35, -0.05, elev));"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];",
+      "motion_evidence": "function seasonAt(t) { return Math.floor((t % (SEASON_LEN * 4)) / SEASON_LEN) % 4; }"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const seasonTint = [new THREE.Color(0xfff3e2), new THREE.Color(0xfff8ee), new THREE.Color(0xffd8b4), new THREE.Color(0xd7e6ff)];",
+      "motion_evidence": "tmpC.copy(seasonTint[si]);"
+    },
+    "season_modulates_weather": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const SM = [",
+      "motion_evidence": "function seasonMul(ch) { return SM[seasonAt(time)][ch]; }"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "d.mesh.position.x = Math.sin(time * 0.12 + d.phase) * d.drift;",
+      "motion_evidence": "d.mesh.position.z = Math.cos(time * 0.08 + d.phase) * d.drift * 0.35;"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "scene.background = new THREE.Color(0x000000);"
+    }
+  }
+}

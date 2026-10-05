@@ -1,0 +1,84 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "mountain"
+      ],
+      "placement_code": "if(z<-50) return 'mountain';",
+      "elevation_code": "if(biome==='mountain'){\n    const peak=Math.max(0,1-Math.abs(x)/32);\n    const ridge=Math.sin(x*0.18)*2 + Math.cos(z*0.22)*2;\n    h=14+peak*10+ridge+Math.random()*1.5;\n    if(z>-60) h-= ( -50 - z)*0.2;\n    if(Math.abs(x)<6) h+=3;\n  }"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "snowForest"
+      ],
+      "placement_code": "if(z<-32 && x>-26 && x<22) {\n    if(z<-50) return 'mountain';\n    return 'snowForest';\n  }",
+      "elevation_code": "else if(biome==='snowForest'){ h=8.5+Math.sin(x*0.3)*0.8+Math.cos(z*0.4)*0.7+Math.random()*0.8; }"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highlands"
+      ],
+      "placement_code": "if(x>17 && x<50 && z>-44 && z<-6) return 'highlands';",
+      "elevation_code": "else if(biome==='highlands'){ const t=(z+44)/38; h=9.5 - t*4 + Math.sin(x*0.25)*0.6+Math.random()*0.7; }"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "if(x>-50 && x<-1 && z>-19 && z<20) return 'jungle';",
+      "elevation_code": "else if(biome==='jungle'){ h=5.2+Math.sin(x*0.2)*0.9+Math.random()*0.8; if(x>-28&&x<-18&&z>4&&z<9) h=3.5; }"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "if(x<-15 && x>-52 && z>-24 && z<-4) return 'swamp';",
+      "elevation_code": "else if(biome==='swamp'){ h=2.8+Math.random()*0.6; }"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "if(x>11 && x<38 && z>-8 && z<14) return 'grove';",
+      "elevation_code": "else if(biome==='grove'){ h=3.8+Math.random()*0.7; }"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grassland"
+      ],
+      "placement_code": "if(x>-14 && x<30 && z>4 && z<38) return 'grassland';",
+      "elevation_code": "else if(biome==='grassland'){ h=3.4+Math.random()*0.5+Math.sin((x+z)*0.15)*0.3; }"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "coast"
+      ],
+      "placement_code": "const d=Math.sqrt((x/54)*(x/54)+((z-4)/58)*((z-4)/58));\n  if(d>0.82) return 'coast';",
+      "elevation_code": "else if(biome==='coast'){ h=1.2+Math.random()*0.4; }"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "if(x>-4 && x<42 && z>18 && z<60) {\n    if(x<-20) return 'volcano';\n    return 'desert';\n  }",
+      "elevation_code": "else if(biome==='desert'){ h=2.2+Math.random()*0.5; const m=Math.sin(x*0.5)*Math.cos(z*0.5); if(m>0.6) h+=0; }"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "if(x<-22 && z>16 && z<50) return 'volcano';",
+      "elevation_code": "else if(biome==='volcano'){ const dx=x+38, dz=z-30; const d=Math.sqrt(dx*dx+dz*dz); h=Math.max(3,16 - d*0.55)+Math.random()*0.6; if(d<3) h=19; }"
+    }
+  }
+}

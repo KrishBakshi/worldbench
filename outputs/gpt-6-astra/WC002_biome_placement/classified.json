@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "mountains"
+      ],
+      "placement_code": "else if(z<-41+boundary)biome='mountains';",
+      "elevation_code": "if(biome==='mountains'){h=19;for(const [px,pz,rx,rz,ph] of peaks){const d=ellipse(x,z,px,pz,rx,rz);h=Math.max(h,18+Math.max(0,1-d)*ph);}h+=noise(x*1.2,z*1.2)*1.5;}"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "conifers"
+      ],
+      "placement_code": "else if(z<-25+boundary&&x<17+boundary)biome='conifers';",
+      "elevation_code": "if(biome==='conifers')h=22.5+clamp((-z-24)*.4,0,8)+noise(x,z)*1.1;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highlands"
+      ],
+      "placement_code": "else if(z<-17+boundary&&x>=17+boundary)biome='highlands';",
+      "elevation_code": "if(biome==='highlands')h=17+9*smooth(-16,-33,z)+noise(x,z)*1.2+Math.max(0,1-ellipse(x,z,41,-33,9,8))*5;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "else if(x<-21+boundary&&z<10+boundary)biome='jungle';",
+      "elevation_code": "if(biome==='jungle'){h=10.8+clamp((-z-8)*.25,0,7)+noise(x,z)*.85;if(x>-29&&x<-16&&z<-23&&z>-29)h=Math.max(h,21.6);}"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "else if(x<-42+boundary&&z<-20+boundary)biome='swamp';",
+      "elevation_code": "if(biome==='swamp')h=9+noise(x,z)*.5;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "else if(x>6+boundary&&z<26+boundary)biome='grove';",
+      "elevation_code": "if(biome==='grove')h=8+12*smooth(-1,-24,z)+noise(x,z)*.55;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grasslands"
+      ],
+      "placement_code": "else biome='grasslands';",
+      "elevation_code": ""
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "coast",
+        "beach"
+      ],
+      "placement_code": "if(landShape>.88&&!volcanic&&biome!=='mountains'){h=lerp(h,3.6,smooth(.88,1,landShape));if(landShape>.955)biome='beach';}",
+      "elevation_code": "h=lerp(h,3.6,smooth(.88,1,landShape));"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "else if(z>28+boundary&&x>-7+boundary)biome='desert';",
+      "elevation_code": "if(biome==='desert'){h=5.4+noise(x*.7,z*.7)*.45;for(const [px,pz,rx,rz,ph] of [[36,47,12,9,25],[20,58,9,7,18],[46,38,7,6,15]]){const d=ellipse(x,z,px,pz,rx,rz);h=Math.max(h,5.4+Math.min(.8,Math.max(0,1-d))*ph);}}"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "if(volcanic)biome='volcano';",
+      "elevation_code": "if(biome==='volcano'){const r=Math.hypot(x-54,(z-6)*1.03);h=5.4+Math.max(0,1-r/22)*55;if(r<4.5)h=42.3+r*1.4;h+=noise(x,z)*.5;}"
+    }
+  }
+}

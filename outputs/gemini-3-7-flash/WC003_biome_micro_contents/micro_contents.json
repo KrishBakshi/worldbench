@@ -1,0 +1,582 @@
+{
+  "mountains": {
+    "biome": "mountains",
+    "aliases": [
+      "snow_mountains"
+    ],
+    "must_present": {
+      "high_relief_peaks": {
+        "found": true,
+        "evidence": "height = 8 + mtnFactor * 26 + noise * 5;"
+      },
+      "summit_snow_blocks": {
+        "found": true,
+        "evidence": "surfaceColor = PALETTE.snow_summit;"
+      },
+      "lower_slope_rock": {
+        "found": true,
+        "evidence": "surfaceColor = PALETTE.rock_grey;"
+      },
+      "meltwater_stream": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "summit_blizzard": {
+        "found": true,
+        "evidence": "const blizzardParticles = createParticleSystem("
+      },
+      "alpine_fauna_spawn": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      }
+    },
+    "must_not_present": {
+      "dense_summit_forest": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "volcanic_leak": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "jungle_or_cactus": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      },
+      "desert_or_sand": {
+        "found": false,
+        "evidence": "not in mountains scope"
+      }
+    }
+  },
+  "forest": {
+    "biome": "forest",
+    "aliases": [
+      "snow_forest"
+    ],
+    "must_present": {
+      "dense_pine_silhouettes": {
+        "found": true,
+        "evidence": "if (biome === 'snow_forest' && rand > 0.72) { addVoxelTree(x, topY + 1, z, 'pine'); }"
+      },
+      "snow_on_canopy_cubes": {
+        "found": true,
+        "evidence": "const leafColor = (cy >= baseY + trunkH + 1) ? PALETTE.snow_summit : PALETTE.leaves_pine; terrainBlocks.push({ x: x + dx, y: cy, z: z + dz, color: leafColor }); if (r <= 1) { terrainBlocks.push({ x: x + dx, y: cy + 1, z: z + dz, color: PALETTE.snow_summit }); }"
+      },
+      "snowfall_cloud_deck": {
+        "found": true,
+        "evidence": "const snowParticles = createParticleSystem(800, 0xffffff, 0.4, { minX: -26, maxX: 8, minY: 12, maxY: 29, minZ: -26, maxZ: -6 }, () => ({ vx: (Math.random() - 0.5) * 0.05, vy: -0.12 - Math.random() * 0.08, vz: (Math.random() - 0.5) * 0.05 }));"
+      },
+      "foothill_in_front_of_peaks": {
+        "found": true,
+        "evidence": "else if (z >= -26 && z <= -8 && x >= -25 && x <= 6) { biome = 'snow_forest'; height = 10 + (1 - (z + 26) / 18) * 6 + noise * 3;"
+      },
+      "forest_fauna_spawn": {
+        "found": true,
+        "evidence": "createVoxelDeer(-12, 12, -14, 2.1);"
+      },
+      "forest_floor_cover": {
+        "found": false,
+        "evidence": "not in forest scope"
+      }
+    },
+    "must_not_present": {
+      "blizzard_as_forest": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "jungle_or_pink": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "cactus_or_lava": {
+        "found": false,
+        "evidence": "not in forest scope"
+      },
+      "palms_or_desert": {
+        "found": false,
+        "evidence": "not in forest scope"
+      }
+    }
+  },
+  "highlands": {
+    "biome": "highlands",
+    "aliases": [
+      "highlands"
+    ],
+    "must_present": {
+      "elevated_open_plain": {
+        "found": true,
+        "evidence": "height = 11 + (1 - highlandSlope) * 6 + noise * 3;"
+      },
+      "exposed_stone": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "sparse_scrub_cubes": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "headwater_rills": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "mist_particles": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "light_rain": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "downslope_into_grove": {
+        "found": true,
+        "evidence": "const highlandSlope = (z + 30) / 30;\nheight = 11 + (1 - highlandSlope) * 6 + noise * 3;"
+      },
+      "highland_fauna_spawn": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "hardy_tussock_plants": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      }
+    },
+    "must_not_present": {
+      "dense_pine_cover": {
+        "found": true,
+        "evidence": "} else if (biome === 'highlands' && rand > 0.95) {\n        addVoxelTree(x, topY + 1, z, 'pine');"
+      },
+      "jungle_or_pink": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "cactus_or_desert": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "blizzard_or_lava": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      },
+      "palms_or_mangrove": {
+        "found": false,
+        "evidence": "not in highlands scope"
+      }
+    }
+  },
+  "jungle": {
+    "biome": "jungle",
+    "aliases": [
+      "jungle"
+    ],
+    "must_present": {
+      "packed_tall_canopy": {
+        "found": true,
+        "evidence": "const trunkH = 7 + Math.floor(hash2(x, z) * 6);"
+      },
+      "vines_or_undergrowth": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "rocky_clearings": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "inland_ponds": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "waterfall": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "rain_shafts": {
+        "found": true,
+        "evidence": "const rainParticles = createParticleSystem(1000, 0x80d0ff, 0.35, { minX: -38, maxX: -10, minY: 5, maxY: 26, minZ: -14, maxZ: 18 }, () => ({ vx: -0.02, vy: -0.55 - Math.random() * 0.25, vz: 0.02 }));"
+      },
+      "rising_mist_particles": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "edge_fauna_spawn": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "canopy_fauna_spawn": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      }
+    },
+    "must_not_present": {
+      "snow_or_pine": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "cactus_or_desert": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      },
+      "lava_or_palms_as_jungle": {
+        "found": false,
+        "evidence": "not in jungle scope"
+      }
+    }
+  },
+  "swamp": {
+    "biome": "swamp",
+    "aliases": [
+      "swamp",
+      "Backwater Swamp"
+    ],
+    "must_present": {
+      "murky_standing_water": {
+        "found": true,
+        "evidence": "waterBlocks.push({ x, y: 2, z, type: col.biome === 'swamp' ? 'swamp' : 'river' });"
+      },
+      "mangrove_or_prop_roots": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "lily_pads_or_surface_cover": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "low_mist_particles": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "stagnant_channels": {
+        "found": true,
+        "evidence": "weather: 'Stagnant Pools & Low Mist',"
+      },
+      "marsh_fauna_spawn": {
+        "found": true,
+        "evidence": "    createVoxelFox(-34, 2, -2, -2.4);"
+      },
+      "mud_banks": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      }
+    },
+    "must_not_present": {
+      "packed_jungle_as_swamp": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "cactus_or_desert": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "snow_or_pine": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      },
+      "lava_or_turquoise_ocean": {
+        "found": false,
+        "evidence": "not in swamp scope"
+      }
+    }
+  },
+  "grove": {
+    "biome": "grove",
+    "aliases": [
+      "grove",
+      "flowering_grove",
+      "orchard",
+      "blossom",
+      "GRO",
+      "GROVE",
+      "Flowering Grove"
+    ],
+    "must_present": {
+      "pink_canopy_cubes": {
+        "found": true,
+        "evidence": "} else if (biome === 'grove' && rand > 0.78) {\n        addVoxelTree(x, topY + 1, z, 'cherry');"
+      },
+      "pink_ground_or_petals": {
+        "found": true,
+        "evidence": "const petalParticles = createParticleSystem(\n      350, 0xff9ebb, 0.35,\n      { minX: 12, maxX: 38, minY: 4, maxY: 16, minZ: 0, maxZ: 24 },\n      () => ({ vx: (Math.random() - 0.5) * 0.08, vy: -0.04 - Math.random() * 0.04, vz: 0.06 + Math.random() * 0.06 })\n    );"
+      },
+      "moist_basin_below_highland": {
+        "found": true,
+        "evidence": "// 5. Flowering Grove (Moist basin below highland downslope)\n      else if (z >= 0 && z <= 24 && x >= 14 && x <= 38) {\n        biome = 'grove';\n        height = 4 + noise * 2.5;\n        surfaceColor = PALETTE.meadow_pink;\n      }"
+      },
+      "feeder_streams": {
+        "found": true,
+        "evidence": "  // River branch into Grove\n      if (z > 2 && z < 18 && Math.abs(x - (z * 0.8 + 8)) < 1.4) {\n        isRiver = true;\n        height = 2;\n      }"
+      },
+      "grove_fauna_spawn": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "pollinators": {
+        "found": false,
+        "evidence": "not in grove scope"
+      }
+    },
+    "must_not_present": {
+      "pine_or_snow": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "cactus_or_desert": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "jungle_or_mangrove": {
+        "found": false,
+        "evidence": "not in grove scope"
+      },
+      "lava_or_palms": {
+        "found": false,
+        "evidence": "not in grove scope"
+      }
+    }
+  },
+  "grassland": {
+    "biome": "grasslands",
+    "aliases": [
+      "grasslands"
+    ],
+    "must_present": {
+      "flat_open_green": {
+        "found": true,
+        "evidence": "biome = 'grasslands'; height = 3 + noise * 2; surfaceColor = PALETTE.grass_plains;"
+      },
+      "tributary_geometry": {
+        "found": true,
+        "evidence": "const riverPath1 = Math.sin(z * 0.12 + noise * 1.2) * 6 - 2;"
+      },
+      "scattered_oak_copses": {
+        "found": true,
+        "evidence": "} else if (biome === 'grasslands' && rand > 0.94) {\n        addVoxelTree(x, topY + 1, z, 'oak');"
+      },
+      "yellow_white_flowers": {
+        "found": true,
+        "evidence": "const flowerColor = (rand < 0.05) ? PALETTE.flower_yellow : (rand < 0.09 ? PALETTE.flower_red : PALETTE.flower_white);"
+      },
+      "tall_grass": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "grassland_fauna_spawn": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      }
+    },
+    "must_not_present": {
+      "pink_canopy": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "jungle_density": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "cactus_or_lava": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "snow_or_blizzard": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      },
+      "mangrove_or_dunes": {
+        "found": false,
+        "evidence": "not in grassland scope"
+      }
+    }
+  },
+  "delta": {
+    "biome": "delta",
+    "aliases": [
+      "delta",
+      "coast",
+      "ocean",
+      "beach",
+      "shoreline",
+      "estuary",
+      "OCEAN",
+      "BEACH",
+      "Coastal Ocean",
+      "Coast / Ocean"
+    ],
+    "must_present": {
+      "depth_banded_water": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "sand_bays": {
+        "found": true,
+        "evidence": "surfaceColor = PALETTE.sand_beach;"
+      },
+      "palm_silhouettes": {
+        "found": true,
+        "evidence": "} else if (col.surfaceColor === PALETTE.sand_beach && rand > 0.94) { addVoxelTree(x, topY + 1, z, 'palm');"
+      },
+      "rocky_headlands": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "coral_or_reef_life": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "small_islands": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "braided_river_mouths": {
+        "found": true,
+        "evidence": "const riverPath1 = Math.sin(z * 0.12 + noise * 1.2) * 6 - 2;"
+      },
+      "fresh_salt_mix": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "cliff_waterfalls_to_void": {
+        "found": true,
+        "evidence": "waterBlocks.push({ x, y: fy, z, type: 'fall' });"
+      },
+      "coastal_fauna_spawn": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "shore_fauna_spawn": {
+        "found": false,
+        "evidence": "not in delta scope"
+      }
+    },
+    "must_not_present": {
+      "cactus_dunes_as_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "lava_or_volcano": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "snow_or_blizzard": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "pink_grove_as_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "highland_scrub_as_coast": {
+        "found": false,
+        "evidence": "not in delta scope"
+      },
+      "stagnant_swamp_as_ocean": {
+        "found": false,
+        "evidence": "not in delta scope"
+      }
+    }
+  },
+  "desert": {
+    "biome": "desert",
+    "aliases": [
+      "desert"
+    ],
+    "must_present": {
+      "flat_arid_basin": {
+        "found": true,
+        "evidence": "height = 2.5 + noise * 1.5;"
+      },
+      "sandstone_peaks": {
+        "found": true,
+        "evidence": "height = 4 + mesaFactor * 13 + (noise > 0.6 ? 2 : 0);"
+      },
+      "cacti_on_flats": {
+        "found": true,
+        "evidence": "} else if (biome === 'desert' && rand > 0.92 && topY <= 4) {\n        addVoxelTree(x, topY + 1, z, 'cactus');"
+      },
+      "fading_washes": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "sandstorm_particles": {
+        "found": true,
+        "evidence": "const sandParticles = createParticleSystem(\n      600, 0xe8ba60, 0.45,\n      { minX: 4, maxX: 40, minY: 3, maxY: 16, minZ: 14, maxZ: 42 },"
+      },
+      "arid_fauna_spawn": {
+        "found": true,
+        "evidence": "createVoxelFox(26, 2.5, 34, 1.4);"
+      },
+      "dead_bush": {
+        "found": false,
+        "evidence": "not in desert scope"
+      }
+    },
+    "must_not_present": {
+      "perennial_through_river": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "lava_as_desert": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "lush_or_snow": {
+        "found": false,
+        "evidence": "not in desert scope"
+      },
+      "swamp_or_palms": {
+        "found": false,
+        "evidence": "not in desert scope"
+      }
+    }
+  },
+  "volcano": {
+    "biome": "volcano",
+    "aliases": [
+      "volcano"
+    ],
+    "must_present": {
+      "tall_cone": {
+        "found": true,
+        "evidence": "height = 4 + coneFactor * 24;"
+      },
+      "glowing_crater": {
+        "found": true,
+        "evidence": "const volcanoGlow = new THREE.PointLight(0xff3300, 2.5, 45);"
+      },
+      "lava_flows_on_volcanic_ground": {
+        "found": true,
+        "evidence": "isLava = true;"
+      },
+      "basalt_or_ash_surface": {
+        "found": true,
+        "evidence": "surfaceColor = (noise > 0.4) ? PALETTE.basalt : PALETTE.magma_crust;"
+      },
+      "ash_or_eruption_particles": {
+        "found": true,
+        "evidence": "const ashParticles = createParticleSystem("
+      },
+      "obsidian_quench": {
+        "found": true,
+        "evidence": "isObsidian = true;"
+      }
+    },
+    "must_not_present": {
+      "sandstone_as_volcano": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "snow_or_pine": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "lush_forest_or_herds": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      },
+      "ocean_or_palms": {
+        "found": false,
+        "evidence": "not in volcano scope"
+      }
+    }
+  }
+}

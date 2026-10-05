@@ -1,0 +1,55 @@
+# Judge hyperparameters: which model does each job, and how hard each model
+# may be driven. Read by eval/capture/llm.py (and the navigator). Nothing here
+# is duplicated in code: change a value here, not there.
+# Point JUDGE_CONFIG at another file to swap the whole setup for a run.
+
+roles:
+  judge: gemini-3.1-flash-lite   # other text-only judging: source judge, clock patch, evidence agent
+  vlm: gemini-3.5-flash-lite     # every judge call that carries images
+  nav: gemma-4-26b-a4b-it        # the capture's navigator agent (tool calls on frames)
+  extract: gemma-4-31b-it        # WC002 classify + extract: per-biome slicing, layout reading
+  probe: gemini-3.1-flash-lite   # WC003/WC004/WC005 code probes (quote the code per item)
+  repair: gemma-4-26b-a4b-it     # eval/quote_repair.py: picks source line numbers for a badly copied quote
+
+# Per model, below the key's real quota so the client never trips a 429.
+# Roles that share a model share one set of counters.
+#   rpm: requests per minute   tpm: input tokens per minute   rpd: requests per day
+# Every attempt counts, retries included (the provider counts them too).
+limits:
+  gemini-3.1-flash-lite: {rpm: 12, tpm: 230000, rpd: 450}
+  gemini-3.5-flash-lite: {rpm: 12, tpm: 230000, rpd: 450}
+  gemma-4-26b-a4b-it: {rpm: 25, tpm: 14000, rpd: 14000}
+  gemma-4-31b-it: {rpm: 25, tpm: 14000, rpd: 14000}
+
+# Who answers, in order, when a model is still overloaded (503/500/timeouts)
+# after its call.max_transient_retries, or when a call's input is larger than
+# its whole tpm cap (it is never sent over the cap). A fallback whose tpm the
+# call would also exceed is skipped. Optional per model; no entry = the error
+# stands. Never used for a bad key, a spent daily quota or an unparseable reply.
+# WC002 classify sends the whole source (~20-25k tokens): above both Gemma
+# caps, so it lands on the last entry.
+fallbacks:
+  gemma-4-31b-it: [gemma-4-26b-a4b-it, gemini-3.1-flash-lite]
+  # A probe that 503s used to zero its whole biome (10 points) with no
+  # second try; on real runs that cost 10-17 points per affected world.
+  gemini-3.1-flash-lite: [gemini-3.5-flash-lite]
+
+# The daily counter resets on the provider's quota day.
+quota_day_timezone: America/Los_Angeles
+
+call:
+  max_output_tokens: 16384       # always sent: an unset cap lets a server reserve its whole output window
+  image_width: 896               # judge frames (biome-scale detail)
+  chars_per_token: 4             # pre-call size estimate for the tpm window...
+  tokens_per_image: 300          # ...replaced by the real count once the reply arrives
+  max_rate_retries: 8            # 429s that still get through
+  max_transient_retries: 3       # brief 5xx / timeouts, per call
+  timeout_seconds: 300           # per request; a call the server never answers is cut and retried, not waited on forever
+
+navigator:
+  max_steps: 8                   # tool calls per biome episode
+  image_width: 640               # frames the navigator sees
+
+evidence_agent:                  # WC003 recheck hunts (eval/evidence_agent.py)
+  max_tool_calls: 10             # tool calls per hunt; then it must answer from what it read
+  recursion_limit: 30            # hard backstop in graph steps (one model call or one tool call each)

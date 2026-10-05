@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
-DEFAULT_MODEL = (
-    os.environ.get("WC005_MODEL")
-    or os.environ.get("WC004_MODEL")
-    or os.environ.get("WC003_MODEL")
-    or os.environ.get("WC002_MODEL")
-)
+DEFAULT_MODEL = None  # the role's model from eval/judge.yaml
 TEST_DIR = Path(__file__).resolve().parent
 PROMPTS_DIR = TEST_DIR / "prompts"
 
@@ -61,17 +54,13 @@ def load_prompt() -> str:
 
 
 def invoke_structured(schema: type[BaseModel], prompt: str, model: str | None = None):
-    llm = ChatGoogleGenerativeAI(
-        model=model or DEFAULT_MODEL,
-        google_api_key=os.environ.get("GOOGLE_API_KEY"),
-        max_retries=0,
-    )
-    payload = llm.with_structured_output(schema, include_raw=True, method="json_schema").invoke(prompt)
-    raw, parsed, err = payload["raw"], payload["parsed"], payload["parsing_error"]
-    if parsed is not None:
-        return parsed
-    text = raw.content if isinstance(raw.content, str) else str(raw.content)
-    start, end = text.find("{"), text.rfind("}")
-    if start == -1 or end <= start:
-        raise ValueError(f"parse failed: {err}\n{text[:1000]}")
-    return schema.model_validate(json.loads(text[start : end + 1]))
+    """Shared judge client: same model setup, client-side throttle and 429 backoff
+    for every test (eval/capture/llm.py)."""
+    import sys as _sys
+
+    _root = str(Path(__file__).resolve().parents[2])
+    if _root not in _sys.path:
+        _sys.path.append(_root)
+    from eval.capture.llm import invoke_structured as _shared
+
+    return _shared(schema, prompt, model=model or DEFAULT_MODEL)

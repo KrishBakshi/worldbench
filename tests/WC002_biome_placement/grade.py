@@ -8,7 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from llm import CheckResult, ExtractedGraph
 
-POINTS_PER_BIOME = 1
+# Per biome: 1 point for being covered at all, 1 for correct placement.
+# An uncovered biome scores 0/2 and is drawn as "not covered", not as a fail.
+COVERAGE_POINTS = 1
+PLACEMENT_POINTS = 1
+POINTS_PER_BIOME = COVERAGE_POINTS + PLACEMENT_POINTS
 
 RULES = {
     "mountains": {"must_connect": ["forest"], "higher_than": ["forest", "highlands", "jungle", "grassland", "delta"]},
@@ -24,10 +28,17 @@ RULES = {
 }
 
 
-def grade_graph(graph: ExtractedGraph) -> CheckResult:
+def grade_graph(graph: ExtractedGraph, covered: dict[str, bool] | None = None) -> CheckResult:
+    """`covered` comes from coverage.py; None treats every biome as covered
+    (grading a hand-built graph on its own)."""
+    covered = covered or {bid: True for bid in RULES}
     adj: dict[str, set[str]] = defaultdict(set)
     for node in graph.nodes:
+        if not covered.get(node.id):
+            continue  # an uncovered biome has no real layout to touch anything
         for n in node.neighbors:
+            if not covered.get(n):
+                continue
             adj[node.id].add(n)
             adj[n].add(node.id)
     rank = {b: i for i, b in enumerate(graph.elevation_order)}
@@ -36,16 +47,22 @@ def grade_graph(graph: ExtractedGraph) -> CheckResult:
     found, missing = {}, {}
     biomes = {}
     for bid, rules in RULES.items():
-        card = _grade_one(bid, rules, adj, rank, evidence.get(bid, "not in source"))
+        if not covered.get(bid):
+            card = _uncovered(bid)
+        else:
+            card = _grade_one(bid, rules, adj, rank, evidence.get(bid, "not in source"), covered)
         biomes[bid] = card
         (found if card["passed"] else missing)[bid] = card["summary"]
 
-    score, max_score = len(found), len(RULES)
+    score = sum(card["score"] for card in biomes.values())
+    max_score = POINTS_PER_BIOME * len(RULES)
+    uncovered = [bid for bid in RULES if not covered.get(bid)]
     passed = not missing
     reason = (
-        "All biomes correctly placed"
+        "All biomes covered and correctly placed"
         if passed
-        else f"Missing {len(missing)}/{max_score} biomes: {', '.join(missing)}"
+        else f"Scored {score}/{max_score}; not covered: {', '.join(uncovered) or 'none'}; "
+        f"misplaced: {', '.join(b for b in missing if b not in uncovered) or 'none'}"
     )
     scorecard = {
         "score": score,
@@ -62,6 +79,7 @@ def grade_graph(graph: ExtractedGraph) -> CheckResult:
         {
             "found": found,
             "missing": missing,
+            "uncovered": uncovered,
             "score": score,
             "max_score": max_score,
             "scorecard": scorecard,
@@ -90,9 +108,40 @@ def _lost_summary(lost: list[dict]) -> str:
     return "; ".join(parts)
 
 
-def _grade_one(bid: str, rules: dict, adj: dict, rank: dict, evidence: str) -> dict:
+def _uncovered(bid: str) -> dict:
+    return {
+        "score": 0,
+        "max_score": POINTS_PER_BIOME,
+        "passed": False,
+        "covered": False,
+        "neighbors": [],
+        "elevation_rank": None,
+        "evidence": "not in source",
+        "summary": "not covered",
+        "earned": [],
+        "lost": [{"id": "coverage", "kind": "coverage", "why": "not_covered"}],
+        "skipped": [],
+    }
+
+
+def _grade_one(bid: str, rules: dict, adj: dict, rank: dict, evidence: str, covered: dict[str, bool]) -> dict:
     neighbors = sorted(adj.get(bid, set()))
     earned, lost = [], []
+    # Rules about a biome that is not covered are skipped, not failed: that
+    # biome already lost its own 2 points, and failing every neighbor's rule
+    # too would charge one absence 4-5 times.
+    skipped = sorted({
+        other
+        for key in ("must_connect", "must_not_connect", "higher_than", "must_connect_any")
+        for other in rules.get(key, [])
+        if not covered.get(other)
+    })
+    rules = {
+        key: [o for o in vals if covered.get(o)] if isinstance(vals, list) else vals
+        for key, vals in rules.items()
+    }
+    if "must_connect_any" in rules and not rules["must_connect_any"]:
+        del rules["must_connect_any"]
 
     for req in rules.get("must_connect", []):
         row = {
@@ -152,9 +201,11 @@ def _grade_one(bid: str, rules: dict, adj: dict, rank: dict, evidence: str) -> d
 
     ok = not lost
     return {
-        "score": POINTS_PER_BIOME if ok else 0,
+        "score": COVERAGE_POINTS + (PLACEMENT_POINTS if ok else 0),
         "max_score": POINTS_PER_BIOME,
         "passed": ok,
+        "covered": True,
+        "skipped": skipped,
         "neighbors": neighbors,
         "elevation_rank": rank.get(bid),
         "evidence": evidence,

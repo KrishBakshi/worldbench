@@ -1,0 +1,148 @@
+[
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "Blue stream runs down from mountains.",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(h>0){const dr=distToPoly(x,z,RIVER);if(dr<2.7&&z>-60&&biomeAt(x,z)!=='desert'&&biomeAt(x,z)!=='volcano')h=Math.min(h,.1);\nif(dr<2.2&&h<1.2&&biome!=='desert'&&biome!=='volcano'){waters.push({x,z,y:.75,c:new THREE.Color(biome==='swamp'?0x4a5a33:0x27c8d8)});}",
+      "lines": [
+        121,
+        160
+      ],
+      "explanation": "The code defines a RIVER path that passes through the mountain biome (z < -42). Line 121 lowers the terrain height along this path to create a riverbed, and line 160 pushes water geometry into the waters array for rendering, explicitly excluding only desert and volcano biomes."
+    },
+    "verified": true
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Slopes down towards the flowering grove.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "const GROVE_FEED=[[30,-12],[30,-4],[29,3],[27,9]];\n  const dg=distToPoly(x,z,GROVE_FEED);if(dg<1.8)h=Math.min(h,.6);}",
+      "lines": [
+        76,
+        122
+      ],
+      "explanation": "The code defines a path GROVE_FEED and uses distToPoly to identify proximity to this path, then explicitly lowers the terrain height (h) to 0.6 when within 1.8 units, creating a gentle downslope or feeder effect towards the grove."
+    },
+    "verified": true
+  },
+  {
+    "biome": "jungle",
+    "item": "inland_ponds",
+    "seen": "Small blue water pool inside the jungle.",
+    "probe": {
+      "found": false,
+      "evidence": "not in jungle scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "function pond(x,z,r,c){for(let a=0;a<10;a++){const px=x+Math.cos(a/10*6.28)*r*hash(a,x),pz=z+Math.sin(a/10*6.28)*r;\n  B(scene,px,groundY(x,z)+.25,pz,2,.5,2,c);}}\npond(-28,-4,4,0x1f8a9a);pond(-36,6,3,0x2a9aaa);",
+      "lines": [
+        246,
+        247,
+        248
+      ],
+      "explanation": "The pond function creates water blocks at specified coordinates. The calls at line 248 for (-28, -4) and (-36, 6) fall within the jungle biome defined in the biomeAt function (lines 94 and 99)."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "stagnant_channels",
+    "seen": "Small stagnant water channels meandering through trees.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(dr<2.2&&h<1.2&&biome!=='desert'&&biome!=='volcano'){waters.push({x,z,y:.75,c:new THREE.Color(biome==='swamp'?0x4a5a33:0x27c8d8)});} ",
+      "lines": [
+        160
+      ],
+      "explanation": "The code checks the distance to the RIVER path (dr < 2.2) and explicitly assigns a specific color (0x4a5a33) to water objects when the biome is 'swamp', creating stagnant water channels within that biome."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "marsh_fauna_spawn",
+    "seen": "Animal figures present within the swamp zone.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines 'makeFox' and 'makeDeer' functions and calls them at specific hardcoded coordinates, but these calls are not gated by any biome check or logic that places them specifically within the 'swamp' biome. The swamp biome only contains logic for terrain, water color, and mangrove tree scattering, with no animal spawning logic associated with it."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grove",
+    "item": "pollinators",
+    "seen": "Small pollinator insects flying among blossoms.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Flowering Grove biome contains trees and grass tufts, but there is no code that defines, instantiates, or scatters pollinators or bee-like objects within this biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "tributary_geometry",
+    "seen": "Winding river flows through the plain",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "const dr=distToPoly(x,z,RIVER);\nif(dr<2.2&&h<1.2&&biome!=='desert'&&biome!=='volcano'){waters.push({x,z,y:.75,c:new THREE.Color(biome==='swamp'?0x4a5a33:0x27c8d8)});}",
+      "lines": [
+        159,
+        160
+      ],
+      "explanation": "The code calculates the distance to the RIVER path and, if within range and not in a desert or volcano biome, pushes water geometry into the waters array. Since the Grassland Plateau biome is neither desert nor volcano, the river geometry is rendered within it."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grassland",
+    "item": "scattered_oak_copses",
+    "seen": "Scattered green trees near the river",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "scatter(20,(x,z)=>{const b=biomeAt(x,z);if(b==='grass'||b==='jungle'){const y=groundY(x,z);const g=new THREE.Group();g.position.set(x,y,z);\n  B(g,0,1,0,2.4,1.6,1.4,0x6b4a2a);B(g,0,2.2,0,2,1,1.8,0x2c7a3a);scene.add(g);return true;}});",
+      "lines": [
+        244,
+        245
+      ],
+      "explanation": "The code uses a scatter function to place groups of objects in the 'grass' biome. Each group consists of two boxes, one brown (0x6b4a2a) representing a trunk and one green (0x2c7a3a) representing foliage, which together form a tree."
+    },
+    "verified": true
+  }
+]

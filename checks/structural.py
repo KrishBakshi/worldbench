@@ -1,6 +1,6 @@
 """Generic structural pre-checks, shared by every test.
 
-Unlike a test's own content check (e.g. tests/WC001_.../biome_check.py,
+Unlike a test's own content check (e.g. tests/WC002_biome_placement/coverage.py,
 which is specific to what that test looks for), these checks are the same
 for every test: does the expected input exist, and does it look like a
 real world.html, before any content check ever reads it. That's why this

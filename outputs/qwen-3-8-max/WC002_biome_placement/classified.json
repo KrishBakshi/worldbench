@@ -1,0 +1,86 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "SNOW_MOUNTAIN"
+      ],
+      "placement_code": "if (nz < -0.55 && dist < 0.8) return 2;",
+      "elevation_code": "h = 20 + n * 18 + n2 * 8;\n      if (nz < -0.7) h += 10;"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "CONIFER"
+      ],
+      "placement_code": "if (nz < -0.35 && nz >= -0.55 && dist < 0.75) return 3;",
+      "elevation_code": "h = 10 + n * 6 + n2 * 3;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "HIGHLANDS"
+      ],
+      "placement_code": "if (nx > 0.2 && nz < -0.1 && nz > -0.4 && dist < 0.7) return 4;",
+      "elevation_code": "h = 12 + n * 5;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "JUNGLE"
+      ],
+      "placement_code": "if (nx < -0.15 && nz > -0.3 && nz < 0.4 && dist < 0.7) return 5;",
+      "elevation_code": "h = 4 + n * 4;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "SWAMP"
+      ],
+      "placement_code": "if (nx < -0.5 && nz > 0.0 && nz < 0.4 && dist < 0.7) return 6;",
+      "elevation_code": "h = 1 + n * 2;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "GROVE"
+      ],
+      "placement_code": "if (nx > 0.25 && nz > -0.1 && nz < 0.25 && dist < 0.65) return 8;",
+      "elevation_code": "h = 5 + n * 3;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "GRASSLAND"
+      ],
+      "placement_code": "if (dist < 0.5 && nz > -0.2 && nz < 0.4 && nx > -0.15 && nx < 0.25) return 7;",
+      "elevation_code": "h = 3 + n * 2;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "OCEAN",
+        "BEACH",
+        "RIVER"
+      ],
+      "placement_code": "if (dist > 0.92) return 0;\n  if (dist > 0.82) return 1;",
+      "elevation_code": "case 0: h = -2 + n * 1; break; // Ocean\n    case 1: h = 1 + n * 1.5; break; // Beach"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "DESERT"
+      ],
+      "placement_code": "if (nz > 0.35 && nx > -0.3 && nx < 0.4 && dist < 0.75) return 9;",
+      "elevation_code": "h = 2 + n * 2;"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "VOLCANO"
+      ],
+      "placement_code": "if (nx > 0.4 && nz > 0.2 && dist < 0.7) return 10;",
+      "elevation_code": "const vx = nx - 0.55, vz = nz - 0.45;\n      const vd = Math.sqrt(vx * vx + vz * vz);\n      if (vd < 0.2) h = 28 * (1 - vd / 0.2) + 5;\n      else h = 3 + n * 2;"
+    }
+  }
+}

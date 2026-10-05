@@ -5,13 +5,13 @@ LangSmith is on this path only (see eval/audit.py). Direct
 
 Usage:
     uv run python -m eval.run <model>
-        Full ladder: WC000 → WC005 against inputs/<model>/world.html
+        Full ladder: WC001 → WC005 against inputs/<model>/world.html
 
-    uv run python -m eval.run <model> --test WC000 --test WC001
-    uv run python -m eval.run <model> --test WC000,WC001
+    uv run python -m eval.run <model> --test WC001 --test WC002
+    uv run python -m eval.run <model> --test WC001,WC002
         A subset, still through eval. Existing scores for other tests are kept.
 
-    uv run python -m eval.run <model>__WC001_trying_all_the_biomes
+    uv run python -m eval.run <model>__WC002_biome_placement
         Legacy: inputs/<model>__<test_dir>/world.html, that test only.
 """
 
@@ -31,6 +31,7 @@ from eval.ingest import ingest  # noqa: E402
 from eval.loader import resolve_test  # noqa: E402
 from eval.validate import validate  # noqa: E402
 from harness.status import log  # noqa: E402
+from eval.capture.llm import JudgeUnavailable  # noqa: E402
 
 
 def parse_name(name: str) -> tuple[str, str | None]:
@@ -50,7 +51,7 @@ def main(argv: list[str] | None = None) -> None:
         "--test",
         action="append",
         metavar="WC",
-        help="run one test (WC000 or WC000_voxel_world). Repeat or comma-separate. Omit to run the full ladder.",
+        help="run one test (WC001 or WC001_voxel_world). Repeat or comma-separate. Omit to run the full ladder.",
     )
     args = parser.parse_args(argv)
 
@@ -82,12 +83,19 @@ def main(argv: list[str] | None = None) -> None:
         log(f"test       {test_dir_name}")
     log()
 
-    if test_dir_names:
-        result = validate(output_dir, test_dir_names=test_dir_names)
-    elif test_dir_name:
-        result = validate(output_dir, test_dir_name)
-    else:
-        result = validate(output_dir)
+    try:
+        if test_dir_names:
+            result = validate(output_dir, test_dir_names=test_dir_names)
+        elif test_dir_name:
+            result = validate(output_dir, test_dir_name)
+        else:
+            result = validate(output_dir)
+    except JudgeUnavailable as exc:
+        # Stopped at the first unusable-model error rather than grinding
+        # through every biome and test; validation.json is left as it was.
+        log(f"error    {exc}")
+        log("         stopped: fix the judge model (credit / key / model id) and re-run")
+        sys.exit(2)
 
     print(f"model:  {result['model']}", flush=True)
     print(f"tests:  {', '.join(result['tests'])}", flush=True)

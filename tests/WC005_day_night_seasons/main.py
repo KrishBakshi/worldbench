@@ -1,4 +1,7 @@
-"""Global day/night and season cycles: probe (LLM) → grade.
+"""Global day/night and season cycles: code probe (LLM) + pinned-time frames (VLM) → grade.
+
+20 points, 2 per item, split between code and what the frames show when the
+world's clock is pinned to day / night / each season (see visual.py).
 
     uv run python tests/WC005_day_night_seasons/main.py [world.html] [out_dir]
     uv run python tests/WC005_day_night_seasons/main.py --regrade path/to/cycle.json
@@ -15,10 +18,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from grade import grade_report
 from llm import CheckResult, CycleReport
-from probe import probe_cycle
+from probe import probe_cycle, strip_html
+from visual import judge_cycle
+
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from eval.evidence import normalize  # noqa: E402
 
 
-def write_artifacts(out_dir: Path, report: CycleReport | dict, result: CheckResult) -> dict:
+def write_artifacts(out_dir: Path, report: CycleReport | dict, result: CheckResult, visual: dict | None = None) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     if isinstance(report, CycleReport):
         payload = report.model_dump()
@@ -28,7 +37,11 @@ def write_artifacts(out_dir: Path, report: CycleReport | dict, result: CheckResu
     cycle_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     score_path = out_dir / "score.json"
     score_path.write_text(json.dumps(result.details["scorecard"], indent=2), encoding="utf-8")
-    return {"cycle": cycle_path.name, "score": score_path.name}
+    out = {"cycle": cycle_path.name, "score": score_path.name}
+    if visual is not None:
+        (out_dir / "visual.json").write_text(json.dumps(visual, indent=2), encoding="utf-8")
+        out["visual"] = "visual.json"
+    return out
 
 
 def check_day_night_seasons(
@@ -37,18 +50,23 @@ def check_day_night_seasons(
     model: str | None = None,
 ) -> CheckResult:
     report = probe_cycle(html_path, model)
-    result = grade_report(report)
+    visual = judge_cycle(html_path, model)
+    result = grade_report(report, visual, normalize(strip_html(html_path)))
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
-    result.details["artifacts"] = write_artifacts(dest, report, result)
+    result.details["artifacts"] = write_artifacts(dest, report, result, visual)
     return result
 
 
 def regrade_cycle(cycle_path: Path, out_dir: Path | None = None) -> CheckResult:
     raw = json.loads(cycle_path.read_text(encoding="utf-8"))
     report = CycleReport.model_validate(raw) if "error" not in raw else raw
-    result = grade_report(report)
+    visual_path = cycle_path.parent / "visual.json"
+    visual = json.loads(visual_path.read_text(encoding="utf-8")) if visual_path.is_file() else None
+    world = cycle_path.parent.parent / "world.html"
+    source = normalize(strip_html(str(world))) if world.is_file() else None
+    result = grade_report(report, visual, source)
     dest = out_dir if out_dir is not None else cycle_path.parent
-    result.details["artifacts"] = write_artifacts(dest, report, result)
+    result.details["artifacts"] = write_artifacts(dest, report, result, visual)
     return result
 
 

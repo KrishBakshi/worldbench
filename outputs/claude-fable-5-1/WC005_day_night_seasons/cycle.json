@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const sunMesh=new THREE.Mesh(new THREE.BoxGeometry(20,20,20),new THREE.MeshBasicMaterial({color:0xffe680})); scene.add(sunMesh);",
+      "motion_evidence": "sunMesh.position.set(Math.cos(ang)*R,Math.sin(ang)*R,0.35*R); sun.position.copy(sunMesh.position);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sun.position.copy(sunMesh.position);",
+      "motion_evidence": "sun.position.copy(sunMesh.position);"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "amb.intensity=0.1+0.5*dayL;",
+      "motion_evidence": "amb.intensity=0.1+0.5*dayL;"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sun.color.copy(tcol);",
+      "motion_evidence": "tcol.copy(cDusk).lerp(cNoon,smooth(0,0.45,el)).multiply(tcol2); sun.color.copy(tcol);"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const SEASONS=['Spring','Summer','Autumn','Winter'], YEAR=280, DAY=90;",
+      "motion_evidence": "const sf=((time/YEAR)%1)*4, si=Math.floor(sf), fr=sm(sf-si), sj=(si+1)%4;"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "tcol2.copy(SEASON_TINT[si]).lerp(SEASON_TINT[sj],fr);",
+      "motion_evidence": "tcol2.copy(SEASON_TINT[si]).lerp(SEASON_TINT[sj],fr);"
+    },
+    "season_modulates_weather": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "ENV.jungle=t=>cyc(t,70,0,0.12,0.45,0.15)*Math.min(1.4,season.rain*1.1);",
+      "motion_evidence": "season={name:SEASONS[si],rain:lerp([1.3,0.9,1.0,0.5][si],[1.3,0.9,1.0,0.5][sj],fr),snow:lerp([0.6,0.15,0.8,1.6][si],[0.6,0.15,0.8,1.6][sj],fr),warm:lerp([0.4,1,0.5,0][si],[0.4,1,0.5,0][sj],fr)};"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "for(const c of clouds){ const Bd=bounds[c.b]; c.g.position.x+=c.speed*dt; if(c.g.position.x>Bd.x1+8) c.g.position.x=Bd.x0-8;",
+      "motion_evidence": "c.g.position.x+=c.speed*dt; if(c.g.position.x>Bd.x1+8) c.g.position.x=Bd.x0-8;"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "scene.background=new THREE.Color(0x000000);"
+    }
+  }
+}

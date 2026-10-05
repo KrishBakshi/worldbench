@@ -1,0 +1,323 @@
+{
+  "viewBox": {
+    "width": 800,
+    "height": 560
+  },
+  "score": 15,
+  "max_score": 20,
+  "passed": false,
+  "elevation_order": [
+    "mountains",
+    "forest",
+    "volcano",
+    "desert",
+    "jungle",
+    "highlands",
+    "grassland",
+    "grove",
+    "swamp",
+    "delta"
+  ],
+  "nodes": [
+    {
+      "id": "mountains",
+      "label": "Snow Mountains",
+      "neighbors": [
+        "forest",
+        "highlands",
+        "desert"
+      ],
+      "evidence": "BIO[1] (mountains) cx:0, cz:-98; BIO[2] (forest) cx:-14, cz:-60; BIO[3] (highlands) cx:60, cz:-50; BIO[8] (desert) cx:74, cz:44. Voronoi proximity.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 52,
+      "w": 176,
+      "h": 46
+    },
+    {
+      "id": "forest",
+      "label": "Snowy Conifer Forest",
+      "neighbors": [
+        "mountains",
+        "jungle",
+        "swamp"
+      ],
+      "evidence": "BIO[2] (forest) cx:-14, cz:-60; BIO[1] (mountains) cx:0, cz:-98; BIO[4] (jungle) cx:-12, cz:-26; BIO[5] (swamp) cx:-76, cz:-30.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to highlands",
+      "cx": 340,
+      "cy": 145,
+      "w": 190,
+      "h": 46
+    },
+    {
+      "id": "highlands",
+      "label": "Highlands",
+      "neighbors": [
+        "mountains",
+        "jungle",
+        "grove"
+      ],
+      "evidence": "BIO[3] (highlands) cx:60, cz:-50; BIO[1] (mountains) cx:0, cz:-98; BIO[4] (jungle) cx:-12, cz:-26; BIO[7] (grove) cx:66, cz:-10.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to forest; not at a higher elevation than jungle",
+      "cx": 130,
+      "cy": 172,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "jungle",
+      "label": "Dense Jungle",
+      "neighbors": [
+        "forest",
+        "highlands",
+        "swamp",
+        "grassland",
+        "grove"
+      ],
+      "evidence": "BIO[4] (jungle) cx:-12, cz:-26; BIO[2] (forest) cx:-14, cz:-60; BIO[3] (highlands) cx:60, cz:-50; BIO[5] (swamp) cx:-76, cz:-30; BIO[6] (grassland) cx:0, cz:28; BIO[7] (grove) cx:66, cz:-10.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 362,
+      "cy": 252,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "swamp",
+      "label": "Backwater Swamp",
+      "neighbors": [
+        "forest",
+        "jungle",
+        "volcano"
+      ],
+      "evidence": "BIO[5] (swamp) cx:-76, cz:-30; BIO[2] (forest) cx:-14, cz:-60; BIO[4] (jungle) cx:-12, cz:-26; BIO[9] (volcano) cx:-60, cz:38.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 95,
+      "cy": 322,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grove",
+      "label": "Flowering Grove",
+      "neighbors": [
+        "highlands",
+        "jungle",
+        "grassland",
+        "desert"
+      ],
+      "evidence": "BIO[7] (grove) cx:66, cz:-10; BIO[3] (highlands) cx:60, cz:-50; BIO[4] (jungle) cx:-12, cz:-26; BIO[6] (grassland) cx:0, cz:28; BIO[8] (desert) cx:74, cz:44.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 250,
+      "cy": 438,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland Plateau",
+      "neighbors": [
+        "jungle",
+        "grove",
+        "desert",
+        "volcano"
+      ],
+      "evidence": "BIO[6] (grassland) cx:0, cz:28; BIO[4] (jungle) cx:-12, cz:-26; BIO[7] (grove) cx:66, cz:-10; BIO[8] (desert) cx:74, cz:44; BIO[9] (volcano) cx:-60, cz:38.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 372,
+      "cy": 372,
+      "w": 180,
+      "h": 46
+    },
+    {
+      "id": "delta",
+      "label": "Coastal Delta / Ocean",
+      "neighbors": [
+        "mountains",
+        "forest",
+        "highlands",
+        "jungle",
+        "swamp",
+        "grove",
+        "grassland",
+        "desert",
+        "volcano"
+      ],
+      "evidence": "delta is defined as the ocean/coast edge surrounding the island regions.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 348,
+      "cy": 512,
+      "w": 200,
+      "h": 46
+    },
+    {
+      "id": "desert",
+      "label": "Desert Basin",
+      "neighbors": [
+        "mountains",
+        "grove",
+        "grassland"
+      ],
+      "evidence": "BIO[8] (desert) cx:74, cz:44; BIO[1] (mountains) cx:0, cz:-98; BIO[7] (grove) cx:66, cz:-10; BIO[6] (grassland) cx:0, cz:28.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to mountains; incorrectly connected to delta",
+      "cx": 652,
+      "cy": 330,
+      "w": 180,
+      "h": 46,
+      "isolated": true
+    },
+    {
+      "id": "volcano",
+      "label": "Volcano",
+      "neighbors": [
+        "swamp",
+        "grassland",
+        "delta"
+      ],
+      "evidence": "BIO[9] (volcano) cx:-60, cz:38; BIO[5] (swamp) cx:-76, cz:-30; BIO[6] (grassland) cx:0, cz:28.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to grassland; incorrectly connected to delta",
+      "cx": 662,
+      "cy": 128,
+      "w": 168,
+      "h": 46,
+      "isolated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "forest"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "delta",
+      "to": "grove"
+    },
+    {
+      "from": "delta",
+      "to": "highlands"
+    },
+    {
+      "from": "delta",
+      "to": "jungle"
+    },
+    {
+      "from": "delta",
+      "to": "mountains"
+    },
+    {
+      "from": "delta",
+      "to": "swamp"
+    },
+    {
+      "from": "delta",
+      "to": "volcano"
+    },
+    {
+      "from": "desert",
+      "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "grove"
+    },
+    {
+      "from": "desert",
+      "to": "mountains"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "forest",
+      "to": "swamp"
+    },
+    {
+      "from": "grassland",
+      "to": "grove"
+    },
+    {
+      "from": "grassland",
+      "to": "jungle"
+    },
+    {
+      "from": "grassland",
+      "to": "volcano"
+    },
+    {
+      "from": "grove",
+      "to": "highlands"
+    },
+    {
+      "from": "grove",
+      "to": "jungle"
+    },
+    {
+      "from": "highlands",
+      "to": "jungle"
+    },
+    {
+      "from": "highlands",
+      "to": "mountains"
+    },
+    {
+      "from": "jungle",
+      "to": "swamp"
+    },
+    {
+      "from": "swamp",
+      "to": "volcano"
+    }
+  ]
+}

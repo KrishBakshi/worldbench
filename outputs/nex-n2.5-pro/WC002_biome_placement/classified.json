@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "1"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h+=(fbm(x*0.14+7.3,z*0.14+2.1)-0.5)*2.4;for(const p of PEAKS){const dx=x-p.x,dz=z-p.z;h+=p.h*Math.exp(-(dx*dx+dz*dz)/(2*p.r*p.r));}"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "2"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "3"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "4"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "5"
+      ],
+      "placement_code": "if(swampW>0.30&&fbm(x*0.25+9,z*0.25+2)>0.45)b=5;",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "7"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "6"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "h=sumW>0.001?sumH/sumW:-3;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "10",
+        "11"
+      ],
+      "placement_code": "if(beach)BIO[id]=(BIO[id]===9)?11:10;",
+      "elevation_code": "if(dO<=2&&H[id]>2.1)H[id]=lerp(H[id],2.15,(2.2-dO)/1.4*0.85);"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "8"
+      ],
+      "placement_code": "if(LAND[id]){let bw=0;for(const r of REGIONS){const dx=x-r.x,dz=z-r.z;const w=Math.exp(-((dx*dx)/(r.rx*r.rx)+(dz*dz)/(r.rz*r.rz))*2.0);if(w>bw){bw=w;b=r.id;}}}",
+      "elevation_code": "for(const m of MESAS){const dx=x-m.x,dz=z-m.z;const d=Math.sqrt(dx*dx+dz*dz);h+=m.h*(1-sstep(m.r*0.5,m.r,d));}"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "9"
+      ],
+      "placement_code": "if(dv<11.5)b=9;",
+      "elevation_code": "const dv=Math.hypot(x+24,z-22);if(dv<12){const t=dv/12;let cone=3+14*Math.pow(Math.max(0,1-t),1.7);if(cone>12.8)cone=12.8+(cone-12.8)*0.12;if(dv<2.6)cone=12.3;const blend=1-sstep(0.7,1.0,t);h=h*(1-blend)+cone*blend;}"
+    }
+  }
+}

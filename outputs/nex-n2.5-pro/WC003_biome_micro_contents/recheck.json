@@ -1,0 +1,90 @@
+[
+  {
+    "biome": "highlands",
+    "item": "hardy_tussock_plants",
+    "seen": "Low hardy tussocks present.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "function scrub(x,z){\n  const g=gAt(x,z),n=1+Math.floor(rand()*2);\n  for(let k=0;k<n;k++)addCan(x+(rand()-0.5)*0.8,g+0.25,z+(rand()-0.5)*0.8,0.7,0.5,0.7,rand()<0.5?0x6f7a52:0x7d8458);\n }\n... \nsampleCells([3],45,6,10,true).forEach(p=>scrub(p.x,p.z));",
+      "lines": [
+        500,
+        501,
+        502,
+        503,
+        527
+      ],
+      "explanation": "The Highlands biome (id 3) uses the 'scrub' function to place low-lying, hardy-colored (0x6f7a52, 0x7d8458) vegetation clusters across the terrain. The 'addCan' function is used to instantiate these small, dense plant meshes at the ground level."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grove",
+    "item": "pollinators",
+    "seen": "small yellow bees flying among blossoms",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code contains no references to bees, pollinators, or insects. While birds are present in the scene, they are spawned globally in specific circular flight paths defined in lines 614-619, and there is no logic linking any entity to the Flowering Grove biome (ID 7) other than the groveTree function which only generates flora."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "scattered_oak_copses",
+    "seen": "Small sparse trees scattered on the grass",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Grassland Plateau (biome 6) is populated with flowers via sampleCells, but there is no code that calls a tree-generating function (like pine, jungleTree, or groveTree) for biome 6."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "tall_grass",
+    "seen": "Short grassy voxel details present",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "sampleCells([6],90,2.8,4.2,false).forEach(p=>addFlower(p.x,p.z,flowerCols[Math.floor(rand()*4)]));",
+      "lines": [
+        554
+      ],
+      "explanation": "The code uses sampleCells to place 90 instances of addFlower within biome 6 (Grasslands), which renders the short grassy voxel details observed in the biome."
+    },
+    "verified": true
+  },
+  {
+    "biome": "delta",
+    "item": "small_islands",
+    "seen": "Small floating island pieces near the main coastline.",
+    "probe": {
+      "found": false,
+      "evidence": "not in delta scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines biomes 10 and 11 as beach/coastal areas based on elevation and distance to the ocean, but there is no logic that generates or places distinct island geometry or features within these biomes."
+    },
+    "verified": false
+  }
+]

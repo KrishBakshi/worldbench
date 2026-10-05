@@ -13,6 +13,10 @@ caller of both public functions here:
   node so a tool-calling fix round is exactly as visible on stderr as a
   generation round — no separate, quieter code path for "the model is
   fixing something" vs. "the model is generating something".
+- `complete_document(model, messages, ...)` — a whole HTML file written as
+  streamed content, continued across turns if cut off. The fix node's full
+  rewrite goes through this, never through a tool-call argument (see
+  `_is_silent_tool_call_stall` for why).
 
 No fixed request timeout is imposed here — every model paces differently,
 so we let each request run to completion and instead report what OpenRouter
@@ -24,7 +28,7 @@ everything already streamed.
 
 Some providers cut a response off mid-file when it hits their own default
 output-length cap (`finish_reason: "length"`), independent of any timeout —
-this happened for real on stealth/ox-alpha and produced a broken,
+this happened for real and produced a broken,
 unparseable world.html. Rather than trust a single turn, generate() checks
 completion after every turn (finish_reason plus a `</html>` presence check)
 and, if incomplete, sends the accumulated output plus reasoning back as
@@ -58,13 +62,13 @@ sys.path.insert(0, str(REPO_ROOT))
 load_dotenv(REPO_ROOT / ".env")
 
 import httpx  # noqa: E402
-from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 from langchain_openrouter import ChatOpenRouter  # noqa: E402
 from langsmith import traceable  # noqa: E402
 from openrouter import OpenRouter as OpenRouterClient  # noqa: E402
 from openrouter import errors as openrouter_errors  # noqa: E402
 
-from harness.status import log, timed  # noqa: E402
+from harness.status import log, tee, timed  # noqa: E402
 
 PROMPT_PATH = REPO_ROOT / "prompts" / "prompt.md"
 INPUTS_DIR = REPO_ROOT / "inputs"
@@ -83,7 +87,7 @@ _BOLD_STYLE = "\033[1;38;5;252m" if _USE_COLOR else ""  # bold near-white — **
 _RESET = "\033[0m" if _USE_COLOR else ""
 
 # Vocabulary this project's reasoning traces actually revolve around — the
-# canonical biomes (BiomeGraph.tsx, mirrored in tests/WC001*/biome_check.py)
+# canonical biomes (BiomeGraph.tsx, mirrored in tests/WC002_biome_placement)
 # plus the voxel/Three.js building blocks the prompt asks for. Highlighted
 # inline so a skimmed reasoning stream still shows *what* the model is
 # actually deciding on, not just that text is flowing.
@@ -125,11 +129,13 @@ class _ReasoningPrinter:
     def __init__(self) -> None:
         self._buffer = ""
         self.opened = False
+        self.total = 0  # reasoning chars seen, reported at the phase transition
         self._in_fence = False
         self._in_code = False
         self._in_bold = False
 
     def _open(self) -> None:
+        tee("\n[reasoning]\n")
         print(f"\n{_REASONING_BADGE}", file=sys.stderr)
         print(_REASONING_STYLE, end="", file=sys.stderr, flush=True)
         self.opened = True
@@ -164,6 +170,8 @@ class _ReasoningPrinter:
             return
         if not self.opened:
             self._open()
+        tee(delta)  # raw, unstyled: the transcript gets the reasoning verbatim, markdown and all
+        self.total += len(delta)
         self._buffer += delta
         # A trailing run of 1-2 backticks might still grow into a ``` fence
         # once more of the stream arrives (e.g. "``" then "`js" in the next
@@ -190,6 +198,119 @@ class _ReasoningPrinter:
             self._buffer = ""
         if self.opened:
             print(f"{_RESET}\n", file=sys.stderr)
+            tee("\n[/reasoning]\n")
+        # Reset `opened` so a later feed() re-prints the badge and re-arms the
+        # style. Some providers interleave reasoning and content rather than
+        # emitting one clean phase each, and this printer is now closed at the
+        # reasoning->content transition (see invoke_turn) rather than only at
+        # end of stream — without this, resumed reasoning would print as
+        # unstyled text with no badge, reading like stray output.
+        self.opened = False
+
+
+# In-place refresh rate for the live content counter. Fast enough to look
+# alive, slow enough not to spend the turn writing escape codes.
+_PROGRESS_MIN_INTERVAL_S = 0.5
+# Coarse milestones go through log(), so the teed transcript records progress
+# without carriage-return spam (status.log_to_file writes every log() line).
+_PROGRESS_LOG_EVERY_CHARS = 8192
+# A gap this long between chunks is worth naming. It is the one number that
+# distinguishes "this model is slow" from "this stream is wedged", which is
+# exactly the question a silent terminal cannot answer.
+_STALL_WARN_S = 20.0
+
+
+def _chunk_text(content: object) -> str:
+    """Text out of a chunk's content, whether it's a plain string or blocks."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+        return "".join(parts)
+    return ""
+
+
+class _ContentProgress:
+    """Live progress for the *content* phase of a streamed turn.
+
+    The reasoning stream had a printer from the start; content never did. It
+    accumulated silently into the chunk aggregate and was printed only once
+    the whole turn finished, so a run went completely dark from the moment
+    the model stopped thinking until the file was done — on a large model
+    writing a 50KB world.html, that is the longest phase of the run, and it
+    is indistinguishable from a hang.
+
+    The full file is still printed at the end, so this deliberately does not
+    echo content: it reports size, elapsed, rate, and the largest gap between
+    chunks. In-place repainting is skipped when stderr isn't a TTY, so a
+    redirected run gets clean milestone lines instead of escape codes.
+    """
+
+    def __init__(self) -> None:
+        self.chars = 0
+        self.chunks = 0
+        self.max_gap = 0.0
+        self._t0: float | None = None
+        self._last_chunk: float | None = None
+        self._last_paint = 0.0
+        self._next_milestone = _PROGRESS_LOG_EVERY_CHARS
+        self._painted = False
+
+    def feed(self, delta: str) -> None:
+        if not delta:
+            return
+        now = time.monotonic()
+        if self._t0 is None:
+            self._t0 = now
+        elif self._last_chunk is not None:
+            gap = now - self._last_chunk
+            self.max_gap = max(self.max_gap, gap)
+            if gap >= _STALL_WARN_S:
+                self.clear()
+                log(f"warn     {gap:.0f}s with no stream data, then it resumed (connection held)")
+        self._last_chunk = now
+        self.chars += len(delta)
+        self.chunks += 1
+        if self.chars >= self._next_milestone:
+            self.clear()
+            log(f"[stream]  content {self.chars:,} chars · {now - self._t0:.0f}s")
+            while self._next_milestone <= self.chars:
+                self._next_milestone += _PROGRESS_LOG_EVERY_CHARS
+        elif now - self._last_paint >= _PROGRESS_MIN_INTERVAL_S:
+            self._paint(now)
+
+    def _paint(self, now: float) -> None:
+        if not _USE_COLOR:  # not a TTY: no in-place repainting, milestones carry it
+            return
+        elapsed = now - (self._t0 or now)
+        rate = self.chars / elapsed if elapsed > 0 else 0.0
+        print(
+            f"\r\033[K[stream]  content {self.chars:,} chars · {elapsed:.0f}s · {rate:.0f} ch/s",
+            end="",
+            file=sys.stderr,
+            flush=True,
+        )
+        self._painted = True
+        self._last_paint = now
+
+    def clear(self) -> None:
+        """Erase the in-place line so another writer's output isn't appended to it."""
+        if self._painted:
+            print("\r\033[K", end="", file=sys.stderr, flush=True)
+            self._painted = False
+
+    def close(self) -> None:
+        self.clear()
+        if not self.chars:
+            return
+        elapsed = (self._last_chunk or 0.0) - (self._t0 or 0.0)
+        gap = f" · longest gap {self.max_gap:.0f}s" if self.max_gap >= 1 else ""
+        log(f"[stream]  content done: {self.chars:,} chars in {elapsed:.0f}s over {self.chunks} chunk(s){gap}")
 
 
 _PREFIX_OK_RE = re.compile(r"<!DOCTYPE\s+html\b|<html\b|<head\b", re.I)
@@ -199,7 +320,7 @@ def _extract_html(text: str) -> str:
     """Unwrap a wrapping ```html fence if the model added one.
 
     A fence on the first line, or right after a doctype/html-open prefix
-    (stealth/ox-alpha emits `<!DOCTYPE html>` then an opening fence), is
+    (seen for real: `<!DOCTYPE html>` then an opening fence), is
     wrapping and gets stripped. A fence *after* the document has started
     (mid-script ``const w = Math.max(8*`` then ```html) is a restart —
     two drafts glued together — and is left in the file so world_lint
@@ -327,6 +448,28 @@ def _is_transient_stream_error(exc: Exception) -> bool:
     return isinstance(exc, ValueError) and bool(_TRANSIENT_STREAM_ERROR_RE.search(str(exc)))
 
 
+class SilentToolCallTimeout(RuntimeError):
+    """The provider went idle while the model built a tool call, and it will
+    again: not a transient error, so invoke_turn doesn't retry it."""
+
+
+def _is_silent_tool_call_stall(exc: Exception, full, tools: list | None) -> bool:
+    """An idle timeout on a tool-bound turn that streamed no content.
+
+    Many providers don't stream tool-call arguments — they hold the whole
+    call until it's complete. A model that decides to emit a large argument
+    (a 54KB file rewrite, seen for real) leaves the connection silent
+    for minutes, and OpenRouter kills it with "Upstream idle timeout
+    exceeded (504)". Retrying replays the same reasoning to the same decision
+    and the same silence: that run spent 3 x ~170s on it. Only this exact
+    shape fails fast; an idle timeout on a plain content stream, or after
+    content had started arriving, is still retried as transient.
+    """
+    if not tools or "idle timeout" not in str(exc).lower():
+        return False
+    return full is None or not _chunk_text(full.content)
+
+
 # When a transient error kills a stream partway through, a long-reasoning
 # model may already have spent 5-10 minutes thinking before the connection
 # dropped. Blindly resending the original request throws that thinking away
@@ -359,6 +502,41 @@ def _splice_partial_turn(messages: list, full) -> list:
     ]
 
 
+class ReasoningLoop(RuntimeError):
+    """A turn's reasoning started repeating itself verbatim. Not transient:
+    invoke_turn never retries it; the caller decides what the turn means."""
+
+
+# A reasoning stream that degenerates repeats whole paragraphs word for word
+# (seen for real: one fix turn spent 267s restating the same four paragraphs
+# about a quote character that was fine). Checking whether the latest
+# REPETITION_WINDOW chars already occurred REPETITION_COUNT-1 times before is
+# a proof of looping, not a budget: a model that is making progress — even
+# slowly, even re-reading the same code — does not reproduce a 400-char
+# passage verbatim three times.
+REPETITION_WINDOW = 400
+REPETITION_COUNT = 3
+REPETITION_CHECK_EVERY = 1500
+
+
+class _RepetitionGuard:
+    def __init__(self) -> None:
+        self.text = ""
+        self._next_check = REPETITION_CHECK_EVERY
+
+    def feed(self, delta: str) -> int:
+        """Returns how many times the latest window occurs, once it's a loop; else 0."""
+        self.text += delta
+        if len(self.text) < self._next_check:
+            return 0
+        self._next_check = len(self.text) + REPETITION_CHECK_EVERY
+        tail = self.text[-REPETITION_WINDOW:]
+        if len(tail.strip()) < REPETITION_WINDOW * 0.8:
+            return 0
+        count = self.text.count(tail)
+        return count if count >= REPETITION_COUNT else 0
+
+
 @dataclass
 class TurnResult:
     text: str
@@ -378,6 +556,7 @@ def invoke_turn(
     max_tokens: int | None,
     reasoning: bool,
     tools: list | None = None,
+    stop_on_repetition: bool = False,
 ) -> TurnResult:
     """One model turn, optionally tool-bound. Streams + prints reasoning live
     (see _ReasoningPrinter) whenever reasoning=True — a tool-calling turn
@@ -414,13 +593,42 @@ def invoke_turn(
             if tools:
                 llm = llm.bind_tools(tools)
             printer = _ReasoningPrinter()
+            progress = _ContentProgress()
+            guard = _RepetitionGuard() if stop_on_repetition else None
             # AIMessageChunk accumulated via __add__, which merges content/reasoning/tool_call_chunks/metadata for us
             try:
                 for chunk in llm.stream(messages):
-                    printer.feed(chunk.additional_kwargs.get("reasoning_content") or "")
+                    reasoning_delta = chunk.additional_kwargs.get("reasoning_content") or ""
+                    if reasoning_delta:
+                        progress.clear()  # don't append the badge to a half-written progress line
+                        printer.feed(reasoning_delta)
+                        repeats = guard.feed(reasoning_delta) if guard else 0
+                        if repeats:
+                            printer.close()
+                            log(
+                                f"warn     reasoning repeated a {REPETITION_WINDOW}-char passage {repeats}x "
+                                f"verbatim after {len(guard.text):,} chars — stopping this turn"
+                            )
+                            raise ReasoningLoop(
+                                f"reasoning repeated itself verbatim ({repeats}x) after {len(guard.text):,} chars"
+                            )
+                    content_delta = _chunk_text(chunk.content)
+                    if content_delta:
+                        # The reasoning->content transition, announced. A model
+                        # that stops streaming reasoning while completion tokens
+                        # keep arriving isn't stuck — it finished thinking and
+                        # started writing. Naming that boundary is what turns a
+                        # silent stretch into a phase you can watch.
+                        if printer.opened:
+                            printer.close()
+                            log(f"[stream]  reasoning ended ({printer.total:,} chars) — writing content now")
+                        progress.feed(content_delta)
                     full = chunk if full is None else full + chunk
             finally:
-                printer.close()  # always reset the terminal style, even if the stream dies mid-word
+                # Always reset the terminal style and drop the in-place line,
+                # even if the stream dies mid-word.
+                printer.close()
+                progress.close()
             content = full.content if isinstance(full.content, str) else str(full.content)
             return TurnResult(
                 content,
@@ -445,6 +653,11 @@ def invoke_turn(
             )
             messages = _splice_partial_turn(messages, full)
         except ValueError as exc:
+            if _is_silent_tool_call_stall(exc, full, tools):
+                raise SilentToolCallTimeout(
+                    f"{exc} — the provider went silent while the model built a tool call "
+                    "(tool arguments aren't streamed); not retried, a retry reproduces it"
+                ) from exc
             if not _is_transient_stream_error(exc) or attempt >= _MAX_RETRIES:
                 raise
             carried = full is not None and (full.content or full.additional_kwargs.get("reasoning_content"))
@@ -480,6 +693,63 @@ def _looks_complete(html: str, finish_reason: str | None) -> bool:
     if finish_reason == "length":
         return False
     return "</html>" in html[-2000:].lower()
+
+
+@dataclass
+class DocumentResult:
+    html: str
+    reasoning_content: str
+    turns: int
+    complete: bool
+
+
+def complete_document(
+    model: str,
+    messages: list,
+    *,
+    temperature: float,
+    reasoning: bool,
+    label: str,
+    max_turns: int = _MAX_ROUNDS,
+    stop_on_repetition: bool = False,
+) -> DocumentResult:
+    """Have the model write one complete HTML file as streamed *content*,
+    continuing across turns if it's cut off — the same completion rule and
+    continue-instruction generate() uses, minus the checkpointing (a fix
+    rewrite that fails is discarded, not resumed).
+
+    This is how the fix node does a full rewrite, instead of a tool call:
+    content streams token by token (visible via _ContentProgress, never idle
+    long enough for an upstream timeout), while a tool-call argument is
+    often buffered by the provider until the whole call is done — see
+    _is_silent_tool_call_stall for the run that cost.
+    """
+    content, reasoning_parts, finish_reason = "", [], None
+    for turn_n in range(1, max_turns + 1):
+        turn_messages = messages
+        if content:
+            ai_kwargs = {"reasoning_content": "\n".join(reasoning_parts)} if reasoning_parts else {}
+            turn_messages = messages + [
+                AIMessage(content=content, additional_kwargs=ai_kwargs),
+                HumanMessage(content=_CONTINUE_INSTRUCTION),
+            ]
+        with timed(f"{label} · turn {turn_n}/{max_turns}{' [reasoning]' if reasoning else ''}"):
+            turn = invoke_turn(
+                model,
+                turn_messages,
+                temperature=temperature,
+                max_tokens=None,
+                reasoning=reasoning,
+                stop_on_repetition=stop_on_repetition,
+            )
+        content += turn.text
+        if turn.reasoning_content:
+            reasoning_parts.append(turn.reasoning_content)
+        finish_reason = turn.finish_reason
+        if _looks_complete(content, finish_reason):
+            return DocumentResult(_extract_html(content), "\n".join(reasoning_parts), turn_n, True)
+        log(f"round    {label}: +{len(turn.text)} chars, finish_reason={finish_reason}, incomplete — continuing")
+    return DocumentResult(_extract_html(content), "\n".join(reasoning_parts), max_turns, False)
 
 
 def _state_path(name: str) -> Path:
@@ -559,6 +829,7 @@ def generate(
     temperature: float = 1.0,
     max_tokens: int | None = None,
     reasoning: bool | None = None,
+    system: str | None = None,
 ) -> GenerationResult:
     """Call `model` on OpenRouter with prompts/prompt.md, write inputs/<name>/world.html.
 
@@ -586,7 +857,10 @@ def generate(
         reasoning = bool(_is_reasoning_model(model))
 
     prompt = PROMPT_PATH.read_text(encoding="utf-8")
-    prompt_hash = _prompt_hash(prompt)
+    # The system message is part of what the model was asked, so it's part of
+    # the checkpoint identity: a resume must never splice turns from two setups.
+    prompt_hash = _prompt_hash(f"{system}\n\n{prompt}" if system else prompt)
+    head = [SystemMessage(content=system)] if system else []
 
     state = _load_state(name, model, prompt_hash)
     if state:
@@ -609,13 +883,13 @@ def generate(
                 ai_kwargs["reasoning_content"] = reasoning_content
             if reasoning_details:
                 ai_kwargs["reasoning_details"] = reasoning_details
-            messages = [
+            messages = head + [
                 HumanMessage(content=prompt),
                 AIMessage(content=content, additional_kwargs=ai_kwargs),
                 HumanMessage(content=_CONTINUE_INSTRUCTION),
             ]
         else:
-            messages = [HumanMessage(content=prompt)]
+            messages = head + [HumanMessage(content=prompt)]
 
         with timed(f"generate {name} round {round_n}/{_MAX_ROUNDS} ({model}){' [reasoning]' if reasoning else ''}"):
             turn = invoke_turn(
@@ -663,8 +937,8 @@ def generate(
     structure = lint_world_html(html)
     if structure:
         log(
-            f"warn     generated file has {len(structure)} structure finding(s); "
-            "debug/fix will try to rewrite it"
+            f"warn     generated file has {len(structure)} static finding(s); "
+            "debug/fix will repair it"
         )
         for finding in structure[:5]:
             log(f"         {finding}")

@@ -1,0 +1,86 @@
+[
+  {
+    "biome": "mountains",
+    "item": "alpine_fauna_spawn",
+    "seen": "Goats or ibex are placed on the lower mountain slopes.",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "error": "Recursion limit of 40 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT"
+  },
+  {
+    "biome": "highlands",
+    "item": "headwater_rills",
+    "seen": "Small water rill feeding down.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "error": "Recursion limit of 40 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT"
+  },
+  {
+    "biome": "volcano",
+    "item": "basalt_or_ash_surface",
+    "seen": "Dark grey and black blocks",
+    "probe": {
+      "found": true,
+      "evidence": "if(biome==='volcano'&&y>0?'#393940':"
+    },
+    "error": "Recursion limit of 40 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT"
+  },
+  {
+    "biome": "mountains",
+    "item": "alpine_fauna_spawn",
+    "seen": "Goats or ibex are placed on the lower mountain slopes.",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "repair": "2026-10-02T07:02:22Z",
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines animal spawning logic for several biomes (jungle, grasslands, grove, conifers, highlands, desert, swamp, and coast), but the 'mountains' biome is not included in any animal spawning loops or logic. No code exists to place goats, ibex, or any other fauna specifically within the 'mountains' biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "headwater_rills",
+    "seen": "Small water rill feeding down.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "repair": "2026-10-02T07:02:22Z",
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Highlands biome is defined by specific terrain height calculations and flora placement (lines 277, 515-518), but there is no code that assigns 'river' or 'swampwater' liquid types to cells within the Highlands biome. The river system is defined by static splines (lines 204-216) that do not intersect the Highlands region, and no logic exists to generate rills or springs specifically within the Highlands."
+    },
+    "verified": false
+  },
+  {
+    "biome": "volcano",
+    "item": "basalt_or_ash_surface",
+    "seen": "Dark grey and black blocks",
+    "probe": {
+      "found": true,
+      "evidence": "if(biome==='volcano'&&y>0?'#393940':"
+    },
+    "repair": "2026-10-02T07:02:22Z",
+    "agent": {
+      "found": true,
+      "evidence": "biome==='volcano'&&y>0?'#393940':\nblock(x,h+range(.5,1.2),z,range(.8,2.1),'#33333e');",
+      "lines": [
+        384,
+        519
+      ],
+      "explanation": "The code sets the terrain color for the volcanic biome to a dark grey ('#393940') and explicitly places dark grey blocks ('#33333e') within the volcanic biome to represent ash or basalt surface features."
+    },
+    "verified": true
+  }
+]

@@ -1,0 +1,961 @@
+{
+  "score": 65.03,
+  "max_score": 100,
+  "points_per_biome": 10,
+  "passed": false,
+  "reason": "Scored 65.03/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
+  "biomes": {
+    "mountains": {
+      "score": 7.51,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "high_relief_peaks",
+          "label": "Tall alpine peaks as height geometry, not gentle hills",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Tall alpine peaks visible at the top center of the island.",
+          "evidence": "const peaks = [[-18,86,16],[6,90,20],[26,80,14],[-6,74,12],[16,100,11],[-30,78,10]];"
+        },
+        {
+          "id": "summit_snow_blocks",
+          "label": "Snow cubes on upper ridges/summits (not only a weather label)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Snow blocks cover the upper ridges of the high mountain.",
+          "evidence": "if (id === ID.mountain) return (level >= 26 || (level >= 22 && n > 0.55)) ? (n > 0.82 ? 0xffffff : 0xeef3f8) : (n > 0.6 ? 0x7d8b9a : 0x667484);"
+        },
+        {
+          "id": "lower_slope_rock",
+          "label": "Exposed rock/stone on lower slopes below the snowline",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Exposed rock visible on lower slopes.",
+          "evidence": "if (id === ID.mountain) return (level >= 26 || (level >= 22 && n > 0.55)) ? (n > 0.82 ? 0xffffff : 0xeef3f8) : (n > 0.6 ? 0x7d8b9a : 0x667484);"
+        },
+        {
+          "id": "summit_blizzard",
+          "label": "Whitish high-altitude blizzard / wind-sheet particles on the snow-mountain peaks and upper alpine (not a forest-foothill decoration, not a legend string)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Blizzard particles visible around the summit.",
+          "evidence": "addField({ count: 90, sx: 8.5, sy: 0.22, sz: 1.15, color: 0xf7fbff, opacity: 0.42, depthWrite: false, vx: 36, vy: 0.2, box: { x0: -55, x1: 60, z0: 98, z1: 132, y0: 26, y1: 84, ground: 0 }, intensity: function () { return burst(26, 11) * seasonMul(2); }, mode: 'sheet' });"
+        }
+      ],
+      "lost": [
+        {
+          "id": "meltwater_stream",
+          "label": "Meltwater stream leaving the massif into the wet corridor",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "No stream leaving the snow peaks directly.",
+          "evidence": "if (id === ID.mountain) {\n        let md = 1e9;\n        for (let m = 0; m < MELTS.length; m++) md = Math.min(md, polyQuery(x, z, MELTS[m]).d);\n        if (md < 2.5) {\n          const g = terrain - 2;\n          if (g >= 16 && g < terrain) { solid = g - 1; water = g; kind = 1; }\n        }\n      }",
+          "why": "not_visible"
+        },
+        {
+          "id": "alpine_fauna_spawn",
+          "label": "Placed high-altitude animals (goat/ibex class) on the peaks or upper rock",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "No animals visible on the peaks.",
+          "evidence": "not in mountains scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": false,
+      "biome_visible": true
+    },
+    "forest": {
+      "score": 4.15,
+      "max_score": 10,
+      "passed": false,
+      "earned": [],
+      "lost": [
+        {
+          "id": "dense_pine_silhouettes",
+          "label": "Dense spruce/pine voxel trees (trunk + canopy cubes) in this band",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "trunk(ix, iz, top, h, 0x5c3b22);",
+          "why": "not_visible"
+        },
+        {
+          "id": "snow_on_canopy_cubes",
+          "label": "Snow cubes on tree canopies, not only on the ground",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "if (snow) floraB.add(wxOf(jx), y * S + S * 0.5 + 0.16, wzOf(jz), S * 0.92, 0.32, S * 0.92, 0xf7fbff);",
+          "why": "not_visible"
+        },
+        {
+          "id": "snowfall_cloud_deck",
+          "label": "Cloud deck and snowfall particles above this foothill band",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "makeDeck(0xf2f5f8, [[-30,60,50,8,26],[-6,62,46,8,24],[16,58,54,7,22]], function () { return burst(19, 4) * seasonMul(1); }, 12);",
+          "why": "not_visible"
+        },
+        {
+          "id": "foothill_in_front_of_peaks",
+          "label": "Elevated foothill shelf in front of the snow mountains",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "if (z >= 51 && z < 62 && x <= 26 && x >= -90) return 'snow';",
+          "why": "not_visible"
+        },
+        {
+          "id": "forest_fauna_spawn",
+          "label": "Placed animals in this biome (deer/fox/wolf/rabbit class), not a biome-id mention",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "spawnWalker(makeDeer, [ID.snow], 3, 14, 2.6, 2.05);",
+          "why": "not_visible"
+        },
+        {
+          "id": "forest_floor_cover",
+          "label": "Under-canopy forest floor cover (ferns, berries, or low shrubs between the pines)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not visible in the overview.",
+          "evidence": "not in forest scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": false,
+      "biome_visible": false
+    },
+    "highlands": {
+      "score": 5.02,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "elevated_open_plain",
+          "label": "Elevated open plain, higher than grove/grassland",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 1.11,
+          "code": true,
+          "visual": true,
+          "seen": "Elevated plain visible in highlands.",
+          "evidence": "let h = 9 + t * 8 + j * 1.3;"
+        },
+        {
+          "id": "exposed_stone",
+          "label": "Exposed rock/stone on the highland surface or slopes",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 1.11,
+          "code": true,
+          "visual": true,
+          "seen": "Exposed stone on slopes.",
+          "evidence": "if (id === ID.highland) return hash2(ix, iz) < 0.12 ? 0x8e948c : (n > 0.5 ? 0x738474 : 0x8b987e);"
+        }
+      ],
+      "lost": [
+        {
+          "id": "sparse_scrub_cubes",
+          "label": "Sparse low scrub/shrub cubes (low spawn rate, not a forest)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not clearly visible.",
+          "evidence": "put(floraB, ix, top + 1, iz, S * 0.9, S * 0.7, S * 0.9, 0x6d7f62);",
+          "why": "not_visible"
+        },
+        {
+          "id": "headwater_rills",
+          "label": "Headwater springs/rills, not a plains river maze",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not visible.",
+          "evidence": "if (wl > 0 && wl <= terrain) { solid = wl - 1; water = wl; kind = wk; }",
+          "why": "not_visible"
+        },
+        {
+          "id": "mist_particles",
+          "label": "Mist particles over highland coordinates (not a legend weather string)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": false,
+          "visual": true,
+          "seen": "Mist particles above highlands.",
+          "evidence": "not in highlands scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "light_rain",
+          "label": "Light rain / drizzle particles over the highlands (not persistent jungle rain)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": false,
+          "visual": true,
+          "seen": "Light rain/drizzle visible.",
+          "evidence": "not in highlands scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "downslope_into_grove",
+          "label": "Gentle downslope / moist feeder into the flowering grove",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": false,
+          "visual": true,
+          "seen": "Downslope leads to grove.",
+          "evidence": "not in highlands scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "highland_fauna_spawn",
+          "label": "Placed sparse highland animals (sheep/goat/llama/hare class)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "No fauna visible.",
+          "evidence": "not in highlands scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "hardy_tussock_plants",
+          "label": "Hardy tussock/low hardy plants on thin soil, distinct from a forest or a lush meadow",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not visible.",
+          "evidence": "not in highlands scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": true,
+      "biome_visible": true
+    },
+    "jungle": {
+      "score": 3.35,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "packed_tall_canopy",
+          "label": "Densely packed tall voxel canopy (not sparse oaks)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 1.11,
+          "code": true,
+          "visual": true,
+          "seen": "Densely packed green tree canopy visible in the center area.",
+          "evidence": "trunk(ix, iz, top, h, 0x5a3a22);"
+        }
+      ],
+      "lost": [
+        {
+          "id": "vines_or_undergrowth",
+          "label": "Vines, bushes, or layered undergrowth under the canopy",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not clearly visible.",
+          "evidence": "put(floraB, ix, top + 1, iz, S * 0.8, S * 0.7, S * 0.8, 0x145c30);",
+          "why": "not_visible"
+        },
+        {
+          "id": "rocky_clearings",
+          "label": "Rocky clearings inside the jungle (not a solid unbroken tree carpet)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "if (id === ID.jungle && fbm(x * 0.09, z * 0.09) > 0.78) CLEAR[i] = 1;",
+          "why": "not_visible"
+        },
+        {
+          "id": "inland_ponds",
+          "label": "Inland ponds/pools in the jungle",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "if (id === ID.jungle || id === ID.grass) {\n        for (let p = 0; p < PONDS.length; p++) {\n          if (Math.hypot(x - PONDS[p][0], z - PONDS[p][1]) < PONDS[p][2]) {",
+          "why": "not_visible"
+        },
+        {
+          "id": "waterfall",
+          "label": "Waterfall geometry in or out of the jungle",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.56,
+          "code": true,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "if (id === ID.jungle && x < -40 && polyQuery(x, z, BACK).d < 4.2 && terrain <= 8) {\n        if (4 <= terrain) { solid = 3; water = 4; kind = 2; }",
+          "why": "not_visible"
+        },
+        {
+          "id": "rain_shafts",
+          "label": "Persistent rain-shaft particles over jungle coordinates",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "not in jungle scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "rising_mist_particles",
+          "label": "Rising mist particles after rain / over wet canopy",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "not in jungle scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "edge_fauna_spawn",
+          "label": "Placed grazers at jungle edges (deer class)",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "not in jungle scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "canopy_fauna_spawn",
+          "label": "Placed canopy/tree life (bird/parrot class) in the jungle",
+          "kind": "must_present",
+          "points": 1.11,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "Not observed.",
+          "evidence": "not in jungle scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": false,
+      "biome_visible": true
+    },
+    "swamp": {
+      "score": 8.57,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "murky_standing_water",
+          "label": "Murky standing pools (not cyan flowing river water)",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Dark swamp water pools present",
+          "evidence": "if (id === ID.swamp) { let pool = polyQuery(x, z, BACK).d < 5.6; if (!pool) { for (let p = 0; p < SWPOOLS.length; p++) { if (Math.hypot(x - SWPOOLS[p][0], z - SWPOOLS[p][1]) < SWPOOLS[p][2]) pool = true; } } if (pool) { solid = 2; water = 3; kind = 2; } }"
+        },
+        {
+          "id": "mangrove_or_prop_roots",
+          "label": "Mangrove / prop-root / vine-oak voxel trees, not generic jungle canopy",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Swamp trees with exposed root structures",
+          "evidence": "put(floraB, ix + 1, top + 1, iz, S, S * 0.7, S, 0x4a3428);"
+        },
+        {
+          "id": "low_mist_particles",
+          "label": "Low mist/fog particles over swamp coordinates",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Low mist over swamp area",
+          "evidence": "addField({ count: 110, sx: 1.5, sy: 0.45, sz: 1.5, color: 0xc5d0d4, opacity: 0.28, depthWrite: false, vy: 2.2, box: { x0: -102, x1: -48, z0: 12, z1: 54, y0: 6, y1: 22, ground: 0 }, intensity: function () { return burst(18, 3) * seasonMul(4); }, mode: 'rise' });"
+        },
+        {
+          "id": "stagnant_channels",
+          "label": "Stagnant backwater channels (not a desert river)",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Stagnant channels weaving through swamp",
+          "evidence": "if (id === ID.swamp) { let pool = polyQuery(x, z, BACK).d < 5.6;"
+        },
+        {
+          "id": "mud_banks",
+          "label": "Mud/silt banks at the edges of swamp water",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Muddy banks alongside the water",
+          "evidence": "if (id === ID.swamp) return n > 0.6 ? 0x3a4424 : 0x4a5530;"
+        }
+      ],
+      "lost": [
+        {
+          "id": "lily_pads_or_surface_cover",
+          "label": "Lily pads or equivalent surface cover on swamp water",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 0.71,
+          "code": true,
+          "visual": false,
+          "seen": "Not clearly visible",
+          "evidence": "floraB.add(x, WAT[i] * S + S * 0.5 + 0.08, z, 1.25, 0.14, 1.25, 0x3f7a40);",
+          "why": "not_visible"
+        },
+        {
+          "id": "marsh_fauna_spawn",
+          "label": "Placed marsh animals (frog/fox class) in swamp cells",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 0.71,
+          "code": true,
+          "visual": false,
+          "seen": "No marsh animals seen",
+          "evidence": "spawnWalker(makeFox, [ID.swamp], 4, 12, 3.1, 1.75);",
+          "why": "not_visible"
+        }
+      ],
+      "shows_biome": false,
+      "biome_visible": true
+    },
+    "grove": {
+      "score": 4.15,
+      "max_score": 10,
+      "passed": false,
+      "earned": [],
+      "lost": [
+        {
+          "id": "pink_canopy_cubes",
+          "label": "Pink flowering/cherry voxel canopy cubes",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "blob(ix, iz, top + h - 1, 2, 0xc45b86, false);\n        blob(ix, iz, top + h, 1, 0xf0a4c4, false);\n        put(floraB, ix, top + h + 1, iz, S, S, S, 0xf7d0e2);",
+          "why": "not_visible"
+        },
+        {
+          "id": "pink_ground_or_petals",
+          "label": "Pink-tinted floor and/or petal particles",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "if (id === ID.grove) return n > 0.5 ? 0xf3b7cc : 0xe989ad;",
+          "why": "not_visible"
+        },
+        {
+          "id": "moist_basin_below_highland",
+          "label": "Moist basin below the highland slope (not a desert stop)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "if (id === ID.grove) {\n      const dx = (x - 50) / 30, dz = (z - 10) / 14;\n      return Math.round(6 + (dx * dx + dz * dz) * 2.2 + j * 0.5);\n    }",
+          "why": "not_visible"
+        },
+        {
+          "id": "feeder_streams",
+          "label": "Small feeder streams into the grove",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "if (wl > 0 && wl <= terrain) { solid = wl - 1; water = wl; kind = wk; }",
+          "why": "not_visible"
+        },
+        {
+          "id": "grove_fauna_spawn",
+          "label": "Placed grove grazers (deer/sheep class)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "spawnWalker(makeDeer, [ID.grove], 4, 14, 2.8, 2.05);",
+          "why": "not_visible"
+        },
+        {
+          "id": "pollinators",
+          "label": "Placed pollinators (bee class) among the blossoms",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "not visible",
+          "evidence": "not in grove scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": false,
+      "biome_visible": false
+    },
+    "grassland": {
+      "score": 10.02,
+      "max_score": 10,
+      "passed": true,
+      "earned": [
+        {
+          "id": "flat_open_green",
+          "label": "Open flat green/olive plain geometry \u2014 not the pink grove",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Open green and olive plain geometry across the plateau.",
+          "evidence": "if (id === ID.grass) return hash2(ix, iz) > 0.93 ? 5 : 4;"
+        },
+        {
+          "id": "tributary_geometry",
+          "label": "Winding river/tributary geometry through the plateau (not a comment)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Winding river and tributary flowing through the terrain.",
+          "evidence": "const TRIB = [[-22,6],[-30,-8],[-38,-22],[-34,-38],[-28,-52]];"
+        },
+        {
+          "id": "scattered_oak_copses",
+          "label": "Scattered oak/woodland copses (not jungle density)",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Scattered small woodland copses of oak trees.",
+          "evidence": "} else if (id === ID.grass && !wet && fbm(x * 0.05, z * 0.05) > 0.66 && hsh < 0.55) {\n        const h = 3;\n        trunk(ix, iz, top, h, 0x6b4423);\n        blob(ix, iz, top + h, 1, 0x2f7d38, false);\n        put(floraB, ix, top + h + 1, iz, S, S, S, 0x3c9444);\n      }"
+        },
+        {
+          "id": "yellow_white_flowers",
+          "label": "Yellow/white wildflower cubes, not pink blossoms",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Small yellow or white wildflower cubes dotting the grass.",
+          "evidence": "if (!wet && id === ID.grass && hsh < 0.22 && !TR[i]) {\n        const col = hash2(ix + 8, iz) > 0.5 ? 0xf0d15a : 0xf7f4ea;\n        floraB.add(x + (hash2(ix, iz) - 0.5), top * S + S * 0.5 + 0.28, z + (hash2(iz, ix) - 0.5), 0.5, 0.55, 0.5, col);\n      }"
+        },
+        {
+          "id": "tall_grass",
+          "label": "Tall grass / meadow grass cubes across the open plain",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Tall grass cubes scattered across the open plain.",
+          "evidence": "if (!wet && id === ID.grass && hsh < 0.22 && !TR[i]) {\n  const col = hash2(ix + 8, iz) > 0.5 ? 0xf0d15a : 0xf7f4ea;\n  floraB.add(x + (hash2(ix, iz) - 0.5), top * S + S * 0.5 + 0.28, z + (hash2(iz, ix) - 0.5), 0.5, 0.55, 0.5, col);\n}"
+        },
+        {
+          "id": "grassland_fauna_spawn",
+          "label": "Placed grazers (deer/horse/sheep class) on the plain",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Quadruped deer or sheep grazers roaming the plain.",
+          "evidence": "spawnWalker(makeDeer, [ID.grass], 8, 18, 3.2, 2.15);"
+        }
+      ],
+      "lost": [],
+      "shows_biome": true,
+      "biome_visible": true
+    },
+    "delta": {
+      "score": 5.94,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "depth_banded_water",
+          "label": "Shallow turquoise vs deeper offshore water bands",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.91,
+          "code": true,
+          "visual": true,
+          "seen": "Turquoise shallow water transitioning to deeper offshore blue water.",
+          "evidence": "if (dist < 6) return 0x3dceb0; if (dist < 12) return 0x1498b0; return 0x0b568c;"
+        },
+        {
+          "id": "sand_bays",
+          "label": "Bright sand beaches / curved bays",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.91,
+          "code": true,
+          "visual": true,
+          "seen": "Bright sandy shores and curved coastal bays.",
+          "evidence": "if (nearOcean(x, z) && z < 36 && x < 90 && (z < 12 || x < -40)) return 'beach';"
+        },
+        {
+          "id": "palm_silhouettes",
+          "label": "Palm voxel trees on warm beaches",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.91,
+          "code": true,
+          "visual": true,
+          "seen": "Palm trees scattered along the warm sandy beach.",
+          "evidence": "put(floraB, tx, ty, iz, S, S * 0.7, S, 0x2e9a48);"
+        },
+        {
+          "id": "braided_river_mouths",
+          "label": "Braided delta / multiple river mouths into the ocean",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.91,
+          "code": true,
+          "visual": true,
+          "seen": "Rivers branching into multiple mouths near the ocean.",
+          "evidence": "const cands = [ [polyQuery(x, z, MAIN).d, mainWidth(z), mainLevel(z), 1], [polyQuery(x, z, TRIB).d, 2.8, mainLevel(z), 1], [polyQuery(x, z, JTRIB).d, 3.2, mainLevel(z), 1], [polyQuery(x, z, HIGHW).d, 2.7, highLevel(z), 1], [polyQuery(x, z, EASTB).d, 2.6, z < -40 ? 2 : 3, 1], [z < -40 ? minPoly(x, z, DELTAS).d : 1e9, 3.6, 2, 1] ];"
+        }
+      ],
+      "lost": [
+        {
+          "id": "rocky_headlands",
+          "label": "Rocky shoreline, headlands, or reefs",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.46,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "return isHead(ix, iz) ? 0x7e8790 : (n > 0.5 ? 0xf6ead0 : 0xe7d3a8);",
+          "why": "not_visible"
+        },
+        {
+          "id": "coral_or_reef_life",
+          "label": "Coral / reef structures in shallow coastal water",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "",
+          "evidence": "not in delta scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "small_islands",
+          "label": "Small coastal islands off the main landmass",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "",
+          "evidence": "not in delta scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "fresh_salt_mix",
+          "label": "Freshwater mixing into saltwater at the river mouths",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.46,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "if (WAT[ni] > 0 && WAT[i] - WAT[ni] >= 2) {",
+          "why": "not_visible"
+        },
+        {
+          "id": "cliff_waterfalls_to_void",
+          "label": "Ocean or river water falling off island cliffs into the void",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.46,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "emitters.push({ x: wxOf(ix), z: wzOf(iz), y0: WAT[i] * S + S * 0.5, y1: -30 });",
+          "why": "not_visible"
+        },
+        {
+          "id": "coastal_fauna_spawn",
+          "label": "Placed in-water coastal life (fish class)",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.46,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "spawnFish(8, false);",
+          "why": "not_visible"
+        },
+        {
+          "id": "shore_fauna_spawn",
+          "label": "Placed shore life (bird/turtle class)",
+          "kind": "must_present",
+          "points": 0.91,
+          "earned": 0.46,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "spawnGull(6);",
+          "why": "not_visible"
+        }
+      ],
+      "shows_biome": true,
+      "biome_visible": true
+    },
+    "desert": {
+      "score": 7.14,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "flat_arid_basin",
+          "label": "Mostly flat arid basin geometry",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Flat desert ground present.",
+          "evidence": "if (id === ID.desert) return Math.round(5 + j * 1.2);"
+        },
+        {
+          "id": "sandstone_peaks",
+          "label": "Sandstone desert mountains on the flats \u2014 not the volcano",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Large sandstone mountain in desert.",
+          "evidence": "if (id === ID.dune) {\n      const peaks = [[78,-58,14],[96,-50,18],[86,-42,12]];\n      let h = 6;\n      for (let i = 0; i < peaks.length; i++) {\n        const d = Math.hypot(x - peaks[i][0], z - peaks[i][1]);\n        h += peaks[i][2] * Math.max(0, 1 - d / 22);\n      }"
+        },
+        {
+          "id": "cacti_on_flats",
+          "label": "Cactus voxel plants spread across the desert flats",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Green cactus voxel blocks spread across flats.",
+          "evidence": "} else if ((id === ID.desert || id === ID.dune) && !WASHF[i] && SOL[i] < 13 && hsh < 0.1) {\n        const h = 3 + ((hash2(ix, iz) * 3) | 0);\n        trunk(ix, iz, top, h, 0x2f8a40);\n        const arm = 2;\n        put(floraB, ix + 1, top + arm, iz, S, S, S, 0x3c9a48);\n        put(floraB, ix + 1, top + arm + 1, iz, S, S, S, 0x3c9a48);"
+        },
+        {
+          "id": "arid_fauna_spawn",
+          "label": "Placed arid animals (fox/rabbit class) in desert cells",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 1.43,
+          "code": true,
+          "visual": true,
+          "seen": "Small creature present on sand.",
+          "evidence": "spawnWalker(makeFox, [ID.desert, ID.dune], 6, 16, 3.6, 1.85);"
+        }
+      ],
+      "lost": [
+        {
+          "id": "fading_washes",
+          "label": "Dry washes that fade out (no perennial through-river)",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 0.71,
+          "code": true,
+          "visual": false,
+          "seen": "No washes visible.",
+          "evidence": "if (id === ID.desert || id === ID.dune) {\n        for (let w = 0; w < WASHES.length; w++) {\n          const q = polyQuery(x, z, WASHES[w]);\n          const width = 3.2 * (1 - q.u);\n          if (q.d < width && width > 0.45) {\n            solid = Math.max(3, terrain - 1);",
+          "why": "not_visible"
+        },
+        {
+          "id": "sandstorm_particles",
+          "label": "Sandstorm/dust particles over desert coordinates (not a legend string)",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 0.0,
+          "code": false,
+          "visual": false,
+          "seen": "No sandstorm particles visible.",
+          "evidence": "not in desert scope",
+          "why": "not_in_scope_evidence"
+        },
+        {
+          "id": "dead_bush",
+          "label": "Dead bush / dry scrub cubes on the desert flats besides cactus",
+          "kind": "must_present",
+          "points": 1.43,
+          "earned": 0.71,
+          "code": false,
+          "visual": true,
+          "seen": "Dry scrub cubes present.",
+          "evidence": "not in desert scope",
+          "why": "not_in_scope_evidence"
+        }
+      ],
+      "shows_biome": true,
+      "biome_visible": true
+    },
+    "volcano": {
+      "score": 9.18,
+      "max_score": 10,
+      "passed": false,
+      "earned": [
+        {
+          "id": "tall_cone",
+          "label": "Tall stratovolcano cone geometry \u2014 not a flat puddle",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Tall stratovolcano cone geometry visible.",
+          "evidence": "if (r < 5) return 32;"
+        },
+        {
+          "id": "glowing_crater",
+          "label": "Glowing crater at the summit",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Glowing crater at summit.",
+          "evidence": "if (LAV[i] === 2) { for (let k = 1; k <= 4; k++) craterB.add(wxOf(ix), (top + k) * S, wzOf(iz), S * 0.98, S * 0.98, S * 0.98); }"
+        },
+        {
+          "id": "lava_flows_on_volcanic_ground",
+          "label": "Lava tributaries/pools on volcanic ground only",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Lava flows on dark surface.",
+          "evidence": "else if (lavaD < 2.05) { solid = Math.max(6, terrain - 1); lava = 1; }"
+        },
+        {
+          "id": "basalt_or_ash_surface",
+          "label": "Black basalt / ash surface blocks",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Black basalt blocks.",
+          "evidence": "if (id === ID.volcano) return n > 0.62 ? 0x3a3a3e : 0x242428;"
+        },
+        {
+          "id": "ash_or_eruption_particles",
+          "label": "Ash plumes and/or periodic eruption particles",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 1.67,
+          "code": true,
+          "visual": true,
+          "seen": "Eruption particles above crater.",
+          "evidence": "addField({ count: 150, sx: 0.55, sy: 0.55, sz: 0.55, color: 0x6e6e72, opacity: 0.75, depthWrite: true, vy: 6, vx: 1.5, box: { x0: VX - 6, x1: VX + 8, z0: VZ - 6, z1: VZ + 8, y0: 70, y1: 78, ground: 0 }, intensity: function () { return eruptNow(); }, mode: 'rise' });"
+        }
+      ],
+      "lost": [
+        {
+          "id": "obsidian_quench",
+          "label": "Water + lava contact becomes obsidian",
+          "kind": "must_present",
+          "points": 1.67,
+          "earned": 0.83,
+          "code": true,
+          "visual": false,
+          "seen": "",
+          "evidence": "if (Math.hypot(x - 86, z - 18) < 4.6 || (seepD < 3.4 && lavaD < 4.2 && x < 106 && x > 74)) obs = 1;",
+          "why": "not_visible"
+        }
+      ],
+      "shows_biome": true,
+      "biome_visible": true
+    }
+  }
+}

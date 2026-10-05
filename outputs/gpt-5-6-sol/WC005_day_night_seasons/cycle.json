@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const sun=b(0,0,0,13,13,2,0xffe678);sun.material=new T.MeshBasicMaterial({color:0xffe678});",
+      "motion_evidence": "sun.position.set(Math.cos(a)*190,Math.sin(a)*145,80);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "L.position.copy(sun.position);L.intensity=.12+light*3.2;A.intensity=.18+light*1.25;",
+      "motion_evidence": "L.position.copy(sun.position);L.intensity=.12+light*3.2;A.intensity=.18+light*1.25;"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "L.intensity=.12+light*3.2;A.intensity=.18+light*1.25;",
+      "motion_evidence": "L.intensity=.12+light*3.2;A.intensity=.18+light*1.25;"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "L.color.setHex([0xfff1d4,0xffe4ae,0xffc18c,0xcfe7ff][si]);",
+      "motion_evidence": "L.color.setHex([0xfff1d4,0xffe4ae,0xffc18c,0xcfe7ff][si]);"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const seasons=[\"Spring\",\"Summer\",\"Autumn\",\"Winter\"],se=document.querySelector(\"#season\");",
+      "motion_evidence": "let t=now/1000,yr=t/80%4,si=Math.floor(yr);se.textContent=seasons[si];"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "L.color.setHex([0xfff1d4,0xffe4ae,0xffc18c,0xcfe7ff][si]);",
+      "motion_evidence": "L.color.setHex([0xfff1d4,0xffe4ae,0xffc18c,0xcfe7ff][si]);"
+    },
+    "season_modulates_weather": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "clouds.push(g)",
+      "motion_evidence": "clouds.forEach((g,i)=>{g.position.x+=dt*(.6+i*.06);if(g.position.x>120)g.position.x=-120});"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "S.background=new T.Color(0);"
+    }
+  }
+}

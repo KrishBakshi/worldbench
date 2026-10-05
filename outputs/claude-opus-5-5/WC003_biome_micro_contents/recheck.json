@@ -1,0 +1,37 @@
+[
+  {
+    "biome": "swamp",
+    "item": "mud_banks",
+    "seen": "Dark soil edges around pools.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code for the Backwater Swamp biome (lines 565-566) only places mangroves, reeds, and bushes. While the pond function (lines 251-260) creates water bodies, it does not contain any logic to place specific mud or silt bank geometry or materials around the edges of these pools."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "flat_open_green",
+    "seen": "Open green plain visible in central area.",
+    "probe": {
+      "found": true,
+      "evidence": "case BI.GRASS: return 7 + .7*fbm(x*.06,z*.06);"
+    },
+    "repair": "2026-10-02T07:00:16Z",
+    "agent": {
+      "found": true,
+      "evidence": "else if(b===BI.GRASS) tc=pickN(TOP[5],x,z,.15);",
+      "lines": [
+        479
+      ],
+      "explanation": "The biome BI.GRASS is assigned a color palette from TOP[5] (defined in line 434 as shades of green: '#62a04a', '#6aa84f', '#79b04e', '#86a94a'), which is used to color the terrain surface, creating the green plain appearance."
+    },
+    "verified": true
+  }
+]

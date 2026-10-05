@@ -1,0 +1,104 @@
+[
+  {
+    "biome": "highlands",
+    "item": "exposed_stone",
+    "seen": "Exposed stone on slopes.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if (id === ID.highland) return hash2(ix, iz) < 0.12 ? 0x8e948c : (n > 0.5 ? 0x738474 : 0x8b987e);",
+      "lines": [
+        284
+      ],
+      "explanation": "The code uses a hash function to randomly assign a color to the highland surface, where 0x8e948c represents a distinct grey/stone color compared to the other green-toned highland colors (0x738474 and 0x8b987e)."
+    },
+    "verified": true
+  },
+  {
+    "biome": "highlands",
+    "item": "mist_particles",
+    "seen": "Mist particles above highlands.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The 'mist' mentioned in the Highlands configuration is only a descriptive note string used for UI display, and there is no code that implements or emits mist particles for the Highlands biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "light_rain",
+    "seen": "Light rain/drizzle visible.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "While the Highlands biome metadata mentions 'mist & light rain', there is no code that implements particle emitters or weather effects specifically for the Highlands biome. The existing emitter logic is tied to water level differences and pool conditions, which do not target the Highlands."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Downslope leads to grove.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines the Highlands biome and its elevation, but there is no logic connecting the Highlands to the Flowering Grove via a 'moist feeder' or 'gentle downslope'. The water logic (WAT[i]) is handled globally and does not specifically implement a drainage feature from the Highlands into the Grove."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "tall_grass",
+    "seen": "Tall grass cubes scattered across the open plain.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if (!wet && id === ID.grass && hsh < 0.22 && !TR[i]) {\n  const col = hash2(ix + 8, iz) > 0.5 ? 0xf0d15a : 0xf7f4ea;\n  floraB.add(x + (hash2(ix, iz) - 0.5), top * S + S * 0.5 + 0.28, z + (hash2(iz, ix) - 0.5), 0.5, 0.55, 0.5, col);\n}",
+      "lines": [
+        706,
+        707,
+        708
+      ],
+      "explanation": "The code explicitly checks for the grass biome (ID.grass) and uses the floraB bucket to add small, scattered cubes (0.5x0.55x0.5) at the surface level, which corresponds to the tall grass feature."
+    },
+    "verified": true
+  },
+  {
+    "biome": "desert",
+    "item": "dead_bush",
+    "seen": "Dry scrub cubes present.",
+    "probe": {
+      "found": false,
+      "evidence": "not in desert scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "A search for 'bush', 'scrub', 'twig', 'dead', and 'cactus' in the source code yielded no results, and there is no logic in the biome placement or object generation functions that creates such features in the desert biome."
+    },
+    "verified": false
+  }
+]

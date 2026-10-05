@@ -1,0 +1,199 @@
+[
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "glowing blue meltwater stream flowing outward",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines the 'snow_mountains' biome in lines 558-570, but the river network logic (lines 657-669) explicitly excludes the 'snow_mountains' biome from being a river (line 660) and does not contain any logic to generate a meltwater stream or river within that biome's coordinates."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "exposed_stone",
+    "seen": "Exposed grey stone walls.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The highlands biome is explicitly assigned the surface color PALETTE.grass_highlands, and there is no code logic that places or colors voxels as rock_grey within the highlands biome definition or its associated block generation logic."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "headwater_rills",
+    "seen": "Blue water rills/streams.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines a 'Wet Corridor River Network' that explicitly excludes the 'desert' and 'volcano' biomes, but it does not contain any logic to place water, rills, or springs specifically within the 'highlands' biome. The highlands biome logic is entirely contained in lines 578-583 and does not set the 'isRiver' flag or interact with the water-building system."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Slopes down toward pink grove.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "const highlandSlope = (z + 30) / 30;\nheight = 11 + (1 - highlandSlope) * 6 + noise * 3;",
+      "lines": [
+        580,
+        581
+      ],
+      "explanation": "The code calculates a slope variable based on the z-coordinate that decreases as z increases, which is then used to linearly reduce the height of the highland terrain as it approaches the boundary of the adjacent flowering grove."
+    },
+    "verified": true
+  },
+  {
+    "biome": "jungle",
+    "item": "rising_mist_particles",
+    "seen": "Blue mist particles rising around and over the wet canopy.",
+    "probe": {
+      "found": false,
+      "evidence": "not in jungle scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "While the biome configuration lists 'Rain Shafts & Canopy Mist' as a weather property, the code only implements particle systems for blizzard, snow, rain, sand, ash, and petals. There is no specific particle system or logic implemented to generate 'mist' or 'rising mist particles' for the jungle biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "swamp",
+    "item": "mangrove_or_prop_roots",
+    "seen": "Brown trunk blocks and green foliage represent swamp trees.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines tree types like 'oak', 'palm', 'pine', 'jungle', and 'cherry', but none of these are associated with the 'swamp' biome. The 'swamp' biome logic only handles water blocks and surface coloring, with no code present to spawn or place mangrove or vine-oak trees."
+    },
+    "verified": false
+  },
+  {
+    "biome": "swamp",
+    "item": "low_mist_particles",
+    "seen": "Small white floating particles are visible throughout the swamp.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The 'Stagnant Pools & Low Mist' string is only used as a descriptive label in the biome configuration object and is not referenced by any logic that creates or emits particles. The particle systems defined in the code (blizzard, snow, rain, sand, ash, petals) are all explicitly added to the weatherGroups, and none of them correspond to the swamp biome or a 'mist' feature."
+    },
+    "verified": false
+  },
+  {
+    "biome": "swamp",
+    "item": "marsh_fauna_spawn",
+    "seen": "A small orange animal sits near the tree trunk.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "    createVoxelFox(-34, 2, -2, -2.4);",
+      "lines": [
+        1227
+      ],
+      "explanation": "The code places a voxel fox at coordinates (-34, 2, -2), which falls within the defined swamp biome boundaries (x < -28 and z between -10 and 10)."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "mud_banks",
+    "seen": "Brown earth blocks form the ground along the water edge.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "I searched for 'mud', 'silt', and 'bank' in the source code and found no matches. The swamp biome uses 'PALETTE.grass_swamp' for its surface and water-adjacent blocks, not a distinct mud or silt material. The code does not contain any logic to place specific mud or silt bank features at the edges of the swamp water."
+    },
+    "verified": false
+  },
+  {
+    "biome": "delta",
+    "item": "depth_banded_water",
+    "seen": "Shallow turquoise and deeper blue water visible along the coast.",
+    "probe": {
+      "found": false,
+      "evidence": "not in delta scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines a 'coastal' biome with a single static color '#2ba8c8' in the configuration array. There is no logic found that calculates depth-based color gradients or bands to distinguish shallow turquoise from deeper offshore water."
+    },
+    "verified": false
+  },
+  {
+    "biome": "delta",
+    "item": "rocky_headlands",
+    "seen": "Dark rocky shoreline blocks visible near water.",
+    "probe": {
+      "found": false,
+      "evidence": "not in delta scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The 'coastal' biome defines a weather string 'Reefs & Perimeter Falls', but this is a UI label and not code that generates geometry or voxels. The only logic associated with the 'sand_beach' color is the placement of palm trees, not rocky shoreline blocks or reefs."
+    },
+    "verified": false
+  },
+  {
+    "biome": "delta",
+    "item": "small_islands",
+    "seen": "Small floating island chunks off the main coast.",
+    "probe": {
+      "found": false,
+      "evidence": "not in delta scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code for 'Floating rock fragments' (lines 877-890) is a global loop that generates fragments beneath the entire world, not specifically as coastal islands within the 'coastal' biome. The 'coastal' biome logic (lines 648-655) only modifies surface height and color for the perimeter, and does not contain any logic to spawn islands."
+    },
+    "verified": false
+  }
+]

@@ -11,38 +11,68 @@ property of the world.
 
 - `prompts/prompt.md` — the model-facing prompt, mirrors
   `worldbench-web/prompts/prompt.md`.
-- `tests/<id>_<slug>/` — one folder per test. **Self-contained**: each
+- `tests/<id>_<slug>/` — one folder per test. Test IDs are `WC###`, WC =
+  **World Check** (each test checks a property of the world). The paper keeps
+  the bare "WC001" labels and does not expand them. **Self-contained**: each
   folder holds its own `test.yaml` (id, title, prompt ref, `checks:` list)
   *and* its own content-check script(s) — the logic specific to what that
   test looks for. Nothing content-specific is factored out preemptively.
   - `test.yaml`'s `checks:` list gives, per check, a `script:` (filename,
     relative to that test's own folder) and a `function:` name.
-  - Example: `tests/WC001_trying_all_the_biomes/biome_check.py` defines
-    `has_all_biomes()`, a regex/keyword check that the world mentions all
-    10 canonical biomes (see `BIOMES` in that file — sourced from
-    `worldbench-web/components/about/BiomeGraph.tsx`, a spoiler file never
-    shown to the model). Verified trustworthy against 12 real outputs
-    (see `dry_runs/dry_run_regex_patterns.py` below) before being
-    accepted as the check — no LLM fallback was needed.
-  - Example: `tests/WC002_biome_placement/placement_check.py` checks
-    *where* each biome sits, not just that it exists — does its
-    placement respect the water-flow/adjacency graph in
-    `BiomeGraph.tsx`. Two phases: (1) an LLM (OpenRouter via LangChain)
-    reads the raw source and extracts, per biome, its adjacent biomes +
-    a global elevation ordering, each claim cited to source evidence;
-    (2) `grade_graph()` — pure Python, no LLM — checks that extraction
-    against `RULES`, a connectivity/elevation predicate table mirroring
-    the same reference graph. A dry-run experiment first confirmed
-    regex/parsing can't do this: across the 12 real outputs, position
-    data was either completely absent (2/12) or present in a different
-    bespoke shape every time (a `regions=[{cx,cz,base}]` array, a
-    `{cam,tgt}` camera-preset list, `center`/`target`/`focus` fields,
-    etc.) — no shared schema to regex against. A rendered-screenshot
-    vision-LLM approach was tried next and abandoned after camera
-    interaction via simulated mouse drag proved unreliable across
-    independently hand-rolled control schemes. Extraction is untested
-    without `OPENROUTER_API_KEY` set; `grade_graph()` is verified
-    directly (hand-built perfect/broken graphs, not the LLM path).
+  - `test.yaml` may set `needs_capture: true`: the test reads the shared
+    capture (below), so `eval/validate.py` captures before running it.
+  - Ladder (max 280, every max fixed so totals compare across models):
+    WC001 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
+    coverage + placement 20, WC003 micro-contents 100, WC004 physics 100,
+    WC005 temporal cycles 20. **The old keyword biome-coverage test is gone**:
+    it was folded into WC002 and deleted — every scored model got 10/10
+    and a one-line fake (`const pine=1,...,lava=9`) got 10/10 too.
+  - **WC001's regex voxel check (`voxel_check.py`) was removed**, not tuned:
+    43 of its 83 pattern branches matched exactly one model's file, and
+    consistently renaming variables (behaviour-preserving) moved scores by
+    up to 14/38. `voxel_judge.py` asks an LLM for a probability + verbatim
+    quote per item instead. Don't reintroduce identifier-keyed regex for a
+    property of the built world.
+  - Example: `tests/WC002_biome_placement/` — coverage + placement. (1)
+    classify (LLM) slices the JS per biome; `coverage.py` counts a biome
+    covered only if marked present AND its quoted layout code is really in
+    the source; (2) extract (LLM) reads the **whole source** (not classify's
+    slices) and gives neighbors + elevation order; (3)
+    `grade_graph()` — pure Python — 1 point per covered biome + 1 if its
+    `RULES` pass. An uncovered biome is 0/2 and drawn grey "not covered"
+    (three node states in `plot.py`), and rules pointing at it are
+    *skipped*, not failed, so one absence costs 2 points, not 4–5.
+    Regex/parsing was ruled out first: across 12 real outputs position
+    data was absent (2/12) or a different bespoke shape every time.
+  - WC003/WC004/WC005 are **code probe + visual judge**: each item's points
+    are split between a verified code quote and what the captured frames
+    show. WC004 motion is hybrid too: capture takes a near + far burst per
+    biome (frames ~2s apart, camera still, changed-pixel overlay) on the
+    **daytime preview** — at night most moving things are invisible — and a
+    VLM "it moves" only counts if the burst's pixels really changed. Kept
+    small on purpose (one zoom-out, no pivots, no waiting for weather
+    cycles); don't grow it into a camera-choreography project. WC005's
+    cloud/weather items stay code-only. A probe may quote one line as both
+    "look" and "motion": WC005 accepts that when the line is an update
+    (`sunLight.intensity=.04+daylight*3.1`) and rejects it as spawn-only
+    only when it constructs the object (`new …(`) — and only if the line
+    provably runs every frame (`_runs_every_frame`: inside the
+    `requestAnimationFrame`/`setAnimationLoop` callback or a function it
+    calls, 4 deep; unknown → the strict rule). Rejecting every same-line
+    quote failed 9 real per-frame lines; the frame-loop condition keeps a
+    one-time setup line from passing. WC004 keeps the strict rule on
+    purpose: its motion items are specific movements (flow, drift, fall),
+    and the one real same-line case was a whole-water bob quoted as river
+    flow — rejected for the wrong reason, but rightly. WC005 measures "does X change" from pixels
+    (brightness, frame diff, chromaticity) rather than asking the VLM: on
+    kimi-k-3 the VLM called lighting "identical" across frames whose mean
+    brightness was 11.9 / 35.0 / 11.6 / 11.5.
+  - WC003 **rechecks code/frames disagreements** (`recheck.py`): a
+    `must_present` item the frames show but the one-shot probe's code half
+    rejected gets one `eval/evidence_agent.py` hunt; verified evidence is
+    patched in and graded like any other quote, and every hunt lands in
+    `recheck.json`. Only disagreements are rechecked — on one real world,
+    4 of ~70 items, one agent run each.
 - `checks/` — **generic structural pre-checks only**, shared by every
   test (unlike content checks, which stay in each test's own folder — see
   **Conventions** below for the distinction).
@@ -62,6 +92,29 @@ property of the world.
     `harness.model_call`, `eval.validate`, `eval.run`, every test's
     `probe.py`/`main.py`) — a leaf logging utility, not generation logic,
     so it stays put rather than duplicating or relocating it.
+    - `log_to_file(path)` — a context manager that tees everything `log()`
+      prints into `path` as well as stderr. **Teeing lives at the sink, not
+      in `generate.py`**, because `log()` is already the one choke point
+      every node prints through: capturing here makes a transcript complete
+      by construction (including output added later) instead of a second
+      thing each new node must remember to write to. Flushed per line, so a
+      run killed mid-way still leaves a usable transcript; a closed or
+      broken sink is swallowed rather than taking down the run it was only
+      meant to record.
+  - `code_tools.py` — **read-only code-inspection tools shared by both
+    sides** (the fix loop here and `eval/evidence_agent.py`): `grep`,
+    `read_lines`, and an allowlisted `shell`. A security boundary, so it
+    exists once. The agent never sees the real file — `ReadOnlySource`
+    copies it into a fresh temp dir outside the repo and makes file and dir
+    read-only. `shell` never starts an interpreter (no `shell=True`):
+    `|` pipelines of text readers only (`grep`, `sed -n 'A,Bp'`, `head`,
+    `tail`, `wc`, `nl`, `cut`, `sort`, `uniq`, `tr`, `cat`); `;`, `&&`,
+    redirection and subshells are refused; write flags (`sed -i`,
+    `sort -o`, …) are refused; paths can't leave the temp dir; the env is
+    scrubbed (no HOME, no API keys). There is deliberately no way to *run*
+    the inspected JS — reading untrusted generated code and executing it are
+    different risks. Adversarially tested: 22 escape/write attempts refused,
+    the real file byte-identical afterwards.
   - `model_call.py` — **shared OpenRouter invocation machinery, no CLI of
     its own.** `generate(name, model)` does one full completion of
     `prompts/prompt.md` — up to 3 turns of "continue where you left off"
@@ -75,6 +128,36 @@ property of the world.
     what lets `generate.py`'s `fix` node be exactly as visible as a
     generation turn, not a quieter code path. Both are called only from
     `generate.py`'s graph nodes; there's no standalone one-shot command.
+    - **A streamed turn has two phases and both are now visible.**
+      `_ReasoningPrinter` echoes the reasoning stream; `_ContentProgress`
+      reports the content phase as size/elapsed/rate rather than echoing it
+      (the full file is already printed once the turn ends — echoing would
+      double it). The reasoning→content boundary prints one line,
+      `reasoning ended (N chars) — writing content now`.
+      **This exists because the boundary reads as a hang.** Reported as:
+      "the reasoning stops streaming, but the completion
+      tokens are still coming." That is a reasoning model behaving
+      normally — it finished thinking and started writing — but the stream
+      loop fed *only* `reasoning_content` to the printer and accumulated
+      content silently, so the terminal went dark from that moment until
+      the whole turn finished. On a large model writing a ~50KB
+      `world.html`, that silent stretch is the longest phase of the run and
+      is indistinguishable from a wedged stream. Nothing was wrong with the
+      model or the provider; the harness just wasn't reporting the phase it
+      had entered.
+      - `_ContentProgress` also records the **largest gap between chunks**
+        and warns on any gap over `_STALL_WARN_S` (20s). That is the one
+        number separating "this model is slow" from "this stream is
+        wedged" — the question a silent terminal cannot answer.
+      - In-place repainting is skipped when stderr isn't a TTY, so a
+        redirected or teed run gets clean milestone lines (every
+        `_PROGRESS_LOG_EVERY_CHARS`, via `log()`) instead of carriage
+        returns in the transcript file.
+      - `_ReasoningPrinter.close()` resets `opened`, so a provider that
+        **interleaves** reasoning and content re-prints the badge and
+        re-arms the style instead of emitting unstyled stray text. The
+        printer is now closed at each transition, not only at end of
+        stream, which is what makes this matter.
   - `generate.mmd` — hand-authored Mermaid diagram of this loop,
     including the `debug` node's two checks and the `fix` node's
     internal bounded tool loop (neither shows up in LangGraph's own
@@ -89,55 +172,144 @@ property of the world.
     — static structural lint, described below — then
     `browser_debug.check_console_errors()`), `fix` (only reached when
     `debug` found problems). `fix` loops back to `debug`; the graph ends
-    when a `debug` pass comes back clean or `--max-fix-rounds` is
-    exhausted (default 3 fix attempts — see `DEFAULT_MAX_FIX_ROUNDS`'s
-    comment in `generate.py`: a dry run needed exactly 3 to converge a
-    real multi-layer bug, and a 4th attempt in that same run made things
-    worse, not better, so the default stays evidence-based rather than
-    padded "just in case") — whichever first. The file on disk is always
+    when a `debug` pass comes back clean or `MAX_FIX_ROUNDS` (5) fix
+    rounds are used — whichever first. **5 is a hard cap with no CLI
+    override, and the model is told about it**: `generation_system()` (a
+    system message at generation — `prompts/prompt.md` stays the untouched
+    world spec) and every fix prompt (`_budget_text`: "round k of 5", the
+    last round says so) state the budget and that a crash hides the errors
+    after it. The point is that a model can plan across the budget instead
+    of discovering it one surfaced bug per round. **Nothing inside a round
+    is capped** — the old 4-tool-calls-per-round limit cut models off
+    mid-fix. The one early stop is a provable loop: re-sending a call that
+    already failed against the unchanged file (`failed_calls`) ends the
+    round, since `str_replace` is deterministic and can only answer the
+    same way. The file on disk is always
     the latest attempt, clean or not, even on give-up. Every node is a
     named `@traceable` run nested under one parent (`generate::run`) per
     invocation, and every node also prints to stderr as it happens
     (reasoning stream, the full generated/fixed HTML, every debug error)
     — terminal and LangSmith see the same information, nothing is only
     in one or the other.
-    - **`fix` is a small bounded tool-calling agent, not one tool call.**
-      Two tools, chosen per problem tag: `write_world_html(content)` — a
-      full-file rewrite, only for `[structure]` problems (the document
-      itself isn't valid — a full rewrite is the only fix that can work,
-      see `world_lint.py` below); `str_replace(old_str, new_str)` — one
-      exact, unique in-place edit, for `[uncaught]`/`[console.error]`/
-      `[navigation]` runtime problems, so a fix round edits the specific
-      broken lines instead of re-transcribing the entire file (cheaper,
-      faster, and doesn't risk silently mangling unrelated code the way
-      a full rewrite can). `str_replace` reports back `ERROR: not
-      found`/`not unique` rather than failing silently, so the model can
-      retry with more context — up to `MAX_TOOL_CALLS_PER_FIX_ROUND` (4)
-      tool calls in one turn, since one bug can need more than one edit.
+    - **`fix` has two modes, routed by problem tag.** `[structure]`
+      (document damage: glued drafts, leaked fence/prose, unbalanced
+      `<script>`) → `_rewrite_round`: the model writes the whole file as
+      **streamed content** via `model_call.complete_document()` (continued
+      across turns if cut off), never as a tool argument. Everything else
+      (`[syntax]`, `[uncaught]`, `[console.error]`, `[navigation]`) →
+      `_patch_round`: small `str_replace(old_str, new_str)` edits, as many
+      as the model needs, plus the read-only tools from `code_tools.py`
+      (`grep`, `read_lines`, `shell`) over a temp copy refreshed after each
+      edit — so a model can trace where a bad value comes from, or check
+      whether the same mistake repeats, before it edits.
+      - **`insert_after_line(line, text)`** adds lines without replacing any.
+        A replace-only toolset can't *add* cleanly: a model that knew the
+        fix (a new `<script type="importmap">` before line 35) spent a
+        round trying to `str_replace` the blank line 34 with `old_str="\n"`.
+        Both edit tools share one apply-and-verify path (`_apply`), so an
+        insert is parse-checked and refused exactly like a replace.
+        Whitespace-only `old_str` now errors with a pointer to the insert
+        tool; `\n`/`\t` typed as two characters are read as real ones.
+      - **The page's imported modules are readable under `deps/`.** `debug`
+        saves every script module the page fetched (`modules.json` in a
+        run-scoped temp dir — a path in state, not 1MB of source in every
+        trace); `fix` mounts them read-only. The error that motivated it
+        lived inside a CDN file: `OrbitControls.js` does `from 'three'`, a
+        bare specifier that only resolves through an import map in the
+        page. Every search of world.html correctly found nothing, and the
+        model looped for minutes inventing causes.
+      - **Reasoning loops end a turn, not a run.** `invoke_turn(...,
+        stop_on_repetition=True)` raises `ReasoningLoop` when the latest
+        400 chars of reasoning already occurred twice before, verbatim.
+        The looped text is discarded and the model is told; two looped
+        turns in a row end the round (the same proven-no-progress stop as
+        a re-sent failed call). Checked against 46 real reasoning blocks
+        (1.66M chars): it fired on 8, all genuine verbatim loops, and on
+        none of the rest.
+      - **Fix turns sample at `TEMPERATURE` (1.0), the same as generation.**
+        They ran at 0.2, a known trigger for reasoning models looping on
+        their own text. There is no
+      `write_world_html` tool any more — **that is the 504 fix.** Providers
+      buffer tool-call arguments until the call is complete, so in a
+      real run a 54KB rewrite-as-tool-argument left the
+      connection silent until OpenRouter's "Upstream idle timeout exceeded
+      (504)" killed it — three times, 521s, then a crash. Content streams;
+      the connection is never idle.
+    - **Every `str_replace` is verified the moment it's made**, not a debug
+      round later: the result says whether all scripts still parse
+      (`world_lint.syntax_findings`, ~30ms), with a numbered snippet if
+      not. An edit that would break a file that currently parses is
+      **refused** and the file left unchanged — the "fix one bug, introduce
+      another" pattern seen in real runs used to cost a full round to
+      surface. A refused edit doesn't trigger the full-file escalation
+      below (it proves the model found the spot).
+    - **`str_replace` is built to land on the first try** — a failed edit
+      burns a whole model turn (one real round lost 2 turns to
+      `old_str not found`). Excerpt `  393: ` prefixes copied into old_str
+      are stripped; a whitespace-only mismatch with exactly one match is
+      applied; otherwise the error shows the closest matching file text
+      (`difflib`, line-aligned) to copy from, or the line numbers of every
+      match when it isn't unique.
+    - **A provider failure forfeits the round, not the run.** Edits already
+      applied are kept and `run()` still writes its trajectory `.json`
+      (a 504 used to crash `run()` and lose it).
     - **The fix prompt itself doesn't send the whole file for runtime
       problems — `_build_fix_context()` sends only a windowed excerpt
       (+/- `FIX_CONTEXT_LINES`, 40) around each error's source line.**
       That location comes from `browser_debug.py` (below), not a guess —
       confirmed against a real broken `world.html` that this cut a
       52KB file down to a 3.5KB excerpt for a real bug, still centered
-      exactly on the right line. `write_world_html` isn't even bound as
-      a tool on a windowed round (not just discouraged by the prompt —
-      physically absent from `tools=`), since calling it with only a
-      window in hand would silently truncate the file to that window.
-      Falls back to the complete file in the two cases a window can't
+      exactly on the right line. `[syntax]` findings carry the same
+      kind of location suffix, so a parse error is windowed too.
+      Falls back to the complete file in the three cases a window can't
       cover: any `[structure]` problem in the batch (the whole document
-      is what's broken), or no error in the batch carries a location at
-      all. **"Not bound" alone isn't enough — the dispatch loop checks
-      `call["name"]` against `available_tools` before invoking anything**,
-      returning an `ERROR:` ToolMessage instead of executing it. Not
-      theoretical: a free-tier model, mid-dry-run, still emitted a
-      `write_world_html` tool_call on a windowed (`str_replace`-only)
-      round — read about it in the system prompt text despite never
-      being offered it via the API — and with a malformed argument shape
-      (`{"value": ...}` instead of `{"content": ...}`) that would have
-      crashed the whole node via an uncaught pydantic error. Both the
-      unbound-tool call and a malformed-args call are now caught and
-      reported back to the model as a normal tool result, not a crash.
+      is what's broken), no error in the batch carries a location at
+      all, or `force_full_file` — **a windowed round that called no tool
+      and applied no edit escalates the next round to the complete
+      file.** That outcome is evidence the window is pointing where the
+      bug isn't, not that the model was idle; without the escalation a
+      run re-sends the same useless excerpt until the round budget is
+      exhausted, which is exactly how a real run spent all 3
+      attempts producing zero edits. The escalation is a safety net for
+      when caller-frame windowing (see `browser_debug.py` below) still
+      misses — it is not a substitute for it, since a fix round spent
+      discovering the window was wrong is still a round spent.
+    - **Windows also cover where the identifiers on a throw line were
+      bound, not only where execution went** (`_definition_sites()`,
+      `DEF_CONTEXT_LINES` 12). A stack trace is control flow ("who called
+      this"); it never answers "where did this bad value come from."
+      A real run is the case: `Cannot read properties of
+      undefined (reading 'color')` threw at line 350 on
+      `terrainGeo.attributes.color` with a caller frame at 1037, but the
+      defect is line 996, `terrainGeo=buildTerrain(0);` — assigning a
+      **Mesh** to something used as a **Geometry** (`buildTerrain` ends
+      `return m`). Windows were 310–390 and 997–1077: the fix site missed
+      **by one line**, and no stack frame would ever have pointed at it.
+      Scanning the throw line's identifiers for their declaration/
+      assignment sites now pulls in 996 and 572, at 205 of 1170 lines —
+      still windowed, not a full-file fallback.
+      - **`DEF_SITE_MAX_HITS` (3) is what makes this safe, not a nicety.**
+        An identifier bound all over the file localizes nothing: the same
+        scan for that file's *other* bug (`z is not defined`) returns 21
+        hits — loop counters, destructured coords — and would drag in most
+        of the document. Over the cap, the identifier is dropped rather
+        than windowed. With `DEF_SITE_MIN_IDENT_LEN` (3) and `_JS_NOISE`
+        (keywords, globals, the Three.js surface) this keeps worst-case
+        context at ~8–30% across the whole real `inputs/` corpus. Only the
+        throw line is scanned, never caller frames — a caller's locals are
+        a different scope and add noise.
+      - Note what this deliberately does **not** fix: that same file's
+        other bug is dead scaffolding
+        (`const b1=[...,z]; // placeholder, rebuilt below`) whose correct
+        repair is *deletion*, and it was already fully visible in its own
+        window. Not every give-up is a context problem — check whether the
+        model could see the bug before widening anything.
+    - **The dispatch loop rejects any tool name but `str_replace`**,
+      returning an `ERROR:` ToolMessage instead of executing it, and a
+      malformed-args call is reported back rather than crashing the node.
+      Not theoretical: a free-tier model once emitted a call for a tool it
+      had only read about in the prompt text, with a malformed argument
+      shape that would have crashed the node via an uncaught pydantic error.
     - **A short note per fix round is carried forward within the same
       `run()` call** (`AgentState.fix_history`, e.g. `"round 2: 1
       str_replace edit(s) applied"`) and shown to the next fix round —
@@ -147,21 +319,40 @@ property of the world.
       attempt already happened and not blindly repeat it. Scoped to one
       `run()` invocation only, never persisted — see `model_call.py`'s
       `invoke_turn` note above on the same principle.
-  - `world_lint.py` — `check_world(html_path)`: static, no browser.
-    Catches the failure class browser console errors *can't* diagnose:
-    a model that hit its length cap, panicked, and restarted mid-file
-    still often closes with a real `</html>`, so `model_call`'s own
-    completeness check (`_looks_complete`) sees it as finished — but
-    what's actually on disk is two drafts glued together (an unfinished
-    statement jammed into a stray ` ``` ` fence, then a second
-    `<!DOCTYPE html>`). A browser reports that as a generic syntax error
-    or import failure, which then gets handed to the `fix` node as if it
-    were a small runtime bug — asking it to patch surgically, which
-    cannot unglue two documents. `check_world()` names this class of
-    failure directly (leftover markdown fences, unclosed `<script>`,
-    leaked commentary like "Let me provide a clean continuation", a
-    truncated last statement) and tags it `[structure]`, so `fix` knows
-    to call `write_world_html` (full rewrite) instead of `str_replace`.
+  - `world_lint.py` — `check_world(html_path)`: static lint, then the
+    browser — **skipped when a script doesn't parse** (nothing past a
+    parse failure runs; the console would only restate it). Two tags:
+    - `[structure]` — the *document* is damaged: a model that hit its
+      length cap and restarted mid-file still often closes with a real
+      `</html>`, so `_looks_complete` passes it, but on disk are two drafts
+      glued together (leftover ` ``` ` fence, second `<!DOCTYPE html>`,
+      leaked commentary like "Let me provide a clean continuation",
+      unbalanced `<script>`). Patching can't unglue that → `fix` rewrites.
+    - `[syntax]` — a script doesn't parse, per a **real parser**
+      (`node --check`, `.mjs`/`.cjs` by script type), always with a
+      `(line N; see also line …)` location → `fix` patches it.
+      **Never reintroduce character counting here.** The old
+      `_unbalanced()` counted braces without understanding comments; an
+      apostrophe in `// Swamp on jungle's far side` made it report
+      `1 extra '{'` for three rounds against a script that parsed — which
+      forced full-file context, told the model to rewrite, and led straight
+      to the 504 above. A false finding costs every round it survives.
+    - The parser's line is exact except for brace errors (`Unexpected end
+      of input` points at the last line; inside a class a missing `}`
+      surfaces at the next method header, 58 lines late in a real run). A
+      comment/string/template/regex-aware lexer yields candidate sites from
+      the code's own intent — a `}` less indented than its `{`
+      (missing), more indented (extra), a `function`/`class` one brace
+      level deeper than earlier ones at its indent (flat,
+      unindented code) — and each candidate's one-brace repair is **re-parsed
+      before it's reported** (`_confirmed_location`), so sloppy-but-valid
+      indentation can't produce a false lead. Measured on 193 synthetic
+      single-brace breakages of the 17 real worlds: 90/91 missing-`}` and
+      97/102 extra-`}` land inside a fix window. Earliest-first beat
+      nearest-to-error-first (tried; it moved a real-run missing-`}` case
+      from its true line 393 to 444).
+    - Without `node` on PATH, `[syntax]` falls back to the lexer's bracket
+      balance (hint-worded); the browser's SyntaxError is the backstop.
   - `browser_debug.py` — `check_console_errors(html_path)`: loads a
     world.html in headless Chromium and collects distinct
     `console.error`/uncaught-exception messages. Deliberately does
@@ -189,12 +380,211 @@ property of the world.
       injected via `add_init_script` gets `lineno`/`colno` for both
       cases, correlated back to the matching `pageerror` event by a FIFO
       queue (both fire for the same underlying event, in the same
-      order). `console.error()` calls get their location straight from
-      Playwright's own `msg.location` — no injection needed there.
+      order).
+    - **No fake locations, and imported files are named.** `(line 0,
+      col 0)` is never printed: the browser reports lineno 0 for failures
+      with no position in the page, and printing it sent the fix model to
+      the top of world.html. `check_console_errors(..., modules=)` fills
+      `{url: source}` for every http(s) script module the page fetched
+      (read after load, not inside Playwright's event callback), and a
+      `Failed to resolve module specifier "X"` error is annotated with the
+      file + line that actually imports `X` — `imported by …/
+      OrbitControls.js line 9, not by world.html` — plus the browser rule
+      (bare specifiers in imported modules need an import map).
+    - **`console.error` gets a stack too.** An init-script wrapper records
+      `new Error().stack` per call, matched to its console message by first
+      argument (not arrival order — the browser logs errors of its own that
+      never pass through the wrapper). When the message was logged from
+      inside a library, its own location is the library's line (e.g. line
+      10912 of `three.module.js`), which `fix` can't edit and
+      `_build_fix_context` drops as out of range — so the page's own frames
+      become the location instead. Seen for real: `computeBoundingSphere():
+      radius is NaN` in a real run was unlocalizable and survived to
+      give-up; with frames it points at `createAnimal` and both spawn
+      sites, and a free-model fix round repaired it in one edit.
+    - **The suffix reports caller frames too, not just the throw site:**
+      `(line 104, col 27; called from line 383, line 397)`. This is not
+      cosmetic. For a whole class of JS errors the throw site is correct
+      code and the defect is in the *caller*, so a fix window centered on
+      the throw site shows the model nothing wrong. Seen for real:
+      `jit=(c,rnd)=>c*(0.9+rnd()*0.2)` on line 104
+      was called as `jit(color, Rv())` — the RNG's *result* instead of
+      the RNG — on lines 383/397/412. `rnd is not a function` reported
+      line 104, the window covered 64–144, and all 3 fix rounds made zero
+      edits, which was the only honest answer available. The frames were
+      in `exc.stack` all along and were being discarded. Now parsed
+      always (not just as a fallback for a missing primary location),
+      filtered to this document (CDN/`three.module.js` frames aren't
+      editable by `fix` and would waste the context budget), deduped for
+      recursion, capped at `MAX_CALLER_FRAMES` (4) so a deep in-file
+      stack can't quietly expand a "windowed" excerpt into the whole
+      file. `_loc_suffix()` and `generate.py`'s `_LOCATION_RE` are two
+      ends of one format — change them together.
 - `eval/` — **evaluation only**, one script per pipeline stage. Never
   imports from `harness/` (generation doesn't need eval, and eval treats
   whatever's in `inputs/<name>/world.html` as a given, however it got
-  there — `generate.py` or hand-placed).
+  there — `generate.py` or hand-placed). `harness/status.py` is the one
+  import both sides share.
+  - `capture/` — **the shared capture stage**, run once per world before
+    any `needs_capture` test; writes `outputs/<model>/capture/` (views +
+    `manifest.json`, reused while `world.html`'s sha256 is unchanged).
+    This reverses the earlier "avoid headless browser infra" stance on
+    purpose: visual judging was chosen, so capture is built once, well,
+    instead of each test hand-rolling Playwright.
+    - `preview.py` — an LLM patches the world's **own** clock to obey
+      `window.__WB_TIME` (filled by `hook.js` from `?wb_tod=&wb_season=`).
+      Guards: every `new_str` must read `__WB_TIME`, ≤ 600 added chars per
+      edit, ≤ 6 edits, each `old_str` unique — a patcher that added its own
+      lighting would hand WC005 a cycle the model never wrote.
+    - `run.py` — renders tod 0/.25/.5/.75 and takes the **brightest** as
+      day (`pick_day_tod`) instead of trusting the patch's phase mapping.
+      On kimi-k-3 the patch mapped noon to tod .25 (dropped a +0.6 offset);
+      the brightness pick caught it. Then overview, 4 orbit directions, 4
+      seasons, then the agent. Deterministic views before agent views.
+    - `hook.js` — init script: seeded `Math.random` (an unseeded world
+      builds a different island per reload), `window.__wb` scene/camera via
+      Three's `__THREE_DEVTOOLS__` observe hook (no edit to the model's
+      code), and `__WB_TIME`.
+    - `browser.py` — headless Chrome via the **Chrome DevTools MCP server**
+      (`npx chrome-devtools-mcp`, MCP stdio). No coordinate drag tool, so
+      orbit/pan/zoom dispatch synthetic pointer/wheel events on the canvas
+      (OrbitControls doesn't check `isTrusted`; verified on 3 models). The
+      server only writes screenshots inside declared MCP roots —
+      `_repo_roots` declares the repo.
+    - `navigator.py` — per-biome LLM agent (legend click / orbit / pan /
+      zoom / save / give_up), "caveman mode": fresh short context per
+      biome, terse prompt, one tool call per turn, only the newest frame
+      kept as an image, filtered a11y tree, 8-step budget. **Its "found"
+      is not trusted**: on kimi-k-3 it saved the volcano as "Backwater
+      Swamp" at confidence 1.0 — judges re-confirm `shows_biome`.
+    - `judge.py` — the shared per-biome visual item judge (WC003/WC004).
+    - `llm.py` — the judge client, images downscaled to 896px JPEG.
+      Generation is separate and stays on OpenRouter. **Every judge
+      setting lives in `eval/judge.yaml`** (or the file `JUDGE_CONFIG`
+      names), nothing in code: `roles` (which model does text-only judging,
+      calls with images, navigation, WC002's classify/extract (`extract`)
+      and the WC003–WC005 code probes (`probe`)), per-model `limits` (requests/min,
+      input tokens/min, requests/day), the quota-day timezone, `call`
+      hyperparameters (output-token cap, image width, retry counts, the
+      pre-call token-estimate factors) and `navigator` (step budget, frame
+      width). `.env` holds only API keys. A missing file or value stops the
+      run with a message naming it (`JudgeConfigError` at load,
+      `JudgeUnavailable` at call time) — never a silent built-in default.
+      - **Rate limiting is per model, enforced before every request:** a
+        60-second window checked against both `rpm` and `tpm`, plus a daily
+        count in `outputs/.judge_daily.json` that stops the run at `rpd`.
+        Roles sharing a model share its counters. `invoke_structured` routes
+        a call with images to the `vlm` role unless the caller names a model.
+        Measured on real runs, the first version crossed its own caps four
+        ways, each closed:
+        - **Shared window.** The window was per-process memory, so a smoke
+          test or a parallel run during a batch doubled the rate. It is now
+          `outputs/.judge_window.json`, file-locked, admitted against by
+          every process.
+        - **Oversized calls are refused, not sent.** An empty window used to
+          admit any call, so WC002 classify (~23k tokens, the whole source)
+          went to 14k-tpm models. A call whose input alone exceeds `tpm`
+          raises `OverTokenLimit`; `invoke_structured` moves it down the
+          `fallbacks` chain to the first model whose cap fits.
+        - **LangGraph steps are counted.** The evidence agent's middleware
+          throttled with no size and `settle` couldn't read a
+          `ModelResponse`, so every agent step — the largest prompts of a
+          run, since tool results accumulate — counted as 0 tokens and was
+          never logged. The middleware now estimates each step's input
+          (system prompt, all messages incl. tool results, tool schemas),
+          throttles against the agent's own model, settles from the
+          `ModelResponse`, and logs the step (`role: agent`).
+        - **Estimates run true.** The pre-call estimate (`chars_per_token`)
+          is scaled by each model's learned real/estimated ratio (never
+          below 1), updated from every reply.
+        Every attempt is admitted separately (retries included), the SDK's
+        own retries are off (`max_retries=1` = one attempt; `0` has meant
+        "SDK default, 5 attempts" in some versions, re-sending requests the
+        limiter never saw), and with `JUDGE_USAGE_LOG` each admission is
+        logged at the moment it is let through (`event: admit`) with the
+        window's call and token count, so peaks can be audited exactly.
+      - **Requests time out** (`call.timeout_seconds`, 300). With no timeout
+        an evidence-agent step once sat 20+ minutes on an open socket and
+        hung the run; a timeout is a transient error, retried like a 5xx.
+      - Brief server errors (500/502/503/504, timeouts) get
+        `call.max_transient_retries` spaced retries on the same model; a
+        daily-quota error is a `JudgeUnavailable`, not something to retry.
+      - **Fallbacks** (`fallbacks:` in the yaml, optional per model): a
+        model still overloaded after its transient retries is answered by
+        its fallback instead. Added because the WC002 extract model
+        returned `503 UNAVAILABLE ... high demand` and the whole check
+        scored 0/0. Only 5xx/timeouts fall back — a bad key, a spent quota
+        or an unparseable reply is not the model being busy, and another
+        model would hide it. Each fallback prints a `fallback` line, tags
+        its usage-log row `fallback_from`, and is traced: the call's
+        `judge::invoke_structured` run carries `requested_model` /
+        `answered_by` / `fallback_used` metadata, with a `judge::fallback`
+        child run (primary, fallback, reason, policy) holding the fallback
+        model's call.
+      - `JUDGE_USAGE_LOG=<file>` (off by default) appends one JSON line per
+        judge call / navigator step: model, role, images, input/output
+        tokens, seconds — measure before optimising cost.
+      - **`JudgeUnavailable` stops the run.** 401/402/403, or an unknown
+        model id, means no later judge call can succeed. It used to be
+        swallowed by the per-item catches ("one broken biome must not lose
+        the other nine"): with credits exhausted, capture took screenshots
+        and motion bursts for all ten biomes that no model would ever
+        judge. Now it latches (every later call raises instantly, no
+        network), capture/preview/validate and each test's per-item catch
+        let it through, and `eval.run` prints one line and exits 2 with
+        `validation.json` untouched. Measured: a fresh capture stops in
+        2.5s with 0 screenshots; a WC001 run in 1.5s.
+  - `evidence_agent.py` — `hunt(html, biome=, aliases=, feature=,
+    visual_hint=)`: an agentic evidence hunter (LangChain `create_agent` +
+    `harness/code_tools.py`) for **one item**. A one-shot probe reads the
+    whole source once and misses features built *implicitly* — terraced
+    noise (`Math.round(32*t/5)*5` over a smoothstep threshold) and a
+    height-band colour build sandstone mesas with no identifier naming
+    them; a single pass cited that very line as the *flat* basin. The agent
+    greps, reads, follows helpers and works out what the math produces,
+    guided by a few-shot prompt (implicit math, named helper placed in the
+    biome, a table + its consumer, genuine absence). Guardrails: read-only
+    tools over a temp copy; the real file is sha256-checked before/after
+    (a change raises); every quote must pass `in_source`; a frames hint is
+    a lead, never proof (a false "igloos seen" hint was rejected). **The
+    prompt forbids inference** ("there are pools, so there must be banks"):
+    without that rule it passed a swamp "mud banks" item whose quoted lines
+    built pools and mangroves, not banks. Judge-side spend is bounded by
+    `judge.yaml` `evidence_agent:` (`max_tool_calls` 10, `recursion_limit`
+    30 as a backstop); every model call goes through the judge's shared
+    throttle/429 backoff via `wrap_model_call`.
+    - **Bounded and never thrown away.** On two real worlds every
+      hunt hit the old 40-step limit and returned nothing, ~50 judge calls
+      per world: one re-ran `grep -n "biome\[i\]" … | grep "1"` seven times
+      after it had already read the right river code, and
+      `GraphRecursionError` discarded everything. Now a repeated identical
+      tool call is refused (the agent is told it has that answer), tools
+      stop after `max_tool_calls`, and if the agent still ends without an
+      answer one salvage call turns the tool results it collected into a
+      verdict — checked by `in_source` like any other.
+    - `recheck.py` passes WC002's `classified.json` (names, placement and
+      elevation code) as a location hint when that run left one: worlds
+      number or position biomes (`BIO[b]`, `case 1:`), and mapping an id
+      was exactly where the looping hunt got stuck.
+  - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
+    quote must really be in the source (whitespace-insensitive, per line,
+    tolerant of a garbled line *tail* — ≥85% prefix — not of invented
+    lines). Before this, graders only checked a quote *looked* like code,
+    so a plausible invented `scene.add(new THREE.Mesh(palmGeo, …))` scored.
+  - `quote_repair.py` — makes a probe's quotes real source lines before
+    grading (WC003/WC004/WC005 probes). Seen on a real WC005 run: the probe
+    found the right code but **joined separate lines into one** or
+    **abbreviated with `...`**, so `in_source` rejected sun orbit, season
+    cycle and moon — 6 points, 14 → 8, for features the world has. Three
+    layers: `QUOTE_RULES` appended to every probe prompt; `validate()` flags
+    `*evidence` fields not in the source or containing an ellipsis;
+    repair — statement fragments located in the whitespace-free source and
+    replaced by the lines they cover (no model), else the `repair` role
+    (judge.yaml) picks **line numbers only** from a numbered window, and the
+    quote is rebuilt from the file, so it can choose lines but never write
+    code. A quote that can't be repaired stays and fails as before —
+    `in_source` itself is not loosened. On the saved report that
+    showed it: 8 → 13 with no model call. Logged per quote and traced (`quote_repair::*`).
   - `loader.py` — `load_check(module_path, function_name)`: dynamically
     imports a check function from a test's own script by file path (not
     package import, since each test's checks live in that test's own
@@ -202,24 +592,27 @@ property of the world.
     `scripts/dry_run_regex_patterns.py` — the loading logic lives here
     once, dev scripts import it from here, never the reverse.
   - `ingest.py` — `ingest(name)` copies `inputs/<name>/world.html`
-    (`name` = `<model>__<test_dir_name>`, `test_dir_name` matching a
-    folder under `tests/` exactly, e.g.
-    `opus-5__WC001_trying_all_the_biomes`) into `outputs/<name>/world.html`.
-  - `validate.py` — `validate(output_dir, test_dir_name)`: two-stage. (1)
+    (`name` = `<model>`, or legacy `<model>__<test_dir_name>`) into
+    `outputs/<name>/world.html`.
+  - `validate.py` — `validate(output_dir, test_dir_name)`: (1)
     `checks.structural.check_input_ready()` — fail fast if the input
-    itself is missing or wrong; (2) only if that passes, reads the test's
-    `test.yaml`, loads + runs every listed check via `loader.py` +
-    `audit.py`. Writes `validation.json` into `output_dir` and returns
-    the same dict.
+    itself is missing or wrong; (2) capture, if any selected test has
+    `needs_capture` (a failure is recorded, not fatal); (3) loads + runs
+    every listed check via `loader.py` + `audit.py`. Old `validation.json`
+    entries for checks no longer in any `test.yaml` are dropped, so totals
+    only sum the current ladder. Writes `validation.json`.
   - `score.py` — **real, not a stub.** `score_result(check_result)` turns
     one `CheckResult` into points: a check earns per-item scoring by
-    putting `score`/`max_score` in its own `details` (as
-    `biome_check.has_all_biomes` does — one point per biome found, e.g.
-    9/10 if one is missing); any check that doesn't falls back to plain
+    putting `score`/`max_score` in its own `details` (every WC check
+    does); any check that doesn't falls back to plain
     1/0 pass-fail (e.g. `checks/structural.py`'s checks). `score_report()`
     aggregates several named results for one test's output into a
     `report.json`-shaped dict. `scripts/dry_run_regex_patterns.py` already
     uses this to print `score/max_score` per world, not just pass/fail.
+    `apply_island_gate()` drops the delta biome's points on **WC004 only**
+    when any WC001 check's `missing` has `water_bed`, `water_physics` or
+    `ocean_void`. WC003 is not gated: it judges the seabed from its own
+    frames and zeroes delta itself — gating both would charge it twice.
   - `run.py` — **real CLI entrypoint.** `uv run python -m eval.run
     <model>__<test_dir_name>` — ingest + validate + score for one input
     folder under `inputs/`, printing per-check pass/fail + score and
@@ -249,14 +642,42 @@ property of the world.
     `invoke_turn()` call, deliberately — nothing is written to disk or
     carried past the process; a run that ultimately gives up is meant to
     be discarded, not resumed later.
+    - **One 504 is not retried: an idle timeout on a tool-bound turn that
+      streamed no content** (`_is_silent_tool_call_stall` →
+      `SilentToolCallTimeout`). That's the provider buffering a large
+      tool-call argument; a retry replays the same reasoning to the same
+      decision and the same silence (3 × ~170s in a real run).
 - `inputs/` — gitignored drop zone. **Real harness/eval input only** —
   never dry-run data (see `dry_runs/` below). Written by `harness/`
   (`generate.py`) or by hand; read by `eval/` (`ingest.py`) — the seam
   between the two halves.
+  - `inputs/<name>/logs/<UTC-timestamp>.log` + `.json` — **written by
+    `generate.py`'s `run()`, one pair per invocation.** The `.log` is the
+    complete stderr transcript (reasoning streams, every generated/fixed
+    file, every debug error). Reasoning is styled on the terminal outside
+    `log()`, so `_ReasoningPrinter` also writes it raw via `status.tee()`
+    between `[reasoning]`/`[/reasoning]` markers — before that, the
+    transcript recorded how long a model reasoned and never what it
+    reasoned. The `.json` is the trajectory: per-round
+    `debug_rounds` errors, `fix_history` notes, status, rounds used,
+    timings. Timestamped rather than overwritten so reruns accumulate
+    instead of destroying the previous attempt's evidence. This exists
+    because diagnosing a real give-up was guesswork without it
+    — the run was over, nothing on disk said what the three fix rounds had
+    tried, and `outputs/<name>/` didn't exist either. LangSmith had it, but
+    a trace you can't open offline (or after the project's retention
+    window) isn't a record. Alongside `world.html` deliberately: the
+    artifact and the account of how it got there stay together.
 - `outputs/` — gitignored, per-run/per-model/per-test results.
 - `scripts/`
-  - `export_to_web.py` — copies a passing output + writes `meta.mdx` into
-    `worldbench-web/public/tests/<slug>/`. The seam between the two repos.
+  - `export_to_web.py` — the seam between the two repos. Writes one compact
+    `results.json` per model into `worldbench-web/public/tests/<slug>/` (per-test
+    earned/max, per-biome WC003/WC004 scores, WC002 node verdicts + rule-relevant
+    links) and `public/leaderboard.json` (every exported model). ~2 KB per model;
+    no evidence, quotes or judge text. **Test names live once, in `TEST_NAMES`**:
+    the data keeps WC ids as keys and carries the display names, so the site
+    shows "Physics", never "WC004". Skips a slug with no site folder.
+    `uv run python scripts/export_to_web.py --all` (or one or more slugs).
 - `dry_runs/` — **everything dry-run related lives here and nowhere
   else** — not `scripts/`, not the top-level `inputs/`.
   - `dry_run_regex_patterns.py` — **dev tool, not part of the pipeline.**
@@ -331,9 +752,11 @@ property of the world.
   each other's internals.** `harness/generate.py` only chains into
   `eval.run` at the CLI boundary (`--run`), the same way a human would run
   two separate commands. A new generation-side script goes in `harness/`;
-  a new scoring/grading-side script goes in `eval/`. `harness/status.py`
-  is the one exception — a leaf logging util both sides import, not
-  generation or evaluation logic itself.
+  a new scoring/grading-side script goes in `eval/`. Two leaf modules are
+  the exceptions both sides import: `harness/status.py` (logging) and
+  `harness/code_tools.py` (the read-only tool boundary — one copy of a
+  security boundary, not two that drift). Neither is generation or
+  evaluation logic itself.
 - **Every generation node (generate/debug/fix) prints what it did to
   stderr *and* is a named LangSmith `@traceable` run** — chain-of-thought
   reasoning, the full generated/fixed HTML, and every debug error, all in
@@ -343,3 +766,19 @@ property of the world.
   was built to avoid.
 - Python via **uv** (`pyproject.toml` / `uv.lock`) — run scripts with
   `uv run python <path>`, not a bare venv/pip.
+- **Commit messages start with a lowercase type prefix and a colon:**
+  `add:` (something new: a file, test, check, feature), `fix:` (a bug
+  fix), `update:` (a change to existing behaviour, code or docs). Then a
+  short plain summary, e.g. `add: deterministic probe for water support`,
+  `fix: capture reused a manifest with failed episodes`, `update: WC004
+  scores motion from bursts`. Use the same lowercase `word:` form in the
+  rare case none of the three fits (e.g. `remove:`). Commits made before
+  this rule (sentence-style subjects like `Add a shared capture stage…`)
+  stay as they are; the rule applies from here on. Commit only when the
+  user says to.
+- **No hard-coded judge settings, and no provider names in docs.** Model
+  ids, rate limits, quotas and call hyperparameters go in
+  `eval/judge.yaml`; secrets go in `.env`. Code reads them and carries no
+  fallback values. README, CLAUDE.md, test READMEs and published pages
+  say "the judge model" and never name the judge models or their
+  provider (models under *test* can be named).

@@ -1,0 +1,84 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "snow_mountains"
+      ],
+      "placement_code": "const mtnDist = Math.hypot(x - (-4), z - (-32)); if (mtnDist < 18 && z < -18 && x > -22 && x < 16)",
+      "elevation_code": "const mtnFactor = Math.pow(Math.max(0, 1 - mtnDist / 18), 1.7); height = 8 + mtnFactor * 26 + noise * 5;"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "snow_forest"
+      ],
+      "placement_code": "else if (z >= -26 && z <= -8 && x >= -25 && x <= 6)",
+      "elevation_code": "height = 10 + (1 - (z + 26) / 18) * 6 + noise * 3;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highlands"
+      ],
+      "placement_code": "else if (z >= -30 && z <= 0 && x >= 10 && x <= 38)",
+      "elevation_code": "const highlandSlope = (z + 30) / 30; height = 11 + (1 - highlandSlope) * 6 + noise * 3;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "else { biome = 'jungle'; height = 4 + noise * 4.5; surfaceColor = PALETTE.grass_jungle; }",
+      "elevation_code": "height = 4 + noise * 4.5;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "if (x < -28 && z >= -10 && z <= 10) { biome = 'swamp'; height = 2 + noise * 1.5; surfaceColor = PALETTE.grass_swamp; }",
+      "elevation_code": "height = 2 + noise * 1.5;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "else if (z >= 0 && z <= 24 && x >= 14 && x <= 38)",
+      "elevation_code": "height = 4 + noise * 2.5;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grasslands"
+      ],
+      "placement_code": "else { biome = 'grasslands'; height = 3 + noise * 2; surfaceColor = PALETTE.grass_plains; }",
+      "elevation_code": "height = 3 + noise * 2;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "coastal"
+      ],
+      "placement_code": "const distToPerimeter = boundaryRadius - distCenter; if (distToPerimeter < 6 && biome !== 'volcano' && biome !== 'snow_mountains')",
+      "elevation_code": "if (height > 3.5) height = 3.5;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "else if (z >= 16 && z <= 42 && x >= 2 && x <= 40)",
+      "elevation_code": "height = 4 + mesaFactor * 13 + (noise > 0.6 ? 2 : 0);"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "else if (z >= 16 && z <= 42 && x >= -40 && x <= -10)",
+      "elevation_code": "height = 4 + coneFactor * 24;"
+    }
+  }
+}

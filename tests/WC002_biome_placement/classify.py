@@ -5,8 +5,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+if str(Path(__file__).resolve().parents[2]) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from llm import ClassifiedBiomeJS, invoke_structured, load_prompt
+
+from eval.capture.llm import extract_model_name  # noqa: E402
 
 
 def strip_html(html_path: str) -> str:
@@ -18,4 +22,5 @@ def strip_html(html_path: str) -> str:
 
 def classify_biome_js(html_path: str, model: str | None = None) -> ClassifiedBiomeJS:
     js = strip_html(html_path)
-    return invoke_structured(ClassifiedBiomeJS, load_prompt("classify.md") + "\n\nSOURCE:\n" + js, model)
+    return invoke_structured(ClassifiedBiomeJS, load_prompt("classify.md") + "\n\nSOURCE:\n" + js,
+                             model=extract_model_name(model))

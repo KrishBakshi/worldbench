@@ -1,6 +1,6 @@
 """Turns a check's CheckResult into a score. Generic across any test's
 content check, not biome-specific — but built to match how
-tests/WC001_trying_all_the_biomes/biome_check.py already reports itself:
+the retired keyword-coverage test (now folded into WC002) reported itself:
 one point per item found (e.g. one biome), no point for each missing one,
 out of however many items that check looks for.
 
@@ -57,26 +57,33 @@ def score_report(results: dict[str, object]) -> dict:
     }
 
 
-# A hovering ocean is not a sea. WC003/WC004 still count inland biomes, but
-# Coastal Delta / Ocean (delta) points are removed when still water has no bed
-# or never holds as a body of water.
-SEA_GATE_IDS = frozenset({"water_physics", "water_bed"})
+# A hovering ocean is not a sea. WC004 still counts inland biomes, but Coastal
+# Delta / Ocean (delta) points are removed when WC001's bug-hunt sees an ocean
+# sheet over the void (ocean_void, >= 2 orbit views agree).
+# Only the frames decide this. The source judge's water_bed / water_physics
+# used to gate too, and the two disagreed both ways (fable: source said no
+# seabed, frames showed none over the void; kimi-k-3: the reverse). What
+# renders is the thing being graded, so the source judge keeps its own points
+# and no longer drives the penalty.
+# WC003 is no longer gated here: it judges the seabed itself from the frames
+# and zeroes delta directly (tests/WC003_*/grade.py), so gating it too would
+# charge the same defect twice.
+SEA_GATE_IDS = frozenset({"ocean_void"})
 SEA_BIOME_ID = "delta"
-CONTENT_PREFIXES = ("WC003_", "WC004_")
+CONTENT_PREFIXES = ("WC004_",)
 
 
-def _wc000_lost_ids(records: dict[str, dict]) -> set[str]:
+def _wc001_lost_ids(records: dict[str, dict]) -> set[str]:
+    """Union of `missing` across every WC001 check (voxel judge + bug-hunt)."""
+    lost: set[str] = set()
     for key, rec in records.items():
-        if "WC000_" not in key or not isinstance(rec, dict):
+        if "WC001_" not in key or not isinstance(rec, dict):
             continue
         details = rec.get("details") or {}
         missing = details.get("missing")
         if isinstance(missing, list):
-            return {str(item) for item in missing}
-        card = details.get("scorecard") or {}
-        lost = card.get("lost") or []
-        return {str(row.get("id")) for row in lost if isinstance(row, dict)}
-    return set()
+            lost |= {str(item) for item in missing}
+    return lost
 
 
 def _sea_biome_score(rec: dict) -> float:
@@ -90,8 +97,8 @@ def _sea_biome_score(rec: dict) -> float:
 
 
 def apply_island_gate(records: dict[str, dict]) -> bool:
-    """Drop ocean/sea (delta) points on WC003/WC004 when water has no seafloor."""
-    gated = bool(_wc000_lost_ids(records) & SEA_GATE_IDS)
+    """Drop ocean/sea (delta) points on WC004 when water has no seafloor."""
+    gated = bool(_wc001_lost_ids(records) & SEA_GATE_IDS)
     for key, rec in records.items():
         if not isinstance(rec, dict) or not key.startswith(CONTENT_PREFIXES):
             continue

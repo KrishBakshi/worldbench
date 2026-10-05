@@ -1,0 +1,174 @@
+[
+  {
+    "biome": "highlands",
+    "item": "exposed_stone",
+    "seen": "Grey stone blocks visible across the foreground surface",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code for the 'highlands' biome defines its elevation, tree placement, and tree appearance (trunk height and canopy color), but it contains no logic to generate or place stone blocks or rock features on the surface."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Slopes down into pink flowering grove",
+    "probe": {
+      "found": true,
+      "evidence": "highlands:{label:'Temperate Highlands',color:'#9fb0a0',swatch:'#a8b8a0',sub:'mist \u00b7 slope to grove'},"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "else if(biome==='highlands'){ const t=(z+44)/38; h=9.5 - t*4 + Math.sin(x*0.25)*0.6+Math.random()*0.7; }",
+      "lines": [
+        159
+      ],
+      "explanation": "The height function for the highlands biome uses a linear term '- t*4' (where t increases with z) to create a downward slope, and the biome definition explicitly labels this as a 'slope to grove'."
+    },
+    "verified": true
+  },
+  {
+    "biome": "jungle",
+    "item": "edge_fauna_spawn",
+    "seen": "Small voxel animals visible near the biome border.",
+    "probe": {
+      "found": false,
+      "evidence": "not in jungle scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "for(let i=0;i<10;i++) makeAnimal(-24+Math.random()*12, -2+Math.random()*18, 0x8a5a2a, 0.9);",
+      "lines": [
+        345
+      ],
+      "explanation": "The code spawns 10 animals using makeAnimal at coordinates (-24 to -12, -2 to 16), which falls within the jungle biome boundaries defined as x in (-50, -1) and z in (-19, 20)."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "stagnant_channels",
+    "seen": "Standing stagnant water pools forming disconnected channels.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The swamp biome code only defines its height range and tree placement; there is no logic in the provided source that generates water, pools, or channels within the swamp biome. The 'murk' label in the biome configuration is purely descriptive text and does not trigger any procedural generation of water features."
+    },
+    "verified": false
+  },
+  {
+    "biome": "swamp",
+    "item": "mud_banks",
+    "seen": "Darker ground border edges around water pools.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines the Backwater Swamp biome with a label, color, and height logic, but there is no code that generates mud or silt banks at the edges of water pools within this biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grove",
+    "item": "pink_ground_or_petals",
+    "seen": "Pink-tinted ground beneath trees.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(biome==='grove'){\n    const bloss=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.9), new THREE.MeshLambertMaterial({color:0xffc2dd}));\n    bloss.position.set(0,trunkH+1.35,0); g.add(bloss);\n  }",
+      "lines": [
+        295,
+        296,
+        297,
+        298
+      ],
+      "explanation": "The code explicitly checks for the 'grove' biome and adds a mesh named 'bloss' (blossom) with a pink color (0xffc2dd) to the tree group, representing petal particles or flowers."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grove",
+    "item": "moist_basin_below_highland",
+    "seen": "Moist basin terrain containing pink grove.",
+    "probe": {
+      "found": true,
+      "evidence": "grove:{label:'Flowering Grove',color:'#ff9ac2',swatch:'#ff9ac2',sub:'pink basin \u00b7 moist'},"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "104:  grove:{label:'Flowering Grove',color:'#ff9ac2',swatch:'#ff9ac2',sub:'pink basin \u00b7 moist'},\n160:  else if(biome==='grove'){ h=3.8+Math.random()*0.7; }",
+      "lines": [
+        104,
+        160
+      ],
+      "explanation": "The Flowering Grove is explicitly defined as a 'pink basin \u00b7 moist' in the biome configuration (line 104). The height function (line 160) sets its elevation to a low range (3.8 to 4.5), which places it as a basin relative to the surrounding highlands (which have heights around 9.5, as seen in line 159)."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grove",
+    "item": "grove_fauna_spawn",
+    "seen": "Brown grazing animals on the pink ground.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines a global `fauna` array and a `makeAnimal` function, but the calls to `makeAnimal` are hardcoded with specific coordinates that do not check for the 'grove' biome. While the animals are placed in the world, there is no logic linking their placement to the 'grove' biome or its specific boundaries."
+    },
+    "verified": false
+  },
+  {
+    "biome": "delta",
+    "item": "braided_river_mouths",
+    "seen": "Rivers flowing and splitting into the coastal ocean.",
+    "probe": {
+      "found": false,
+      "evidence": "not in delta scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "While the code defines a 'riverPath' and an 'addRiver' function to place water meshes, these rivers are placed independently of the 'coast' biome logic. The 'delta' mention in the code is only a label in the UI configuration and does not correspond to any procedural generation logic that splits rivers into multiple mouths within the coastal biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "desert",
+    "item": "fading_washes",
+    "seen": "A blue river passing through the desert",
+    "probe": {
+      "found": false,
+      "evidence": "not in desert scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines rivers globally using addRiver, but there is no logic within the desert biome's height or placement functions to generate dry washes or ephemeral riverbeds. The desert biome is strictly defined by its height function and peak placement, and the river paths are hardcoded to specific coordinates that do not intersect with the desert biome's logic."
+    },
+    "verified": false
+  }
+]

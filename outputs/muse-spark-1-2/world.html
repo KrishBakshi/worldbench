@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Floating Biome Island — Voxel Orbit</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+#canvas{width:100%;height:100%;display:block}
+#hud{position:absolute;inset:0;pointer-events:none}
+#legend{position:absolute;left:14px;bottom:14px;width:300px;background:rgba(12,12,16,0.86);border:1px solid rgba(255,255,255,0.14);border-radius:14px;padding:12px 12px 10px;pointer-events:auto;backdrop-filter:blur(8px)}
+#legend h2{font-size:12px;letter-spacing:0.14em;color:#fff;opacity:0.9;margin-bottom:8px}
+#biomeList{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.biomeBtn{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);cursor:pointer;color:#e9e9ea;font-size:12px;line-height:1;transition:0.15s}
+.biomeBtn:hover{background:rgba(255,255,255,0.12);transform:translateY(-1px)}
+.biomeBtn.active{outline:2px solid #fff3}
+.swatch{width:14px;height:14px;border-radius:3px;flex:0 0 14px;border:1px solid rgba(0,0,0,0.35);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25)}
+.biomeBtn small{opacity:0.65;font-size:10px;display:block;margin-top:2px}
+#legendFoot{margin-top:8px;font-size:10px;line-height:1.4;color:#aeb3bf;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px}
+#topBar{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(12,12,16,0.86);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:8px 14px;display:flex;align-items:center;gap:14px;pointer-events:none}
+#seasonBox{display:flex;align-items:center;gap:8px;color:#fff;font-size:12px}
+#seasonDot{width:9px;height:9px;border-radius:50%;background:#7ee081;box-shadow:0 0 8px currentColor}
+#seasonName{font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+#timeName{font-size:11px;color:#cbd5e1}
+#sunInfo{font-size:11px;color:#ffe7a0}
+#hint{position:absolute;right:14px;bottom:14px;background:rgba(12,12,16,0.86);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 11px;color:#d6dae3;font-size:11px;line-height:1.4;pointer-events:none}
+#hint b{color:#fff}
+#title{position:absolute;left:14px;top:12px;background:rgba(12,12,16,0.86);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;color:#fff;pointer-events:none}
+#title h1{font-size:13px;letter-spacing:0.1em}
+#title p{font-size:11px;color:#aeb3bf;margin-top:2px}
+@media(max-width:760px){#legend{width:92vw}#hint{display:none}#title{display:none}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="hud">
+<div id="title"><h1>VOXEL FLOATING CONTINENT</h1><p>Black-void orbit · ecological wet corridor</p></div>
+<div id="topBar"><div id="seasonBox"><div id="seasonDot"></div><div><div id="seasonName">SPRING</div><div id="timeName">Noon — Day 1</div></div></div><div id="sunInfo">☀ SQUARE SUN</div></div>
+<div id="legend">
+<h2>BIOME LEGEND — CLICK TO FLY</h2>
+<div id="biomeList"></div>
+<div id="legendFoot">Orbit: left-drag · Zoom: wheel/pinch · Pan: right-drag / two-finger. Whole Island returns to high orbit. Weather & seasons cycle automatically.</div>
+</div>
+<div id="hint"><b>Free camera</b> — orbit, zoom, pan<br>Water → jungle → plains → delta<br>Desert dry · Volcano isolated · Blizzard on rear alpine face</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x000000);
+const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,0.1,800);
+camera.position.set(38,58,78);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.07;controls.target.set(0,5,2);controls.minDistance=12;controls.maxDistance=220;
+
+const ambient=new THREE.AmbientLight(0xffffff,0.62);
+scene.add(ambient);
+const sunLight=new THREE.DirectionalLight(0xfff6d8,1.35);sunLight.position.set(40,70,20);sunLight.castShadow=true;
+sunLight.shadow.mapSize.set(2048,2048);sunLight.shadow.camera.near=1;sunLight.shadow.camera.far=200;
+sunLight.shadow.camera.left=-90;sunLight.shadow.camera.right=90;sunLight.shadow.camera.top=90;sunLight.shadow.camera.bottom=-90;
+scene.add(sunLight);
+const hemi=new THREE.HemisphereLight(0xbfdfff,0x0a0a0a,0.35);scene.add(hemi);
+// square sun
+const sunMesh=new THREE.Mesh(new THREE.BoxGeometry(4,4,4), new THREE.MeshBasicMaterial({color:0xffe9a0}));
+scene.add(sunMesh);
+const moonMesh=new THREE.Mesh(new THREE.BoxGeometry(2.5,2.5,2.5), new THREE.MeshBasicMaterial({color:0x8da0b8}));
+scene.add(moonMesh);
+// world group
+const world=new THREE.Group();scene.add(world);
+
+// ocean floor void
+const oceanGroup=new THREE.Group();world.add(oceanGroup);
+function addOcean(){
+  const geo=new THREE.BoxGeometry(220,2,220);
+  const mat=new THREE.MeshLambertMaterial({color:0x0a4a62});
+  const deep=new THREE.Mesh(geo,mat);deep.position.y=-0.6;deep.receiveShadow=true;world.add(deep);
+  // shallow lagoon
+  const shallowGeo=new THREE.BoxGeometry(160,1.2,160);
+  const shallowMat=new THREE.MeshLambertMaterial({color:0x18a8b8,transparent:true,opacity:0.95});
+  const shallow=new THREE.Mesh(shallowGeo,shallowMat);shallow.position.y=0.1;world.add(shallow);
+  // wave quads
+  for(let i=0;i<70;i++){
+    const s=1.2+Math.random()*2.2;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(s,0.25,s), new THREE.MeshLambertMaterial({color:0x2ee1e8,transparent:true,opacity:0.5}));
+    const a=Math.random()*Math.PI*2;const r=62+Math.random()*48;
+    m.position.set(Math.cos(a)*r,0.85,Math.sin(a)*r);m.rotation.y=Math.random()*Math.PI;world.add(m);
+  }
+}
+addOcean();
+
+// biome colors
+const BIOMES={
+  mountain:{label:'Snow Mountains',color:'#f2f7fb',swatch:'#ffffff',sub:'blizzard · meltwater'},
+  snowForest:{label:'Snowy Conifer Forest',color:'#dce9e6',swatch:'#d7ece7',sub:'snowfall'},
+  highlands:{label:'Temperate Highlands',color:'#9fb0a0',swatch:'#a8b8a0',sub:'mist · slope to grove'},
+  jungle:{label:'Dense Jungle',color:'#0f7a2e',swatch:'#0a8a2e',sub:'rain · mist · waterfall'},
+  swamp:{label:'Backwater Swamp',color:'#5a6b3a',swatch:'#6e7d4a',sub:'murk · low mist'},
+  grassland:{label:'Central Grasslands',color:'#7fbd3a',swatch:'#7fbd3a',sub:'river plain · delta'},
+  grove:{label:'Flowering Grove',color:'#ff9ac2',swatch:'#ff9ac2',sub:'pink basin · moist'},
+  desert:{label:'Desert & Sandstone Peaks',color:'#e6c278',swatch:'#e6b85c',sub:'sandstorm · cacti'},
+  volcano:{label:'Volcanic Wasteland',color:'#1a1a1a',swatch:'#1e1e1e',sub:'lava · ash · obsidian'},
+  coast:{label:'Coast & Ocean',color:'#1ec8d8',swatch:'#1ec8d8',sub:'beaches · delta · reefs'}
+};
+const biomePositions={
+  mountain:{pos:new THREE.Vector3(2,22,-58),target:new THREE.Vector3(0,10,-52)},
+  snowForest:{pos:new THREE.Vector3(0,20,-36),target:new THREE.Vector3(0,8,-36)},
+  highlands:{pos:new THREE.Vector3(34,18,-22),target:new THREE.Vector3(24,7,-14)},
+  jungle:{pos:new THREE.Vector3(-28,16,2),target:new THREE.Vector3(-24,6,0)},
+  swamp:{pos:new THREE.Vector3(-34,14,-12),target:new THREE.Vector3(-30,4,-11)},
+  grassland:{pos:new THREE.Vector3(9,14,22),target:new THREE.Vector3(6,3,18)},
+  grove:{pos:new THREE.Vector3(24,14,1),target:new THREE.Vector3(23,4,0)},
+  desert:{pos:new THREE.Vector3(18,16,38),target:new THREE.Vector3(14,3,32)},
+  volcano:{pos:new THREE.Vector3(-42,24,30),target:new THREE.Vector3(-38,10,28)},
+  coast:{pos:new THREE.Vector3(6,16,62),target:new THREE.Vector3(4,2,38)},
+  whole:{pos:new THREE.Vector3(42,66,88),target:new THREE.Vector3(0,6,0)}
+};
+
+// terrain generation
+const blockGeo=new THREE.BoxGeometry(1.9,1,1.9);
+const materials={};
+function matFor(key,color){
+  if(!materials[key]) materials[key]=new THREE.MeshLambertMaterial({color});
+  return materials[key];
+}
+function biomeAt(x,z){
+  if(z<-50) return 'mountain';
+  if(z<-32 && x>-26 && x<22) {
+    if(z<-50) return 'mountain';
+    return 'snowForest';
+  }
+  if(x>17 && x<50 && z>-44 && z<-6) return 'highlands';
+  if(x>11 && x<38 && z>-8 && z<14) return 'grove';
+  if(x>-4 && x<42 && z>18 && z<60) {
+    if(x<-20) return 'volcano';
+    return 'desert';
+  }
+  if(x<-22 && z>16 && z<50) return 'volcano';
+  if(x<-15 && x>-52 && z>-24 && z<-4) return 'swamp';
+  if(x>-50 && x<-1 && z>-19 && z<20) return 'jungle';
+  if(x>-14 && x<30 && z>4 && z<38) return 'grassland';
+  const d=Math.sqrt((x/54)*(x/54)+((z-4)/58)*((z-4)/58));
+  if(d>0.82) return 'coast';
+  return 'grassland';
+}
+function heightFor(biome,x,z){
+  let h=3;
+  if(biome==='mountain'){
+    const peak=Math.max(0,1-Math.abs(x)/32);
+    const ridge=Math.sin(x*0.18)*2 + Math.cos(z*0.22)*2;
+    h=14+peak*10+ridge+Math.random()*1.5;
+    if(z>-60) h-= ( -50 - z)*0.2;
+    if(Math.abs(x)<6) h+=3;
+  } else if(biome==='snowForest'){ h=8.5+Math.sin(x*0.3)*0.8+Math.cos(z*0.4)*0.7+Math.random()*0.8; }
+  else if(biome==='highlands'){ const t=(z+44)/38; h=9.5 - t*4 + Math.sin(x*0.25)*0.6+Math.random()*0.7; }
+  else if(biome==='grove'){ h=3.8+Math.random()*0.7; }
+  else if(biome==='jungle'){ h=5.2+Math.sin(x*0.2)*0.9+Math.random()*0.8; if(x>-28&&x<-18&&z>4&&z<9) h=3.5; }
+  else if(biome==='swamp'){ h=2.8+Math.random()*0.6; }
+  else if(biome==='grassland'){ h=3.4+Math.random()*0.5+Math.sin((x+z)*0.15)*0.3; }
+  else if(biome==='desert'){ h=2.2+Math.random()*0.5; const m=Math.sin(x*0.5)*Math.cos(z*0.5); if(m>0.6) h+=0; }
+  else if(biome==='volcano'){ const dx=x+38, dz=z-30; const d=Math.sqrt(dx*dx+dz*dz); h=Math.max(3,16 - d*0.55)+Math.random()*0.6; if(d<3) h=19; }
+  else if(biome==='coast'){ h=1.2+Math.random()*0.4; }
+  return h;
+}
+const islandBlocks=[];
+for(let x=-58;x<=58;x+=2){
+ for(let z=-70;z<=62;z+=2){
+   const d=Math.sqrt((x/55)*(x/55)+((z-6)/62)*((z-6)/62));
+   const isMountain=z<-50 && Math.abs(x)<34;
+   const isVolcano=(x<-22 && z>16 && Math.sqrt((x+38)**2+(z-30)**2)<18);
+   const inside=d<1 || isMountain || isVolcano || (z>18 && x>-8 && x<44 && d<1.08);
+   if(!inside) continue;
+   const biome=biomeAt(x,z);
+   let isDesertPeak=false;
+   if(biome==='desert'){
+     const peaks=[{x:12,z:30},{x:24,z:42},{x:6,z:48},{x:30,z:28}];
+     for(const p of peaks){ if(Math.hypot(x-p.x,z-p.z)<4) isDesertPeak=true; }
+   }
+   let h=heightFor(biome,x,z);
+   if(isDesertPeak) h=9+Math.random()*3;
+   if(biome==='coast' && d>0.84) h=1.0;
+   const y=h/2 -2.2;
+   const bh=h+4.4;
+   const geo=new THREE.BoxGeometry(1.95,bh,1.95);
+   let col=BIOMES[biome].color;
+   if(isDesertPeak) col='#d9a86a';
+   if(biome==='mountain' && h>15) col='#ffffff';
+   else if(biome==='mountain' && h>11) col='#d6e2ea';
+   else if(biome==='mountain') col='#9aa8b3';
+   if(biome==='volcano'){ if(Math.hypot(x+38,z-30)<3.5) col='#ff4a0a'; else if(Math.hypot(x+38,z-30)<7) col='#2b2b2b'; else col='#3a2a2a'; }
+   if(biome==='coast'){ col=d>0.94? '#fff6d0' : (d>0.84? '#f5e6b8' : '#1ec8d8'); }
+   const mesh=new THREE.Mesh(geo, matFor(col+biome+String(h).slice(0,3), col));
+   mesh.position.set(x,y,z);
+   mesh.castShadow=true; mesh.receiveShadow=true;
+   world.add(mesh);
+   islandBlocks.push({x,z,biome,h,mesh});
+   if(d>0.92 || isMountain || isVolcano){
+     const wall=new THREE.Mesh(new THREE.BoxGeometry(1.95,10,1.95), matFor('cliff','#3d434a'));
+     wall.position.set(x,-7.5,z); world.add(wall);
+     if(Math.random()<0.12){
+       const seam=new THREE.Mesh(new THREE.BoxGeometry(0.5,2.2,0.5), new THREE.MeshLambertMaterial({color:0x2ad4ff,emissive:0x0a8cbf,emissiveIntensity:0.7}));
+       seam.position.set(x+ (Math.random()-0.5), -6+Math.random()*2, z+(Math.random()-0.5)); world.add(seam);
+     }
+   }
+ }
+}
+// rivers: wet corridor
+const riverPath=[
+  {x:1,z:-55},{x:0,z:-48},{x:-2,z:-40},{x:-4,z:-32},{x:-10,z:-24},{x:-18,z:-14},{x:-16,z:-4},{x:-10,z:4},{x:-4,z:12},{x:2,z:20},{x:5,z:28},{x:7,z:36},{x:8,z:44},{x:6,z:52}
+];
+function addRiver(nodes,width,color){
+  for(let i=0;i<nodes.length-1;i++){
+    const a=nodes[i], b=nodes[i+1];
+    const steps=8;
+    for(let s=0;s<steps;s++){
+      const t=s/steps; const x=THREE.MathUtils.lerp(a.x,b.x,t), z=THREE.MathUtils.lerp(a.z,b.z,t);
+      const w=width+Math.sin(i*0.6)*0.6;
+      const geo=new THREE.BoxGeometry(w,0.25,w*1.2);
+      const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color}));
+      const biome=biomeAt(Math.round(x/2)*2,Math.round(z/2)*2);
+      let gh=heightFor(biome,x,z);
+      m.position.set(x, gh+0.35, z);
+      world.add(m);
+      if(i%3===0){
+        const mist=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.12,0.6), new THREE.MeshLambertMaterial({color:0xcff6ff,transparent:true,opacity:0.22}));
+        mist.position.set(x+ (Math.random()-0.5)*1.2, gh+0.9, z+(Math.random()-0.5)*1.2); world.add(mist);
+      }
+    }
+  }
+}
+addRiver(riverPath,2.4,0x1fd0e0);
+addRiver([{x:22,z:-14},{x:22,z:-6},{x:23,z:0}],1.4,0x4fe0f0);
+for(let i=0;i<12;i++){
+  const x=-40+Math.random()*18, z=-18+Math.random()*12;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(2+Math.random()*3,0.2,2+Math.random()*3), new THREE.MeshLambertMaterial({color:0x2a4a3a,transparent:true,opacity:0.9}));
+  m.position.set(x,2.9,z); world.add(m);
+}
+const lavaPaths=[
+  [{x:-38,z:30},{x:-32,z:34},{x:-28,z:36}], [{x:-38,z:30},{x:-40,z:36},{x:-44,z:38}], [{x:-38,z:30},{x:-36,z:24}]
+];
+lavaPaths.forEach(p=> addRiver(p,1.2,0xff3b0a));
+[[-30,35],[-42,37],[-36,26]].forEach(([x,z])=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.3,3.5), new THREE.MeshLambertMaterial({color:0xff4d12,emissive:0xff2200,emissiveIntensity:0.6}));
+  m.position.set(x,3.6,z); world.add(m);
+});
+[[-30,26],[-28,33]].forEach(([x,z])=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(2,0.6,2), new THREE.MeshLambertMaterial({color:0x0d1117}));
+  m.position.set(x,3.2,z); world.add(m);
+  const rim=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.2,2.4), new THREE.MeshLambertMaterial({color:0x1a2a3a})); rim.position.set(x,3.0,z); world.add(rim);
+});
+for(let i=0;i<5;i++){
+  const x=4+(i-2)*3, z=48+Math.random()*4;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.2,6), new THREE.MeshLambertMaterial({color:0x3be8f0,transparent:true,opacity:0.85}));
+  m.position.set(x,1.3,z); world.add(m);
+}
+const pond=new THREE.Mesh(new THREE.BoxGeometry(6,0.3,5), new THREE.MeshLambertMaterial({color:0x1a7a8a})); pond.position.set(-18,5.7,6); world.add(pond);
+const fall=new THREE.Mesh(new THREE.BoxGeometry(0.8,6,0.8), new THREE.MeshLambertMaterial({color:0x8cf0ff,transparent:true,opacity:0.75})); fall.position.set(-18,3.5,9); world.add(fall);
+for(let i=0;i<10;i++){
+  const ang= Math.PI*0.35 + Math.random()*Math.PI*0.9;
+  const r=54; const x=Math.cos(ang)*r*0.95, z=6+Math.sin(ang)*r*0.92;
+  if(z<14) continue;
+  const h=5+Math.random()*4;
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.7,h,0.7), new THREE.MeshLambertMaterial({color:0x9ef0ff,transparent:true,opacity:0.62}));
+  w.position.set(x, -0.5, z); world.add(w);
+}
+function addTree(x,z,biome){
+  const gh=heightFor(biome,x,z);
+  const g=new THREE.Group(); g.position.set(x,gh+0.6,z);
+  let trunkH=2.2, trunkC=0x6b4a2a, canopyC=0x0e7a2d, snow=false;
+  if(biome==='snowForest'){ trunkH=2.0; trunkC=0x4a3520; canopyC=0x1a4a2f; snow=true; }
+  else if(biome==='jungle'){ trunkH=3.2; canopyC=0x0b8a2e; }
+  else if(biome==='highlands'){ trunkH=1.4; canopyC=0x6d8a6a; }
+  else if(biome==='grove'){ canopyC=0xff8ac4; trunkC=0x6b3a2a; }
+  else if(biome==='grassland'){ canopyC=0x2fa03a; }
+  else if(biome==='desert'){ return; }
+  else if(biome==='swamp'){ canopyC=0x3d5a2a; trunkH=2.6; }
+  else if(biome==='mountain'){ return; }
+  const trunk=new THREE.Mesh(new THREE.BoxGeometry(0.45,trunkH,0.45), new THREE.MeshLambertMaterial({color:trunkC}));
+  trunk.position.y=trunkH/2; trunk.castShadow=true; g.add(trunk);
+  const canSize=biome==='jungle'?1.9:1.35;
+  const canGeo=new THREE.BoxGeometry(canSize,1.1,canSize);
+  const canMat=new THREE.MeshLambertMaterial({color:canopyC});
+  for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){
+    if(Math.abs(dx)+Math.abs(dz)>1 && Math.random()<0.4) continue;
+    const c=new THREE.Mesh(canGeo,canMat); c.position.set(dx*0.7, trunkH+0.7+ (Math.random()*0.2), dz*0.7); c.castShadow=true; g.add(c);
+    if(snow){
+      const s=new THREE.Mesh(new THREE.BoxGeometry(canSize*0.9,0.28,canSize*0.9), new THREE.MeshLambertMaterial({color:0xffffff}));
+      s.position.set(dx*0.7, trunkH+1.35, dz*0.7); g.add(s);
+    }
+  }
+  if(biome==='grove'){
+    const bloss=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.9), new THREE.MeshLambertMaterial({color:0xffc2dd}));
+    bloss.position.set(0,trunkH+1.35,0); g.add(bloss);
+  }
+  world.add(g);
+}
+for(let i=0;i<420;i++){
+  const x=(Math.random()-0.5)*110, z=(Math.random()-0.5)*130-2;
+  const b=biomeAt(x,z); if(['mountain','volcano','coast','desert'].includes(b)) continue;
+  if(b==='jungle' && Math.random()<0.85) addTree(x,z,b);
+  else if(b==='snowForest' && Math.random()<0.8) addTree(x,z,b);
+  else if(b==='grove' && Math.random()<0.75) addTree(x,z,b);
+  else if(b==='grassland' && Math.random()<0.22) addTree(x,z,b);
+  else if(b==='highlands' && Math.random()<0.25) addTree(x,z,b);
+  else if(b==='swamp' && Math.random()<0.35) addTree(x,z,b);
+}
+for(let i=0;i<55;i++){
+  const x= -2+Math.random()*40, z=22+Math.random()*30;
+  if(biomeAt(x,z)!=='desert') continue;
+  const gh=heightFor('desert',x,z);
+  const g=new THREE.Group(); g.position.set(x,gh+0.6,z);
+  const stem=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.8,0.55), new THREE.MeshLambertMaterial({color:0x2d7a2a})); stem.position.y=0.9; g.add(stem);
+  const arm1=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.6,0.4), new THREE.MeshLambertMaterial({color:0x2d7a2a})); arm1.position.set(0.5,0.9,0); g.add(arm1);
+  const arm2=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.4), new THREE.MeshLambertMaterial({color:0x2d7a2a})); arm2.position.set(-0.45,0.7,0); g.add(arm2);
+  world.add(g);
+}
+[{x:12,z:30},{x:24,z:42},{x:6,z:48}].forEach(p=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(3.2,8,3.2), new THREE.MeshLambertMaterial({color:0xc99a62}));
+  m.position.set(p.x,6.2,p.z); m.castShadow=true; world.add(m);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.2,2.2), new THREE.MeshLambertMaterial({color:0xe8b07a})); top.position.set(p.x,10.6,p.z); world.add(top);
+});
+for(let i=0;i<14;i++){
+  const ang=Math.PI*0.2+Math.random()*Math.PI*0.8, r=50+Math.random()*4;
+  const x=Math.cos(ang)*r*0.98, z=6+Math.sin(ang)*r*0.98; if(biomeAt(x,z)!=='coast') continue;
+  const g=new THREE.Group(); g.position.set(x,1.1,z);
+  const trunk=new THREE.Mesh(new THREE.BoxGeometry(0.38,2.4,0.38), new THREE.MeshLambertMaterial({color:0x7a5a2a})); trunk.position.y=1.2; g.add(trunk);
+  for(let k=0;k<4;k++){ const leaf=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.25,0.55), new THREE.MeshLambertMaterial({color:0x1a8a3a})); leaf.position.set(Math.cos(k*Math.PI/2)*0.7,2.6,Math.sin(k*Math.PI/2)*0.7); leaf.rotation.y=k*Math.PI/2; g.add(leaf); }
+  world.add(g);
+}
+const fauna=[];
+function makeAnimal(x,z,color,scale=1){
+  const g=new THREE.Group(); g.position.set(x,heightFor(biomeAt(x,z),x,z)+1.0,z); g.scale.set(scale,scale,scale);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.6,0.6), new THREE.MeshLambertMaterial({color})); body.position.y=0.35; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshLambertMaterial({color})); head.position.set(0.65,0.55,0); g.add(head);
+  const legGeo=new THREE.BoxGeometry(0.18,0.4,0.18);
+  [[0.3,0,0.2],[-0.3,0,0.2],[0.3,0,-0.2],[-0.3,0,-0.2]].forEach(p=>{const leg=new THREE.Mesh(legGeo,new THREE.MeshLambertMaterial({color:0x3a2a1a})); leg.position.set(p[0],0,p[2]); g.add(leg);});
+  if(color===0x8a5a2a){ const a1=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.35,0.12), new THREE.MeshLambertMaterial({color:0x4a2a0a})); a1.position.set(0.7,0.88,0.12); g.add(a1); const a2=a1.clone(); a2.position.set(0.7,0.88,-0.12); g.add(a2); }
+  world.add(g);
+  fauna.push({g,baseX:x,baseZ:z,ang:Math.random()*Math.PI*2,speed:0.15+Math.random()*0.25,range:2+Math.random()*4,bob:Math.random()*Math.PI*2});
+}
+for(let i=0;i<10;i++) makeAnimal(-24+Math.random()*12, -2+Math.random()*18, 0x8a5a2a, 0.9);
+for(let i=0;i<6;i++) makeAnimal(2+Math.random()*18, 8+Math.random()*18, 0x8a5a2a, 0.85);
+for(let i=0;i<5;i++) makeAnimal(18+Math.random()*12, -4+Math.random()*10, 0x8a5a2a, 0.8);
+for(let i=0;i<6;i++) makeAnimal(0+Math.random()*12, -38+Math.random()*8, 0x6b4a2a, 0.8);
+for(let i=0;i<6;i++) makeAnimal(8+Math.random()*18, 26+Math.random()*12, 0xc47a2a, 0.7);
+for(let i=0;i<4;i++) makeAnimal(-38+Math.random()*10, -14+Math.random()*8, 0x7a5a2a, 0.7);
+for(let i=0;i<4;i++) makeAnimal(4+Math.random()*8, 42+Math.random()*6, 0x4a8a8a, 0.6);
+const crater=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.2,6), new THREE.MeshLambertMaterial({color:0xff3a0a,emissive:0xff2a00,emissiveIntensity:0.8}));
+crater.position.set(-38,19.2,30); world.add(crater);
+const volcanoSmoke=[];
+for(let i=0;i<6;i++){ const s=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.9,1.2), new THREE.MeshLambertMaterial({color:0x4a4a4a,transparent:true,opacity:0.5})); s.position.set(-38+(Math.random()-0.5)*3,21+Math.random()*2,30+(Math.random()-0.5)*3); world.add(s); volcanoSmoke.push(s); }
+for(let i=0;i<18;i++){
+  const x=(Math.random()-0.5)*90, z=(Math.random()-0.5)*110;
+  const s=0.6+Math.random()*1.4;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(s,s,s), new THREE.MeshLambertMaterial({color:0x3a3e44}));
+  m.position.set(x, -9 - Math.random()*6, z); m.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,0); world.add(m);
+}
+const cloudGroup=new THREE.Group(); world.add(cloudGroup);
+function makeCloudDeck(y,w,d,cols,opacity){
+  const g=new THREE.Group();
+  for(let i=0;i<18;i++){
+    const bx= (Math.random()-0.5)*w, bz=(Math.random()-0.5)*d;
+    const sx=3+Math.random()*5, sz=2+Math.random()*4;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(sx,0.8,sz), new THREE.MeshLambertMaterial({color:cols,transparent:true,opacity}));
+    m.position.set(bx, y+ (Math.random()-0.5)*0.6, bz); g.add(m);
+  }
+  return g;
+}
+const cloudSnow=makeCloudDeck(18,26,16,0xffffff,0.78); cloudSnow.position.set(0,0,-38); world.add(cloudSnow);
+const cloudJungle=makeCloudDeck(13,34,22,0xe6f0f3,0.62); cloudJungle.position.set(-22,0,0); world.add(cloudJungle);
+const cloudHigh=new THREE.Mesh(new THREE.BoxGeometry(22,0.6,14), new THREE.MeshLambertMaterial({color:0xdde6ea,transparent:true,opacity:0.38})); cloudHigh.position.set(28,15,-20); world.add(cloudHigh);
+const rainGeo=new THREE.BufferGeometry(); const rainCount=900;
+const rainPos=new Float32Array(rainCount*3);
+for(let i=0;i<rainCount;i++){ rainPos[i*3]= (Math.random()-0.5)*80; rainPos[i*3+1]= 8+Math.random()*16; rainPos[i*3+2]= (Math.random()-0.5)*80; }
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos,3));
+const rainMat=new THREE.PointsMaterial({color:0x6ec8ff,size:0.28,transparent:true,opacity:0});
+const rainPoints=new THREE.Points(rainGeo,rainMat); world.add(rainPoints);
+const snowGeo=new THREE.BufferGeometry(); const snowCount=700; const snowPos=new Float32Array(snowCount*3);
+for(let i=0;i<snowCount;i++){ snowPos[i*3]= (Math.random()-0.5)*36; snowPos[i*3+1]= 10+Math.random()*14; snowPos[i*3+2]= -52+Math.random()*28; }
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos,3));
+const snowMat=new THREE.PointsMaterial({color:0xffffff,size:0.45,transparent:true,opacity:0}); const snowPoints=new THREE.Points(snowGeo,snowMat); world.add(snowPoints);
+const blizzGroup=new THREE.Group(); world.add(blizzGroup);
+const blizzSheets=[];
+for(let i=0;i<7;i++){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(48,0.18,0.18), new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0}));
+  m.position.set(0, 14+ i*1.8, -67 - i*0.9); blizzGroup.add(m); blizzSheets.push(m);
+}
+const sandGeo=new THREE.BufferGeometry(); const sandCount=600; const sandPos=new Float32Array(sandCount*3);
+for(let i=0;i<sandCount;i++){ sandPos[i*3]= 4+Math.random()*38; sandPos[i*3+1]= 2+Math.random()*9; sandPos[i*3+2]= 22+Math.random()*32; }
+sandGeo.setAttribute('position', new THREE.BufferAttribute(sandPos,3));
+const sandMat=new THREE.PointsMaterial({color:0xd9b88a,size:0.5,transparent:true,opacity:0}); const sandPoints=new THREE.Points(sandGeo,sandMat); world.add(sandPoints);
+const ashGeo=new THREE.BufferGeometry(); const ashCount=350; const ashPos=new Float32Array(ashCount*3);
+for(let i=0;i<ashCount;i++){ ashPos[i*3]= -38+(Math.random()-0.5)*18; ashPos[i*3+1]= 14+Math.random()*12; ashPos[i*3+2]= 30+(Math.random()-0.5)*18; }
+ashGeo.setAttribute('position', new THREE.BufferAttribute(ashPos,3));
+const ashMat=new THREE.PointsMaterial({color:0x5a5a5a,size:0.4,transparent:true,opacity:0}); const ashPoints=new THREE.Points(ashGeo,ashMat); world.add(ashPoints);
+
+const list=document.getElementById('biomeList');
+Object.entries(BIOMES).forEach(([k,v])=>{
+  const btn=document.createElement('button'); btn.className='biomeBtn'; btn.dataset.biome=k;
+  btn.innerHTML=`<span class="swatch" style="background:${v.swatch}"></span><span><span style="font-weight:700">${v.label}</span><small>${v.sub}</small></span>`;
+  btn.onclick=()=> flyTo(k,btn);
+  list.appendChild(btn);
+});
+const wholeBtn=document.createElement('button'); wholeBtn.className='biomeBtn'; wholeBtn.style.gridColumn='1 / -1'; wholeBtn.style.justifyContent='center';
+wholeBtn.innerHTML=`<span class="swatch" style="background:linear-gradient(135deg,#fff,#1ec8d8)"></span><span style="font-weight:800;letter-spacing:0.06em">WHOLE ISLAND — HIGH ORBIT</span>`;
+wholeBtn.onclick=()=>flyTo('whole',wholeBtn); list.appendChild(wholeBtn);
+
+let flying=false;
+function flyTo(key,btn){
+  document.querySelectorAll('.biomeBtn').forEach(b=>b.classList.remove('active')); if(btn) btn.classList.add('active');
+  const t=biomePositions[key]||biomePositions.whole;
+  const startPos=camera.position.clone(), startTarget=controls.target.clone();
+  const dur=1450, t0=performance.now(); flying=true; controls.enabled=false;
+  function anim(now){
+    const p=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-p,3);
+    camera.position.lerpVectors(startPos,t.pos,e);
+    controls.target.lerpVectors(startTarget,t.target,e);
+    controls.update();
+    if(p<1) requestAnimationFrame(anim); else { flying=false; controls.enabled=true; }
+  } requestAnimationFrame(anim);
+}
+
+const seasonEl=document.getElementById('seasonName'), timeEl=document.getElementById('timeName'), dot=document.getElementById('seasonDot');
+const seasons=[
+  {name:'Spring',col:'#7ee081',tint:0xffffff,rain:0.7},
+  {name:'Summer',col:'#ffe27a',tint:0xfff2c8,rain:0.9},
+  {name:'Autumn',col:'#ff9a3a',tint:0xffd8b0,rain:0.55},
+  {name:'Winter',col:'#8ec8ff',tint:0xd8ebff,rain:0.35}
+];
+let seasonIdx=0, seasonTimer=0;
+
+let time=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=0.016; time+=dt;
+  const dayPhase=(time*0.065)%1;
+  const sunAng=dayPhase*Math.PI*2;
+  const sunR=85;
+  sunLight.position.set(Math.cos(sunAng)*sunR, Math.sin(sunAng)*42+28, 18);
+  sunMesh.position.copy(sunLight.position); sunMesh.position.normalize().multiplyScalar(95);
+  moonMesh.position.set(-sunLight.position.x, -sunLight.position.y+45, -sunLight.position.z);
+  const isDay=Math.sin(sunAng)> -0.25;
+  const dayIntensity=isDay? 1.25+Math.sin(sunAng)*0.25 : 0.18;
+  sunLight.intensity=dayIntensity;
+  ambient.intensity=isDay?0.62:0.22;
+  scene.background.set(isDay?0x000000:0x000000);
+  seasonTimer+=dt; if(seasonTimer>14){ seasonTimer=0; seasonIdx=(seasonIdx+1)%4; }
+  const s=seasons[seasonIdx];
+  seasonEl.textContent=s.name; seasonEl.style.color=s.col; dot.style.background=s.col; dot.style.color=s.col;
+  const hr=Math.floor(dayPhase*24); const tod=hr<5?'Night':hr<11?'Morning':hr<17?'Noon':hr<20?'Dusk':'Night';
+  timeEl.textContent=`${tod} · ${hr.toString().padStart(2,'0')}:00`;
+  document.getElementById('sunInfo').textContent=isDay?'☀ SQUARE SUN — DAY':'☾ VOID NIGHT';
+  sunLight.color.setHex(s.tint);
+  fauna.forEach(f=>{
+    f.ang+=f.speed*dt*0.6; const nx=f.baseX+Math.cos(f.ang)*f.range, nz=f.baseZ+Math.sin(f.ang*0.7)*f.range*0.6;
+    f.g.position.x+= (nx - f.g.position.x)*0.04; f.g.position.z+= (nz - f.g.position.z)*0.04;
+    f.g.rotation.y = Math.atan2(nz - f.g.position.z, nx - f.g.position.x);
+    f.bob+=dt*3; f.g.position.y = heightFor(biomeAt(f.g.position.x,f.g.position.z), f.g.position.x,f.g.position.z)+0.7 + Math.sin(f.bob)*0.12;
+  });
+  cloudJungle.position.x = -22 + Math.sin(time*0.12)*6;
+  cloudSnow.position.x = Math.sin(time*0.08)*4;
+  cloudSnow.position.z = -38 + Math.cos(time*0.07)*2;
+  const burst = (Math.sin(time*0.22)+1)/2;
+  const jungleRain = (Math.sin(time*0.31+1)+1)/2;
+  const snowBurst = (Math.sin(time*0.27+2)+1)/2;
+  const sandBurst = (Math.sin(time*0.19+4)+1)/2;
+  rainMat.opacity = THREE.MathUtils.clamp((jungleRain-0.35)*1.2,0,0.9)* s.rain * (isDay?1:0.6);
+  snowMat.opacity = THREE.MathUtils.clamp((snowBurst-0.4)*1.4,0,0.95)*(seasonIdx===3?1:0.65);
+  sandMat.opacity = THREE.MathUtils.clamp((sandBurst-0.45)*1.6,0,0.7);
+  ashMat.opacity = 0.35+ Math.sin(time*1.2)*0.12;
+  const rp=rainGeo.attributes.position; for(let i=0;i<rainCount;i++){ rp.array[i*3+1]-=0.55; if(rp.array[i*3+1]<1) rp.array[i*3+1]=16+Math.random()*6; } rp.needsUpdate=true;
+  const sp=snowGeo.attributes.position; for(let i=0;i<snowCount;i++){ sp.array[i*3+1]-=0.18+Math.random()*0.08; sp.array[i*3]+=Math.sin(time+i)*0.02; if(sp.array[i*3+1]<7) sp.array[i*3+1]=18+Math.random()*6; } sp.needsUpdate=true;
+  const sap=sandGeo.attributes.position; for(let i=0;i<sandCount;i++){ sap.array[i*3]-=0.22; sap.array[i*3+1]+=Math.sin(time+i)*0.01; if(sap.array[i*3]< -6) sap.array[i*3]=42; } sap.needsUpdate=true;
+  const ap=ashGeo.attributes.position; for(let i=0;i<ashCount;i++){ ap.array[i*3+1]+=0.07+Math.random()*0.05; ap.array[i*3]+=Math.sin(time*0.6+i)*0.02; if(ap.array[i*3+1]>28) ap.array[i*3+1]=14; } ap.needsUpdate=true;
+  blizzSheets.forEach((m,i)=>{
+    const op= THREE.MathUtils.clamp((Math.sin(time*0.5 + i*0.9)-0.15)*1.2,0,0.72) * (seasonIdx===3?0.95:0.55);
+    m.material.opacity=op; m.position.x = Math.sin(time*1.8+i)*18; m.position.z = -66 - i*0.8 + Math.sin(time*0.6+i)*2;
+  });
+  volcanoSmoke.forEach((m,i)=>{ m.position.y =21+Math.sin(time*0.9+i)*0.6 + i*0.35; m.material.opacity=0.42+Math.sin(time*1.1+i)*0.12; m.position.x = -38+Math.sin(time*0.4+i)*2.5; });
+  const erup=Math.max(0, Math.sin(time*0.7))*0.6 + (Math.random()<0.008?1:0);
+  crater.material.emissiveIntensity=0.7+erup*1.2; crater.scale.set(1+erup*0.15,1,1+erup*0.15);
+  if(!flying) controls.update();
+  renderer.render(scene,camera);
+}
+function onResize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); }
+onResize(); addEventListener('resize',onResize); animate();
+setTimeout(()=>{ document.querySelectorAll('.biomeBtn').forEach(b=>b.classList.remove('active')); wholeBtn.classList.add('active'); },300);
+renderer.domElement.addEventListener('dblclick',()=>flyTo('whole',wholeBtn));
+</script>
+</body>
+</html>

@@ -1,7 +1,11 @@
-"""strip → classify → extract → grade.
+"""strip → classify → coverage → extract → grade.
 
-Writes classified.json, graph.json (website), graph.svg (local preview),
-and score.json (per-rule earned/lost, including elevation ranks).
+Coverage + placement in one test (the old keyword-coverage test is folded in here). Per
+biome: 1 point if covered (coverage.py), 1 more if its placement rules pass.
+An uncovered biome scores 0/2 and is drawn grey "not covered".
+
+Writes classified.json, coverage.json, graph.json (website), graph.svg
+(local preview), and score.json (per-rule earned/lost/skipped).
 
     uv run python tests/WC002_biome_placement/main.py [world.html] [out_dir]
 """
@@ -14,9 +18,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from classify import classify_biome_js
+from classify import classify_biome_js, strip_html
+from coverage import biome_coverage
 from extract import extract_graph
-from grade import grade_graph
+from grade import RULES, grade_graph
 from plot import write_graph
 from llm import CheckResult, ClassifiedBiomeJS, ExtractedGraph
 
@@ -24,24 +29,34 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from harness.status import log  # noqa: E402
+from eval.capture.run import confirmed_biome_view, ensure_capture  # noqa: E402
 
-def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS, graph: ExtractedGraph, result: CheckResult) -> dict:
+def write_artifacts(html_path: str, out_dir: Path, classified: ClassifiedBiomeJS, coverage: dict, graph: ExtractedGraph, result: CheckResult) -> dict:
+    out_dir.mkdir(parents=True, exist_ok=True)
     classified_path = out_dir / "classified.json"
     classified_path.write_text(classified.model_dump_json(indent=2), encoding="utf-8")
+    (out_dir / "coverage.json").write_text(json.dumps(coverage, indent=2) + "\n", encoding="utf-8")
     files = write_graph(graph, result, out_dir / "graph.json", out_dir / "graph.svg")
     score_path = out_dir / "score.json"
     score_path.write_text(json.dumps(result.details["scorecard"], indent=2) + "\n", encoding="utf-8")
-    return {"classified": classified_path.name, "score": score_path.name, **files}
+    return {"classified": classified_path.name, "coverage": "coverage.json", "score": score_path.name, **files}
 
 
-def check_biome_placement(html_path: str, out_dir: Path, model: str | None = None) -> CheckResult:
+def check_biome_placement(html_path: str, out_dir: Path | None = None, model: str | None = None) -> CheckResult:
     log("      classify  (llm)")
     classified = classify_biome_js(html_path, model)
-    log("      extract   (llm)")
-    graph = extract_graph(classified, model)
+    manifest = ensure_capture(html_path, model)
+    confirmed = {bid for bid in RULES if confirmed_biome_view(manifest, bid)}
+    js = strip_html(html_path)
+    coverage = biome_coverage(classified, js, RULES, confirmed)
+    log(f"      coverage  {sum(c['covered'] for c in coverage.values())}/{len(RULES)} covered")
+    log("      extract   (llm, whole source)")
+    graph = extract_graph(js, model)
     log("      grade")
-    result = grade_graph(graph)
-    result.details["artifacts"] = write_artifacts(html_path, out_dir, classified, graph, result)
+    result = grade_graph(graph, {bid: c["covered"] for bid, c in coverage.items()})
+    result.details["coverage"] = coverage
+    dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
+    result.details["artifacts"] = write_artifacts(html_path, dest, classified, coverage, graph, result)
     return result
 
 

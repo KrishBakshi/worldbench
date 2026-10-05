@@ -1,18 +1,20 @@
-"""Project harness scores into worldbench-web.
+"""Project harness scores into worldbench-web: one compact file per model, one index.
 
-Reads outputs/<slug>/validation.json (gitignored pipeline dump) and writes a
-slim scores.json next to that model's world.html:
+Reads outputs/<slug>/ (gitignored pipeline dump) and writes only what the
+site's score views draw:
 
-    worldbench-web/public/tests/<slug>/scores.json
-    worldbench-web/public/tests/<slug>/graph.json   (WC002, no source evidence)
+    worldbench-web/public/tests/<slug>/results.json   per model (beside world.html)
+    worldbench-web/public/leaderboard.json            every exported model's totals
 
-The site never reads outputs/. Evidence, probe transcripts, and harness
-errors stay here.
+Test display names live here, once (TEST_NAMES): the data keeps the WC ids as
+keys and carries the name strings, so the site shows "Physics", never "WC004".
+No evidence, quotes, probe transcripts or judge text leave this repo. Read-only
+on outputs/, no model calls, deterministic.
 
 Usage:
-    uv run python scripts/export_to_web.py fable
+    uv run python scripts/export_to_web.py claude-fable-5-1
     uv run python scripts/export_to_web.py --all
-    uv run python scripts/export_to_web.py fable --web-root /path/to/worldbench-web
+    uv run python scripts/export_to_web.py --all --web-root /path/to/worldbench-web
 """
 
 from __future__ import annotations
@@ -24,242 +26,179 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "tests" / "WC002_biome_placement"))
 
 from eval.loader import discover_tests  # noqa: E402
+from grade import RULES  # noqa: E402  WC002's own placement rules
 from harness.status import log  # noqa: E402
 
 OUTPUTS_DIR = REPO_ROOT / "outputs"
 DEFAULT_WEB_ROOT = REPO_ROOT.parent / "worldbench-web"
+SCHEMA = 1
+
+# The one place test ids get their human names. Keys stay the WC ids.
+TEST_NAMES = {
+    "WC001": {"name": "Voxel island", "short": "Voxel"},
+    "WC002": {"name": "Coverage and placement", "short": "Placement"},
+    "WC003": {"name": "Micro-contents", "short": "Contents"},
+    "WC004": {"name": "Physics", "short": "Physics"},
+    "WC005": {"name": "Temporal cycles", "short": "Cycles"},
+}
+BIOMES = ["mountains", "forest", "highlands", "jungle", "swamp",
+          "grove", "grassland", "delta", "desert", "volcano"]
 
 
-def _plain(text: str) -> str:
-    text = text or ""
-    text = text.replace(" \u2014 ", ", ").replace("\u2014", ",")
-    text = text.replace(" \u2013 ", ", ").replace("\u2013", "-")
-    return text.replace("\u2212", "-")
+def _r(x: float) -> float:
+    return round(float(x), 2)
 
 
-def _slim_row(row: dict, fallback: str = "") -> dict:
-    label = _plain((row.get("label") or "").strip() or fallback or str(row.get("id") or ""))
-    item = {"id": str(row.get("id") or ""), "label": label}
-    if row.get("why"):
-        item["why"] = str(row["why"])
-    return item
+def test_scores(validation: dict, ladder: list[dict]) -> list[dict]:
+    """Earned / max per test, summing a test's checks (WC001 has two)."""
+    rows = []
+    for meta in ladder:
+        score = maxs = 0.0
+        scored = False
+        for key, rec in (validation.get("checks") or {}).items():
+            if not key.startswith(f"{meta['dir_name']}::") or not isinstance(rec, dict):
+                continue
+            d = rec.get("details") or {}
+            if not isinstance(d, dict) or "error" in d or not d.get("max_score"):
+                continue
+            score += float(d.get("score") or 0)
+            maxs += float(d["max_score"])
+            scored = True
+        names = TEST_NAMES.get(meta["id"], {"name": meta["title"], "short": meta["title"]})
+        rows.append({"id": meta["id"], **names, "score": _r(score), "max": _r(maxs), "scored": scored})
+    return rows
 
 
-def lost_items(scorecard: dict) -> list[dict]:
-    """Public failure rows: labels only, no source evidence."""
-    top = scorecard.get("lost")
-    if isinstance(top, list) and top:
-        return [_slim_row(row) for row in top]
-
-    items: list[dict] = []
-    biomes = scorecard.get("biomes") or {}
-    if not isinstance(biomes, dict):
-        return items
-    for biome_id, card in biomes.items():
-        if not isinstance(card, dict) or card.get("passed"):
-            continue
-        inner = card.get("lost") or []
-        labeled = [row for row in inner if isinstance(row, dict) and row.get("label")]
-        if labeled:
-            for row in labeled:
-                slim = _slim_row(row, fallback=f"{biome_id}: {row.get('id', '')}")
-                slim["label"] = f"{biome_id}: {slim['label']}"
-                items.append(slim)
-            continue
-        summary = (card.get("summary") or "").strip()
-        row = {"id": str(biome_id), "label": f"{biome_id}: {summary}" if summary else str(biome_id)}
-        if inner and isinstance(inner[0], dict) and inner[0].get("why"):
-            row["why"] = str(inner[0]["why"])
-        items.append(row)
-    return items
+def biome_scores(slug: str, dir_name: str) -> list[float] | None:
+    """Per-biome score (/10) in BIOMES order, or None if the test wasn't run."""
+    path = OUTPUTS_DIR / slug / dir_name / "score.json"
+    if not path.is_file():
+        return None
+    biomes = json.loads(path.read_text(encoding="utf-8")).get("biomes") or {}
+    # capped at the biome max: item points are rounded before summing (10.02/10)
+    return [_r(min(10.0, (biomes.get(b) or {}).get("score") or 0)) for b in BIOMES]
 
 
-def slim_graph(raw: dict) -> dict:
-    """Public WC002 graph: layout + pass/fail, no source evidence."""
+def placement(slug: str, dir_name: str) -> dict | None:
+    """WC002 graph, rule-relevant only: node verdicts and the links the rules
+    speak about (required present/missing, forbidden present). Positions and
+    labels are the site's own layout, so none are sent."""
+    path = OUTPUTS_DIR / slug / dir_name / "graph.json"
+    if not path.is_file():
+        return None
+    g = json.loads(path.read_text(encoding="utf-8"))
+    have = {tuple(sorted((e["from"], e["to"]))) for e in g.get("edges") or [] if isinstance(e, dict)}
+    links = []
+    for b, rule in RULES.items():
+        for o in rule.get("must_connect", []) + rule.get("must_connect_any", []):
+            pair = tuple(sorted((b, o)))
+            links.append({"from": pair[0], "to": pair[1], "kind": "required" if pair in have else "missing"})
+        for o in rule.get("must_not_connect", []):
+            pair = tuple(sorted((b, o)))
+            if pair in have:
+                links.append({"from": pair[0], "to": pair[1], "kind": "forbidden"})
+    seen, uniq = set(), []
+    for link in links:  # a pair named by both of its biomes' rules appears once
+        k = (link["from"], link["to"])
+        if k not in seen:
+            seen.add(k)
+            uniq.append(link)
     nodes = []
-    for node in raw.get("nodes") or []:
-        if not isinstance(node, dict) or not node.get("id"):
-            continue
-        item = {
-            "id": str(node["id"]),
-            "label": str(node.get("label") or node["id"]),
-            "passed": bool(node.get("passed")),
-            "reason": str(node.get("reason") or ""),
-            "cx": node.get("cx"),
-            "cy": node.get("cy"),
-            "w": node.get("w"),
-            "h": node.get("h"),
-        }
-        if node.get("isolated"):
-            item["isolated"] = True
+    for n in g.get("nodes") or []:
+        raw = n.get("state") or ("ok" if n.get("passed") else "fail")
+        # the site's three states; the grader writes "not_covered"
+        item = {"id": n["id"], "state": {"not_covered": "uncovered"}.get(raw, raw)}
+        if item["state"] not in ("ok", "fail", "uncovered"):
+            item["state"] = "fail"
+        # link failures are already drawn as forbidden/missing links; only a
+        # height failure needs words
+        if item["state"] == "fail" and "elevation" in (n.get("reason") or ""):
+            item["reason"] = n["reason"]
         nodes.append(item)
-    edges = []
-    for edge in raw.get("edges") or []:
-        if not isinstance(edge, dict):
-            continue
-        src, dst = edge.get("from"), edge.get("to")
-        if src and dst:
-            edges.append({"from": str(src), "to": str(dst)})
-    view = raw.get("viewBox") if isinstance(raw.get("viewBox"), dict) else {}
-    return {
-        "viewBox": {
-            "width": view.get("width", 800),
-            "height": view.get("height", 560),
-        },
-        "score": raw.get("score", 0),
-        "max_score": raw.get("max_score", 10),
-        "passed": bool(raw.get("passed")),
-        "nodes": nodes,
-        "edges": edges,
-    }
+    return {"nodes": nodes, "links": uniq, "heightOrder": g.get("elevation_order") or []}
 
 
-def _wc002_graph_path(slug: str, ladder: list[dict]) -> Path | None:
-    for meta in ladder:
-        if meta.get("id") != "WC002":
-            continue
-        path = OUTPUTS_DIR / slug / meta["dir_name"] / "graph.json"
-        return path if path.is_file() else None
-    return None
-
-
-def _check_record(validation: dict, dir_name: str) -> dict | None:
-    prefix = f"{dir_name}::"
-    for key, record in (validation.get("checks") or {}).items():
-        if key.startswith(prefix) and isinstance(record, dict):
-            return record
-    return None
-
-
-def project_validation(slug: str, validation: dict, ladder: list[dict]) -> dict:
-    tests_out = []
-    total_score = 0.0
-    total_max = 0.0
-    all_passed = True
-    incomplete = False
-
-    for meta in ladder:
-        dir_name = meta["dir_name"]
-        record = _check_record(validation, dir_name)
-        details = (record or {}).get("details") or {}
-        scorecard = details.get("scorecard") if isinstance(details, dict) else None
-        max_score = float((record or {}).get("max_score") or 0)
-        harness_error = isinstance(details, dict) and "error" in details
-        scored = bool(record) and max_score > 0 and not harness_error
-
-        row = {
-            "id": meta["id"],
-            "dir_name": dir_name,
-            "title": meta["title"],
-            "score": 0.0,
-            "max_score": 0.0,
-            "passed": False,
-            "scored": scored,
-            "reason": "",
-            "lost": [],
-        }
-        if not record:
-            row["reason"] = "Not scored in this run."
-            incomplete = True
-            all_passed = False
-        elif not scored:
-            row["reason"] = "Not scored in this run."
-            incomplete = True
-            all_passed = False
-        else:
-            score = float(record.get("score") or 0)
-            row["score"] = score
-            row["max_score"] = max_score
-            row["passed"] = bool(record.get("passed"))
-            row["reason"] = _plain(str(record.get("reason") or ""))
-            lost = lost_items(scorecard) if isinstance(scorecard, dict) else []
-            row["lost"] = lost
-            total_score += score
-            total_max += max_score
-            all_passed = all_passed and row["passed"]
-
-        tests_out.append(row)
-
-    return {
+def build(slug: str, ladder: list[dict]) -> dict:
+    validation = json.loads((OUTPUTS_DIR / slug / "validation.json").read_text(encoding="utf-8"))
+    tests = test_scores(validation, ladder)
+    dirs = {m["id"]: m["dir_name"] for m in ladder}
+    out = {
+        "schema": SCHEMA,
         "slug": slug,
-        "total_score": total_score,
-        "total_max_score": total_max,
-        "pct": (total_score / total_max) if total_max else 0.0,
-        "passed": all_passed and not incomplete and total_max > 0,
-        "incomplete": incomplete,
-        "tests": tests_out,
+        "total": {"score": _r(sum(t["score"] for t in tests)), "max": _r(sum(t["max"] for t in tests))},
+        "complete": all(t["scored"] for t in tests),
+        "tests": tests,
     }
-
-
-def export_slug(slug: str, web_root: Path, ladder: list[dict]) -> Path:
-    src = OUTPUTS_DIR / slug / "validation.json"
-    if not src.is_file():
-        raise FileNotFoundError(f"No validation.json at {src}")
-
-    dest_dir = web_root / "public" / "tests" / slug
-    if not dest_dir.is_dir():
-        raise FileNotFoundError(
-            f"No worldbench-web test folder at {dest_dir}. "
-            "The slug must match public/tests/<slug>."
-        )
-
-    validation = json.loads(src.read_text(encoding="utf-8"))
-    payload = project_validation(slug, validation, ladder)
-    dest = dest_dir / "scores.json"
-    dest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-    graph_src = _wc002_graph_path(slug, ladder)
-    if graph_src:
-        graph = slim_graph(json.loads(graph_src.read_text(encoding="utf-8")))
-        (dest_dir / "graph.json").write_text(
-            json.dumps(graph, indent=2) + "\n", encoding="utf-8"
-        )
-
-    return dest
+    contents = biome_scores(slug, dirs["WC003"])
+    physics = biome_scores(slug, dirs["WC004"])
+    if contents or physics:
+        out["biomes"] = {"ids": BIOMES, "WC003": contents, "WC004": physics}
+    graph = placement(slug, dirs["WC002"])
+    if graph:
+        out["placement"] = graph
+    return out
 
 
 def discover_output_slugs() -> list[str]:
     if not OUTPUTS_DIR.is_dir():
         return []
-    slugs = []
-    for path in sorted(OUTPUTS_DIR.iterdir()):
-        if not path.is_dir() or path.name.startswith("."):
-            continue
-        if "__" in path.name:
-            continue
-        if (path / "validation.json").is_file():
-            slugs.append(path.name)
-    return slugs
+    return [p.name for p in sorted(OUTPUTS_DIR.iterdir())
+            if p.is_dir() and not p.name.startswith(".") and "__" not in p.name
+            and (p / "validation.json").is_file()]
+
+
+def write_json(path: Path, data: dict) -> None:
+    path.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Export slim scores.json into worldbench-web")
-    parser.add_argument("slug", nargs="?", help='model folder under outputs/ (e.g. "fable")')
-    parser.add_argument("--all", action="store_true", help="export every outputs/<slug>/validation.json")
-    parser.add_argument(
-        "--web-root",
-        type=Path,
-        default=DEFAULT_WEB_ROOT,
-        help="path to worldbench-web (default: sibling of this repo)",
-    )
+    parser = argparse.ArgumentParser(description="Export compact results into worldbench-web")
+    parser.add_argument("slugs", nargs="*", help="model folders under outputs/ (e.g. claude-fable-5-1)")
+    parser.add_argument("--all", action="store_true", help="export every graded model")
+    parser.add_argument("--web-root", type=Path, default=DEFAULT_WEB_ROOT,
+                        help="path to worldbench-web (default: sibling of this repo)")
     args = parser.parse_args(argv)
 
     web_root = args.web_root.resolve()
-    if not (web_root / "public" / "tests").is_dir():
+    tests_dir = web_root / "public" / "tests"
+    if not tests_dir.is_dir():
         raise SystemExit(f"worldbench-web not found at {web_root}")
+    slugs = discover_output_slugs() if args.all else args.slugs
+    if not slugs:
+        parser.error("pass one or more slugs, or --all")
 
     ladder = discover_tests()
-    slugs = discover_output_slugs() if args.all else ([args.slug] if args.slug else [])
-    if not slugs:
-        parser.error("pass a slug (fable) or --all")
-
     for slug in slugs:
-        log(f"export  {slug}")
-        dest = export_slug(slug, web_root, ladder)
-        log(f"wrote   {dest}")
-        print(dest, flush=True)
+        if not (tests_dir / slug).is_dir():
+            log(f"skip    {slug}: no public/tests/{slug} folder on the site")
+            continue
+        data = build(slug, ladder)
+        dest = tests_dir / slug / "results.json"
+        write_json(dest, data)
+        log(f"wrote   {dest.relative_to(web_root)}  ({dest.stat().st_size} B)")
+
+    # The index covers every model that has a results.json on the site, so
+    # exporting one model never drops the others from the leaderboard.
+    rows, maxima = [], {}
+    for path in sorted(tests_dir.glob("*/results.json")):
+        d = json.loads(path.read_text(encoding="utf-8"))
+        for t in d["tests"]:
+            if t["scored"]:
+                maxima[t["id"]] = t["max"]
+        rows.append({
+            "slug": d["slug"], "total": d["total"]["score"], "max": d["total"]["max"],
+            "complete": d.get("complete", True),
+            "tests": {t["id"]: t["score"] for t in d["tests"]},
+        })
+    rows.sort(key=lambda r: -r["total"])
+    index = {"schema": SCHEMA,
+             "tests": [{"id": k, **v, "max": maxima.get(k, 0)} for k, v in TEST_NAMES.items()],
+             "models": rows}
+    write_json(web_root / "public" / "leaderboard.json", index)
+    log(f"wrote   public/leaderboard.json  ({len(rows)} models)")
 
 
 if __name__ == "__main__":

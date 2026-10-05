@@ -9,7 +9,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from llm import BIOME_IDS, BiomeRenderReport, CheckResult, VALID_AXES, load_templates
 
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.append(str(_ROOT))
+from eval.capture.judge import VisualReport  # noqa: E402
+from eval.evidence import in_source  # noqa: E402
+
 POINTS_PER_BIOME = 10
+
+# Credit per entity:
+#   still entity:  look = half code look (verified quote), half visual look
+#   moving entity: half look (as above) + half motion, where motion is half
+#                  code (time update on the right axis) and half the capture's
+#                  motion bursts (VLM on near/far frames + changed-pixel overlay)
+# Without a visual / motion report (regrading an old run), code carries it.
+LOOK_CODE, LOOK_VISUAL = 0.5, 0.5
+MOTION_SHARE = 0.5
+MOTION_CODE, MOTION_VISUAL = 0.5, 0.5
+# A VLM "it moves" only counts if at least this share of a burst's pixels
+# changed; a model can read motion into three identical frames.
+MIN_MOTION_FRACTION = 0.001
+# Expected axes where "present and on the right axis" is enough; nothing has
+# to visibly travel (hanging mist, idle fauna).
+_NO_TRAVEL_AXES = {"still", "n/a", "grounded"}
+# Only these kinds get a frames verdict on motion (see visual.py); others,
+# mainly fauna, are scored on code motion alone.
+VISUAL_MOTION_KINDS = frozenset({"weather", "water", "terrain"})
 
 _BARE_BIOME_TOKEN = re.compile(r"^(?:BIOMES\.)?\w+\.id,?$")
 _WAYPOINT = re.compile(r"^\{\s*x\s*:\s*[-0-9.]+,\s*z\s*:\s*[-0-9.]+\s*\},?$")
@@ -93,7 +118,13 @@ _AXIS_ALIASES = {
 def grade_reports(
     reports: dict[str, BiomeRenderReport | dict],
     biome_ids: tuple[str, ...] | None = None,
+    visual: dict[str, VisualReport | dict] | None = None,
+    source_normalized: str | None = None,
+    motion: dict | None = None,
 ) -> CheckResult:
+    """visual: per-biome VisualReport (None = code-only regrade of an old run).
+    motion: per-biome visual.MotionReport (or an unavailable/error dict); None = code-only motion.
+    source_normalized: eval.evidence.normalize(js); None skips the quote check."""
     found, missing = {}, {}
     item_hits, item_misses = {}, {}
     biome_scores = {}
@@ -104,8 +135,11 @@ def grade_reports(
 
     for biome_id in selected:
         templates = load_templates(biome_id)
-        report = reports.get(biome_id)
-        card = _grade_one(biome_id, templates, report)
+        card = _grade_one(
+            biome_id, templates, reports.get(biome_id), (visual or {}).get(biome_id),
+            source_normalized, visual is not None,
+            (motion or {}).get(biome_id), motion is not None,
+        )
         biome_scores[biome_id] = card["score"]
         total += card["score"]
         hits = [row["id"] for row in card["earned"]]
@@ -122,7 +156,7 @@ def grade_reports(
     score = round(total, 2)
     passed = not missing
     reason = (
-        "All biomes have correct entity rendering"
+        "All biomes have correct entity look and motion"
         if passed
         else f"Scored {score}/{max_score}; incomplete biomes: {', '.join(missing)}"
     )
@@ -197,7 +231,16 @@ def _is_implementing(code: str) -> bool:
 
 
 def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
-    """Reject keyword / hint evidence. Placement must mutate the world."""
+    """Reject evidence that is a hint, not code: comments, bare tokens, lone
+    waypoints, legend or HUD rows."""
+    # Only hints are rejected here (comments, bare tokens, lone waypoints,
+    # legend/HUD rows). Checks on *how* code is written (config_table,
+    # no_constructor, dart_throw) were removed: they were keyed to helper
+    # names like addBlock/pb/terra.add and rejected data-driven worlds
+    # wholesale (opus-5: 45 of its WC004 losses were no_constructor on
+    # entries like `{t:'deer',n:9,...}` consumed by a generic builder).
+    # Whether something is really built is what the frames judge; the quote
+    # must still be in the source (eval/evidence.py).
     code = _code_only(evidence)
     if not code:
         return "comment_only"
@@ -206,16 +249,9 @@ def _reject_reason(evidence: str, *, allow_config: bool = False) -> str | None:
         return "bare_token"
     if _WAYPOINT.match(compact):
         return "waypoint_only"
-    if _LEGEND.search(compact):
+    low = compact.lower()
+    if "label:" in low and ("weather:" in low or "color:" in low) and not _has_world_call(code):
         return "legend_or_enum"
-    if _DART_THROW.search(code) and not _CELL_WALK.search(code):
-        return "dart_throw"
-    if _is_config_table(code):
-        if allow_config:
-            return None
-        return "config_table"
-    if not _is_implementing(code):
-        return "no_constructor"
     return None
 
 
@@ -257,7 +293,12 @@ def _grade_entity(
     entity: dict,
     judgement,
     used_hashes: set[str],
-) -> tuple[bool, str, dict]:
+    source_normalized: str | None = None,
+) -> dict:
+    """Code verdict for one entity: {look_ok, look_why, motion_ok, motion_why, meta}.
+
+    motion_ok is None for an entity that does not need to move.
+    """
     meta = {
         "llm_looks_ok": None if judgement is None else judgement.looks_ok,
         "llm_moves_ok": None if judgement is None else judgement.moves_ok,
@@ -265,54 +306,63 @@ def _grade_entity(
         "look_evidence": "" if judgement is None else (judgement.look_evidence or ""),
         "motion_evidence": "" if judgement is None else (judgement.motion_evidence or ""),
     }
+    requires_motion = bool(entity.get("requires_motion"))
+    verdict = {"look_ok": False, "look_why": "", "motion_ok": False if requires_motion else None, "motion_why": "", "meta": meta}
     if judgement is None:
-        return False, "missing_judgement", meta
+        verdict.update(look_why="missing_judgement", motion_why="missing_judgement")
+        return verdict
 
     look = (judgement.look_evidence or "").strip()
     motion = (judgement.motion_evidence or "").strip()
-    requires_motion = bool(entity.get("requires_motion"))
     expected_axis = entity.get("expected_axis", "n/a")
 
-    if _not_in_scope(look):
-        return False, "not_in_scope_evidence", meta
-    if not judgement.looks_ok:
-        return False, "look_mismatch", meta
+    def look_reason() -> str:
+        if _not_in_scope(look):
+            return "not_in_scope_evidence"
+        if not judgement.looks_ok:
+            return "look_mismatch"
+        reason = _reject_reason(look, allow_config=requires_motion)
+        if reason:
+            return reason
+        if source_normalized is not None and not in_source(look, source_normalized):
+            return "evidence_not_in_source"
+        if not requires_motion and judgement.axis and not _axes_compatible(expected_axis, judgement.axis):
+            return "wrong_axis"
+        if _evidence_hash(look) in used_hashes:
+            return "duplicate_evidence"
+        return ""
 
-    look_reason = _reject_reason(look, allow_config=requires_motion)
-    if look_reason:
-        return False, look_reason, meta
-
-    if requires_motion:
-        if not judgement.moves_ok:
-            return False, "no_motion", meta
-        if _empty_motion(motion):
-            return False, "no_motion", meta
+    def motion_reason() -> str:
+        if not judgement.moves_ok or _empty_motion(motion):
+            return "no_motion"
         if motion == look:
-            return False, "spawn_only_no_update", meta
-        motion_reason = _reject_reason(motion, allow_config=False)
-        if motion_reason:
-            return False, motion_reason, meta
+            return "spawn_only_no_update"
+        reason = _reject_reason(motion, allow_config=False)
+        if reason:
+            return reason
+        if source_normalized is not None and not in_source(motion, source_normalized):
+            return "evidence_not_in_source"
         if not _TIME_UPDATE.search(_code_only(motion)):
-            return False, "no_time_update", meta
+            return "no_time_update"
         if not _axes_compatible(expected_axis, judgement.axis):
-            return False, "wrong_axis", meta
-    elif judgement.axis and not _axes_compatible(expected_axis, judgement.axis):
-        return False, "wrong_axis", meta
+            return "wrong_axis"
+        if _evidence_hash(motion) in used_hashes:
+            return "duplicate_evidence"
+        return ""
 
-    look_hash = _evidence_hash(look)
-    if look_hash in used_hashes:
-        return False, "duplicate_evidence", meta
-    used_hashes.add(look_hash)
-    if requires_motion and motion:
-        motion_hash = _evidence_hash(motion)
-        if motion_hash in used_hashes:
-            return False, "duplicate_evidence", meta
-        used_hashes.add(motion_hash)
+    why = look_reason()
+    verdict.update(look_ok=not why, look_why=why)
+    if not why:
+        used_hashes.add(_evidence_hash(look))
+    if requires_motion:
+        why = motion_reason()
+        verdict.update(motion_ok=not why, motion_why=why)
+        if not why:
+            used_hashes.add(_evidence_hash(motion))
+    return verdict
 
-    return True, "", meta
 
-
-def _grade_leak(judgement) -> tuple[bool, str]:
+def _grade_leak(judgement, source_normalized: str | None = None) -> tuple[bool, str]:
     if judgement is None:
         return False, "missing_judgement"
     if _not_in_scope(judgement.evidence or ""):
@@ -322,89 +372,150 @@ def _grade_leak(judgement) -> tuple[bool, str]:
     reason = _reject_reason(judgement.evidence or "")
     if reason:
         return False, reason
+    if source_normalized is not None and not in_source(judgement.evidence or "", source_normalized):
+        return False, "evidence_not_in_source"
     return True, "forbidden_present"
 
 
-def _item_row(
-    item: dict,
-    kind: str,
-    hit: bool,
-    points: float,
-    why: str,
-    meta: dict,
-) -> dict:
-    row = {
-        "id": item["id"],
-        "label": item.get("label", ""),
-        "kind": kind,
-        "points": points,
-        **meta,
+def _failed(why: str, detail: str) -> dict:
+    return {
+        "score": 0.0,
+        "max_score": POINTS_PER_BIOME,
+        "passed": False,
+        "earned": [],
+        "lost": [{"id": why, "label": "", "kind": "biome", "points": POINTS_PER_BIOME, "why": why, "look_evidence": detail}],
     }
-    if not hit:
-        row["why"] = why
-    return row
 
 
-def _grade_one(biome_id: str, templates: dict, report) -> dict:
+def _visual_motion_ok(entity: dict, sighting, fractions: dict) -> bool:
+    if sighting is None or "not visible" in (sighting.seen or "").lower():
+        return False
+    expected = _normalize_axis(entity.get("expected_axis", "n/a"))
+    if not _axes_compatible(expected, sighting.axis):
+        return False
+    if expected in _NO_TRAVEL_AXES:
+        return True
+    return bool(sighting.moving) and max(fractions.values(), default=0.0) >= MIN_MOTION_FRACTION
+
+
+def _grade_one(
+    biome_id: str,
+    templates: dict,
+    report,
+    visual=None,
+    source_normalized: str | None = None,
+    use_visual: bool = False,
+    motion=None,
+    use_motion: bool = False,
+) -> dict:
     if not isinstance(report, BiomeRenderReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
-        return {
-            "score": 0.0,
-            "max_score": POINTS_PER_BIOME,
-            "passed": False,
-            "earned": [],
-            "lost": [
-                {
-                    "id": "probe_failed",
-                    "label": "",
-                    "kind": "probe",
-                    "points": POINTS_PER_BIOME,
-                    "why": "probe_failed",
-                    "look_evidence": err,
-                }
-            ],
-        }
+        return _failed("probe_failed", err)
+    if use_visual and not isinstance(visual, VisualReport):
+        err = visual.get("error", "no visual report") if isinstance(visual, dict) else "no visual report"
+        return _failed("visual_failed", err)
 
     entities = list(templates.get("entities", []))
     leak_items = list(templates.get("must_not_present", []))
-    n_entities = len(entities)
-    points = round(POINTS_PER_BIOME / n_entities, 2) if n_entities else 0.0
-    earned, lost = [], []
-    entity_hits = 0
-    leak_count = 0
-    used_hashes: set[str] = set()
+    total_weight = sum(float(e.get("weight", 1)) for e in entities) or 1.0
+    unit = POINTS_PER_BIOME / total_weight
+    seen = {x.id: x for x in visual.items} if use_visual else {}
+    seen_leaks = {x.id: x for x in visual.leaks} if use_visual else {}
+    look_code, look_visual = (LOOK_CODE, LOOK_VISUAL) if use_visual else (1.0, 0.0)
+    motion_code, motion_visual = (MOTION_CODE, MOTION_VISUAL) if use_motion else (1.0, 0.0)
+    # An unavailable/errored motion report leaves every sighting missing, so the
+    # visual half of motion is lost, like the look half for an unframed biome.
+    # That report is a plain {"error": ...} dict, and a dict *has* `.items` (the
+    # method): checking hasattr alone iterated the method and crashed all of
+    # WC004 on the first world with an unframed biome.
+    moved = (
+        {x.id: x for x in motion.items}
+        if use_motion and not isinstance(motion, dict) and hasattr(motion, "items")
+        else {}
+    )
+    fractions = dict(getattr(motion, "motion_fraction", {}) or {}) if use_motion else {}
 
+    earned, lost = [], []
+    used_hashes: set[str] = set()
+    score = 0.0
+    any_code = False
     for entity in entities:
-        judgement = report.entities.get(entity["id"])
-        hit, why, meta = _grade_entity(entity, judgement, used_hashes)
-        if hit:
-            entity_hits += 1
-            earned.append(_item_row(entity, "entity", True, points, why, meta))
+        v = _grade_entity(entity, report.entities.get(entity["id"]), used_hashes, source_normalized)
+        sighting = seen.get(entity["id"])
+        visual_ok = bool(sighting and sighting.visible)
+        look_credit = look_code * v["look_ok"] + look_visual * visual_ok
+        motion_seen = None
+        if v["motion_ok"] is None:
+            credit = look_credit
         else:
-            lost.append(_item_row(entity, "entity", False, points, why, meta))
+            if use_motion and entity.get("kind") in VISUAL_MOTION_KINDS:
+                motion_seen = _visual_motion_ok(entity, moved.get(entity["id"]), fractions)
+                motion_credit = motion_code * v["motion_ok"] + motion_visual * motion_seen
+            else:
+                motion_seen = None
+                motion_credit = float(v["motion_ok"])
+            credit = (1 - MOTION_SHARE) * look_credit + MOTION_SHARE * motion_credit
+        any_code = any_code or v["look_ok"]
+        points = round(unit * float(entity.get("weight", 1)), 2)
+        got = round(points * credit, 2)
+        score += got
+        row = {
+            "id": entity["id"],
+            "label": entity.get("label", ""),
+            "kind": "entity",
+            "points": points,
+            "earned": got,
+            "code_look": v["look_ok"],
+            "visual_look": visual_ok if use_visual else None,
+            "code_motion": v["motion_ok"],
+            "visual_motion": motion_seen,
+            "motion_seen": moved[entity["id"]].seen if entity["id"] in moved else "",
+            "motion_axis_seen": moved[entity["id"]].axis if entity["id"] in moved else "",
+            "seen": sighting.seen if sighting else "",
+            **v["meta"],
+        }
+        if got >= points:
+            earned.append(row)
+        else:
+            row["why"] = (
+                v["look_why"] or v["motion_why"]
+                or ("not_visible" if use_visual and not visual_ok else "")
+                or ("motion_not_seen" if motion_seen is False else "")
+            )
+            lost.append(row)
 
     for item in leak_items:
         judgement = report.must_not_present.get(item["id"])
-        leak, why = _grade_leak(judgement)
-        if leak:
-            leak_count += 1
-            lost.append(
-                {
-                    "id": item["id"],
-                    "label": item.get("label", ""),
-                    "kind": "must_not_present",
-                    "points": points,
-                    "why": why,
-                    "look_evidence": "" if judgement is None else (judgement.evidence or ""),
-                }
-            )
+        code_leak, why = _grade_leak(judgement, source_normalized)
+        sighting = seen_leaks.get(item["id"])
+        visual_leak = bool(sighting and sighting.visible)
+        if code_leak or visual_leak:
+            points = round(unit * float(item.get("weight", 1)), 2)
+            score -= points
+            lost.append({
+                "id": item["id"],
+                "label": item.get("label", ""),
+                "kind": "must_not_present",
+                "points": points,
+                "why": "forbidden_present",
+                "code": code_leak,
+                "visual": visual_leak if use_visual else None,
+                "seen": sighting.seen if sighting else "",
+                "look_evidence": "" if judgement is None else (judgement.evidence or ""),
+            })
 
-    raw = POINTS_PER_BIOME * (entity_hits - leak_count) / n_entities if n_entities else 0.0
-    biome_score = round(max(0.0, raw), 2)
-    return {
-        "score": biome_score,
+    biome_seen = bool(use_visual and (visual.shows_biome or visual.biome_visible))
+    if not any_code and not report.aliases and not biome_seen:
+        return _failed("biome_absent", "no code evidence and not visible in any frame")
+
+    card = {
+        "score": round(max(0.0, score), 2),
         "max_score": POINTS_PER_BIOME,
         "passed": not lost,
         "earned": earned,
         "lost": lost,
     }
+    if use_visual:
+        card["shows_biome"] = visual.shows_biome
+        card["biome_visible"] = visual.biome_visible
+    return card

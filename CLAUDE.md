@@ -11,7 +11,9 @@ property of the world.
 
 - `prompts/prompt.md` — the model-facing prompt, mirrors
   `worldbench-web/prompts/prompt.md`.
-- `tests/<id>_<slug>/` — one folder per test. **Self-contained**: each
+- `tests/<id>_<slug>/` — one folder per test. Test IDs are `WC###`, WC =
+  **World Check** (each test checks a property of the world). The paper keeps
+  the bare "WC001" labels and does not expand them. **Self-contained**: each
   folder holds its own `test.yaml` (id, title, prompt ref, `checks:` list)
   *and* its own content-check script(s) — the logic specific to what that
   test looks for. Nothing content-specific is factored out preemptively.

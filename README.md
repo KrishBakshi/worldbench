@@ -32,7 +32,7 @@ A model that does well has to be a competent engineer, a careful reader and a go
 
 ## What it tests
 
-Every world is scored on the same five-step ladder, 280 points in total. The maximums are fixed, so totals compare directly across models.
+Every world is scored on the same five-step ladder, 280 points in total. The maximums are fixed, so totals compare directly across models. Test IDs read WC001–WC005, where WC stands for *World Check*: each test checks one property of the generated world.
 
 | Test | Points | What it asks | Why it matters |
 | --- | --- | --- | --- |

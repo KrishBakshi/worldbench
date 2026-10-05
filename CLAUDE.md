@@ -669,8 +669,14 @@ property of the world.
     artifact and the account of how it got there stay together.
 - `outputs/` — gitignored, per-run/per-model/per-test results.
 - `scripts/`
-  - `export_to_web.py` — copies a passing output + writes `meta.mdx` into
-    `worldbench-web/public/tests/<slug>/`. The seam between the two repos.
+  - `export_to_web.py` — the seam between the two repos. Writes one compact
+    `results.json` per model into `worldbench-web/public/tests/<slug>/` (per-test
+    earned/max, per-biome WC003/WC004 scores, WC002 node verdicts + rule-relevant
+    links) and `public/leaderboard.json` (every exported model). ~2 KB per model;
+    no evidence, quotes or judge text. **Test names live once, in `TEST_NAMES`**:
+    the data keeps WC ids as keys and carries the display names, so the site
+    shows "Physics", never "WC004". Skips a slug with no site folder.
+    `uv run python scripts/export_to_web.py --all` (or one or more slugs).
 - `dry_runs/` — **everything dry-run related lives here and nowhere
   else** — not `scripts/`, not the top-level `inputs/`.
   - `dry_run_regex_patterns.py` — **dev tool, not part of the pipeline.**

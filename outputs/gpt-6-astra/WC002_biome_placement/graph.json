@@ -3,7 +3,7 @@
     "width": 800,
     "height": 560
   },
-  "score": 17,
+  "score": 16,
   "max_score": 20,
   "passed": false,
   "elevation_order": [
@@ -13,10 +13,10 @@
     "highlands",
     "jungle",
     "swamp",
+    "grove",
     "grassland",
     "desert",
-    "delta",
-    "grove"
+    "delta"
   ],
   "nodes": [
     {
@@ -26,7 +26,7 @@
         "forest",
         "highlands"
       ],
-      "evidence": "else if(z<-41+boundary)biome='mountains';",
+      "evidence": "z < -41+boundary for mountains; z < -25+boundary and x < 17+boundary for conifers (forest); z < -17+boundary and x >= 17+boundary for highlands",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -43,9 +43,10 @@
       "neighbors": [
         "mountains",
         "highlands",
-        "jungle"
+        "jungle",
+        "swamp"
       ],
-      "evidence": "else if(z<-25+boundary&&x<17+boundary)biome='conifers';",
+      "evidence": "z < -25+boundary and x < 17+boundary; borders mountains (z < -41), highlands (x >= 17), jungle (x < -21), swamp (x < -42)",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -62,16 +63,15 @@
       "neighbors": [
         "mountains",
         "forest",
-        "jungle",
-        "swamp",
-        "grassland"
+        "grove",
+        "desert"
       ],
-      "evidence": "else if(z<-17+boundary&&x>=17+boundary)biome='highlands';",
-      "passed": true,
+      "evidence": "z < -17+boundary and x >= 17+boundary; borders mountains (z < -41), forest (x < 17), grove (x > 6), desert (z > 28)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to jungle",
       "cx": 130,
       "cy": 172,
       "w": 168,
@@ -82,17 +82,15 @@
       "label": "Dense Jungle",
       "neighbors": [
         "forest",
-        "highlands",
         "swamp",
-        "grassland",
-        "desert"
+        "grassland"
       ],
-      "evidence": "else if(x<-21+boundary&&z<10+boundary)biome='jungle';",
-      "passed": true,
+      "evidence": "x < -21+boundary and z < 10+boundary; borders forest (x < 17), swamp (x < -42), grassland (z > 28)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to highlands",
       "cx": 362,
       "cy": 252,
       "w": 168,
@@ -102,12 +100,10 @@
       "id": "swamp",
       "label": "Backwater Swamp",
       "neighbors": [
-        "highlands",
-        "jungle",
-        "grassland",
-        "delta"
+        "forest",
+        "jungle"
       ],
-      "evidence": "h=9+noise(x,z)*.5;",
+      "evidence": "x < -42+boundary and z < -20+boundary; borders forest (x < 17), jungle (x < -21)",
       "passed": false,
       "covered": true,
       "state": "fail",
@@ -121,13 +117,17 @@
     {
       "id": "grove",
       "label": "Flowering Grove",
-      "neighbors": [],
-      "evidence": "not in source",
-      "passed": false,
+      "neighbors": [
+        "highlands",
+        "grassland",
+        "desert"
+      ],
+      "evidence": "x > 6+boundary and z < 26+boundary; borders highlands (x >= 17), grassland (z > 28), desert (z > 28)",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to any of ['highlands', 'grassland']",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 250,
       "cy": 438,
       "w": 168,
@@ -137,13 +137,11 @@
       "id": "grassland",
       "label": "Grassland Plateau",
       "neighbors": [
-        "highlands",
         "jungle",
-        "swamp",
-        "delta",
+        "grove",
         "desert"
       ],
-      "evidence": "else biome='grasslands';",
+      "evidence": "default biome; borders jungle (x < -21), grove (x > 6), desert (z > 28)",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -162,7 +160,7 @@
         "grassland",
         "desert"
       ],
-      "evidence": "let biome='coast',h=-B*(2+Math.floor(clamp((landShape-1)*15,0,4))),liquid='ocean',wy=SEA;",
+      "evidence": "coastal edge defined by landShape > .88; borders swamp, grassland, desert",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -177,16 +175,18 @@
       "id": "desert",
       "label": "Desert Basin",
       "neighbors": [
-        "jungle",
+        "highlands",
+        "grove",
         "grassland",
-        "delta"
+        "delta",
+        "volcano"
       ],
-      "evidence": "h=5.4+noise(x*.7,z*.7)*.45;for(const [px,pz,rx,rz,ph] of [[36,47,12,9,25],[20,58,9,7,18],[46,38,7,6,15]]){const d=ellipse(x,z,px,pz,rx,rz);h=Math.max(h,5.4+Math.min(.8,Math.max(0,1-d)*ph));}",
+      "evidence": "z > 28+boundary and x > -7+boundary; borders highlands, grove, grassland, delta, volcano",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "incorrectly connected to jungle; incorrectly connected to delta",
+      "reason": "incorrectly connected to highlands; incorrectly connected to delta",
       "cx": 652,
       "cy": 330,
       "w": 180,
@@ -196,8 +196,10 @@
     {
       "id": "volcano",
       "label": "Volcano",
-      "neighbors": [],
-      "evidence": "const r=Math.hypot(x-54,(z-6)*1.03);h=5.4+Math.max(0,1-r/22)*55;if(r<4.5)h=42.3+r*1.4;h+=noise(x,z)*.5;",
+      "neighbors": [
+        "desert"
+      ],
+      "evidence": "volcanicShape < 1 && x > 39; borders desert",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -229,7 +231,15 @@
     },
     {
       "from": "desert",
-      "to": "jungle"
+      "to": "grove"
+    },
+    {
+      "from": "desert",
+      "to": "highlands"
+    },
+    {
+      "from": "desert",
+      "to": "volcano"
     },
     {
       "from": "forest",
@@ -244,28 +254,24 @@
       "to": "mountains"
     },
     {
-      "from": "grassland",
-      "to": "highlands"
-    },
-    {
-      "from": "grassland",
-      "to": "jungle"
-    },
-    {
-      "from": "grassland",
+      "from": "forest",
       "to": "swamp"
     },
     {
-      "from": "highlands",
+      "from": "grassland",
+      "to": "grove"
+    },
+    {
+      "from": "grassland",
       "to": "jungle"
+    },
+    {
+      "from": "grove",
+      "to": "highlands"
     },
     {
       "from": "highlands",
       "to": "mountains"
-    },
-    {
-      "from": "highlands",
-      "to": "swamp"
     },
     {
       "from": "jungle",

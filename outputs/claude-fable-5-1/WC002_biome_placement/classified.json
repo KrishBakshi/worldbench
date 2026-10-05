@@ -5,7 +5,7 @@
       "aliases": [
         "Snow Mountains"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "placement_code": "{name:'Snow Mountains',       cx:0,  cz:-98, sx:2.6, sz:1.0,  col:0xeef3ff, wx:'blizzard (far face)'}",
       "elevation_code": "case 1:{ let h=40+10*n1; for(const p of PEAKS){ const d=Math.hypot(x-p.x,z-p.z); h=Math.max(h,p.h-d*p.s+6*n2-3); } return h; }"
     },
     "forest": {
@@ -13,7 +13,7 @@
       "aliases": [
         "Snowy Conifer Forest"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "placement_code": "{name:'Snowy Conifer Forest', cx:-14,cz:-60, sx:1.9, sz:0.75, col:0x2f6b3a, wx:'snowfall'}",
       "elevation_code": "case 2: return 34+4*n1;"
     },
     "highlands": {
@@ -21,31 +21,31 @@
       "aliases": [
         "Highlands"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "elevation_code": "case 3: return 18+16*clamp((-z-24)/36,0,1)+7*n2*n2+2*n1;"
+      "placement_code": "{name:'Highlands',            cx:60, cz:-50, sx:1.15,sz:1.15, col:0x8ea67a, wx:'mist · light rain'}",
+      "elevation_code": "case 5: return 10.6+1.2*n1;"
     },
     "jungle": {
       "present": true,
       "aliases": [
         "Jungle"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "elevation_code": "case 4:{ let h=16+5*n1+3*n2; if(z+6*(n1-0.5)<-24) h+=7; return h; }"
+      "placement_code": "{name:'Jungle',               cx:-12,cz:-26, sx:1.6, sz:1.05, col:0x1f8a45, wx:'heavy rain · mist'}",
+      "elevation_code": "case 3: return 18+16*clamp((-z-24)/36,0,1)+7*n2*n2+2*n1;"
     },
     "swamp": {
       "present": true,
       "aliases": [
         "Swamp"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "elevation_code": "case 5: return 10.6+1.2*n1;"
+      "placement_code": "{name:'Swamp',                cx:-76,cz:-30, sx:1.0, sz:1.1,  col:0x5e6a2e, wx:'stagnant mist'}",
+      "elevation_code": "case 6: return 12+1.6*n1;"
     },
     "grove": {
       "present": true,
       "aliases": [
         "Flowering Grove"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "placement_code": "{name:'Flowering Grove',      cx:66, cz:-10, sx:1.1, sz:1.0,  col:0xf08ac0, wx:'light rain'}",
       "elevation_code": "case 7: return 14+2.2*n1;"
     },
     "grassland": {
@@ -53,23 +53,21 @@
       "aliases": [
         "Grasslands"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "elevation_code": "case 6: return 12+1.6*n1;"
+      "placement_code": "{name:'Grasslands',           cx:0,  cz:28,  sx:1.65,sz:1.3,  col:0x6fbf3f, wx:'passing showers'}",
+      "elevation_code": "case 4:{ let h=16+5*n1+3*n2; if(z+6*(n1-0.5)<-24) h+=7; return h; }"
     },
     "delta": {
-      "present": true,
-      "aliases": [
-        "Coast / Ocean"
-      ],
-      "placement_code": "const ocean=bl>0.02&&ec<ow&&!isl;",
-      "elevation_code": "if(bl>0.02){ const cf=clamp((ec-ow)/12,0,1), cs=sm(cf); h=lerp(h,lerp(9.5+1.5*n2,h,cs*cs),smooth(0.05,0.3,bl)); }"
+      "present": false,
+      "aliases": [],
+      "placement_code": "",
+      "elevation_code": ""
     },
     "desert": {
       "present": true,
       "aliases": [
         "Desert"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "placement_code": "{name:'Desert',               cx:74, cz:44,  sx:1.4, sz:1.55, col:0xe3c46e, wx:'sandstorm'}",
       "elevation_code": "case 8:{ let h=12+3*n1; for(const m of MESAS){ const d=Math.hypot(x-m.x,z-m.z); h=Math.max(h,Math.min(m.cap,m.h-d*m.s+3*n2)); } return h; }"
     },
     "volcano": {
@@ -77,7 +75,7 @@
       "aliases": [
         "Volcano"
       ],
-      "placement_code": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "placement_code": "{name:'Volcano',              cx:-60,cz:38,  sx:1.1, sz:1.2,  col:0xff6a1a, wx:'eruptions · ash'}",
       "elevation_code": "case 9: return 14+2.5*n1;"
     }
   }

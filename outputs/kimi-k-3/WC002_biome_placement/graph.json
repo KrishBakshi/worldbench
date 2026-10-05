@@ -3,18 +3,18 @@
     "width": 800,
     "height": 560
   },
-  "score": 19,
+  "score": 17,
   "max_score": 20,
   "passed": false,
   "elevation_order": [
-    "volcano",
     "mountains",
+    "volcano",
     "forest",
     "highlands",
     "grove",
+    "jungle",
     "desert",
     "grassland",
-    "jungle",
     "swamp",
     "delta"
   ],
@@ -24,9 +24,10 @@
       "label": "Snow Mountains",
       "neighbors": [
         "forest",
-        "highlands"
+        "highlands",
+        "grassland"
       ],
-      "evidence": "if(zj<-36 && x<44)",
+      "evidence": "zj<-36 && x<44 (mountains) vs zj<-14 && x<40 (forest); xj<-13 && xj>-56 && zj<7 (highlands); default BI.GRASS",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -43,9 +44,10 @@
       "neighbors": [
         "mountains",
         "highlands",
-        "grove"
+        "jungle",
+        "grassland"
       ],
-      "evidence": "if(zj<-14 && x<40)",
+      "evidence": "zj<-14 && x<40 (forest) vs zj<-36 && x<44 (mountains); xj<-13 && xj>-56 && zj<7 (highlands); xj>-8 && xj<38 && zj>-19 && zj<17 (jungle)",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -62,15 +64,15 @@
       "neighbors": [
         "mountains",
         "forest",
-        "jungle",
-        "grove"
+        "grove",
+        "grassland"
       ],
-      "evidence": "if(xj<-13 && xj>-56 && zj<7)",
-      "passed": true,
+      "evidence": "xj<-13 && xj>-56 && zj<7 (highlands); xj<-10 && zj>5 && zj<34 (grove)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to jungle",
       "cx": 130,
       "cy": 172,
       "w": 168,
@@ -80,16 +82,17 @@
       "id": "jungle",
       "label": "Dense Jungle",
       "neighbors": [
-        "highlands",
+        "forest",
         "swamp",
+        "desert",
         "grassland"
       ],
-      "evidence": "if(xj>-8 && xj<38 && zj>-19 && zj<17)",
+      "evidence": "xj>-8 && xj<38 && zj>-19 && zj<17 (jungle); xj>33 && zj<15 && zj>-16 (swamp); xj>30 && zj>13 (desert)",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "not at a higher elevation than grassland",
+      "reason": "not connected to highlands",
       "cx": 362,
       "cy": 252,
       "w": 168,
@@ -103,7 +106,7 @@
         "desert",
         "grassland"
       ],
-      "evidence": "if(xj>33 && zj<15 && zj>-16)",
+      "evidence": "xj>33 && zj<15 && zj>-16 (swamp); xj>30 && zj>13 (desert)",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -118,11 +121,10 @@
       "id": "grove",
       "label": "Flowering Grove",
       "neighbors": [
-        "forest",
         "highlands",
         "grassland"
       ],
-      "evidence": "if(xj<-10 && zj>5 && zj<34)",
+      "evidence": "xj<-10 && zj>5 && zj<34 (grove); default BI.GRASS",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -137,13 +139,15 @@
       "id": "grassland",
       "label": "Grassland Plateau",
       "neighbors": [
+        "mountains",
+        "forest",
+        "highlands",
         "jungle",
-        "swamp",
         "grove",
-        "delta",
-        "desert"
+        "desert",
+        "delta"
       ],
-      "evidence": "return BI.GRASS",
+      "evidence": "default BI.GRASS; delta branches at 0,50; 14,52; 27,48",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -160,7 +164,7 @@
       "neighbors": [
         "grassland"
       ],
-      "evidence": "B[gi(x,z)]=BI.BEACH",
+      "evidence": "carve branches at 0,50; 14,52; 27,48",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -175,16 +179,17 @@
       "id": "desert",
       "label": "Desert Basin",
       "neighbors": [
+        "jungle",
         "swamp",
         "grassland",
         "volcano"
       ],
-      "evidence": "if(xj>30 && zj>13)",
-      "passed": true,
+      "evidence": "xj>30 && zj>13 (desert); dvx*dvx+dvz*dvz<1 (volcano)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to jungle",
       "cx": 652,
       "cy": 330,
       "w": 180,
@@ -197,7 +202,7 @@
       "neighbors": [
         "desert"
       ],
-      "evidence": "if(dvx*dvx+dvz*dvz<1)",
+      "evidence": "dvx*dvx+dvz*dvz<1 (volcano) vs xj>30 && zj>13 (desert)",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -221,6 +226,10 @@
     },
     {
       "from": "desert",
+      "to": "jungle"
+    },
+    {
+      "from": "desert",
       "to": "swamp"
     },
     {
@@ -229,11 +238,15 @@
     },
     {
       "from": "forest",
-      "to": "grove"
+      "to": "grassland"
     },
     {
       "from": "forest",
       "to": "highlands"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
     },
     {
       "from": "forest",
@@ -245,7 +258,15 @@
     },
     {
       "from": "grassland",
+      "to": "highlands"
+    },
+    {
+      "from": "grassland",
       "to": "jungle"
+    },
+    {
+      "from": "grassland",
+      "to": "mountains"
     },
     {
       "from": "grassland",
@@ -254,10 +275,6 @@
     {
       "from": "grove",
       "to": "highlands"
-    },
-    {
-      "from": "highlands",
-      "to": "jungle"
     },
     {
       "from": "highlands",

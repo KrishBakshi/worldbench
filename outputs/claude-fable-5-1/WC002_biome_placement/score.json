@@ -1,18 +1,18 @@
 {
-  "score": 17,
+  "score": 15,
   "max_score": 20,
   "points_per_biome": 2,
   "passed": false,
-  "reason": "Scored 17/20; not covered: none; misplaced: swamp, desert, volcano",
+  "reason": "Scored 15/20; not covered: none; misplaced: forest, highlands, swamp, desert, volcano",
   "elevation_order": [
     "mountains",
     "forest",
-    "highlands",
-    "jungle",
     "volcano",
-    "grove",
     "desert",
+    "jungle",
+    "highlands",
     "grassland",
+    "grove",
     "swamp",
     "delta"
   ],
@@ -27,15 +27,10 @@
         "delta",
         "desert",
         "forest",
-        "grassland",
-        "grove",
-        "highlands",
-        "jungle",
-        "swamp",
-        "volcano"
+        "highlands"
       ],
       "elevation_rank": 0,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "evidence": "BIO[1] (mountains) cx:0, cz:-98; BIO[2] (forest) cx:-14, cz:-60; BIO[3] (highlands) cx:60, cz:-50; BIO[8] (desert) cx:74, cz:44. Voronoi proximity.",
       "summary": "ok",
       "earned": [
         {
@@ -46,12 +41,7 @@
             "delta",
             "desert",
             "forest",
-            "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "swamp",
-            "volcano"
+            "highlands"
           ]
         },
         {
@@ -69,7 +59,7 @@
           "expected": "mountains before highlands in elevation_order",
           "actual": {
             "mountains_rank": 0,
-            "highlands_rank": 2
+            "highlands_rank": 5
           }
         },
         {
@@ -78,7 +68,7 @@
           "expected": "mountains before jungle in elevation_order",
           "actual": {
             "mountains_rank": 0,
-            "jungle_rank": 3
+            "jungle_rank": 4
           }
         },
         {
@@ -87,7 +77,7 @@
           "expected": "mountains before grassland in elevation_order",
           "actual": {
             "mountains_rank": 0,
-            "grassland_rank": 7
+            "grassland_rank": 6
           }
         },
         {
@@ -103,25 +93,20 @@
       "lost": []
     },
     "forest": {
-      "score": 2,
+      "score": 1,
       "max_score": 2,
-      "passed": true,
+      "passed": false,
       "covered": true,
       "skipped": [],
       "neighbors": [
         "delta",
-        "desert",
-        "grassland",
-        "grove",
-        "highlands",
         "jungle",
         "mountains",
-        "swamp",
-        "volcano"
+        "swamp"
       ],
       "elevation_rank": 1,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "summary": "ok",
+      "evidence": "BIO[2] (forest) cx:-14, cz:-60; BIO[1] (mountains) cx:0, cz:-98; BIO[4] (jungle) cx:-12, cz:-26; BIO[5] (swamp) cx:-76, cz:-30.",
+      "summary": "not connected to highlands",
       "earned": [
         {
           "id": "must_connect.mountains",
@@ -129,30 +114,9 @@
           "expected": "mountains",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "grassland",
-            "grove",
-            "highlands",
             "jungle",
             "mountains",
-            "swamp",
-            "volcano"
-          ]
-        },
-        {
-          "id": "must_connect.highlands",
-          "kind": "must_connect",
-          "expected": "highlands",
-          "actual_neighbors": [
-            "delta",
-            "desert",
-            "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
+            "swamp"
           ]
         },
         {
@@ -161,7 +125,7 @@
           "expected": "forest before highlands in elevation_order",
           "actual": {
             "forest_rank": 1,
-            "highlands_rank": 2
+            "highlands_rank": 5
           }
         },
         {
@@ -170,7 +134,7 @@
           "expected": "forest before jungle in elevation_order",
           "actual": {
             "forest_rank": 1,
-            "jungle_rank": 3
+            "jungle_rank": 4
           }
         },
         {
@@ -179,7 +143,7 @@
           "expected": "forest before grassland in elevation_order",
           "actual": {
             "forest_rank": 1,
-            "grassland_rank": 7
+            "grassland_rank": 6
           }
         },
         {
@@ -192,77 +156,55 @@
           }
         }
       ],
-      "lost": []
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "jungle",
+            "mountains",
+            "swamp"
+          ],
+          "why": "not_connected"
+        }
+      ]
     },
     "highlands": {
-      "score": 2,
+      "score": 1,
       "max_score": 2,
-      "passed": true,
+      "passed": false,
       "covered": true,
       "skipped": [],
       "neighbors": [
         "delta",
-        "desert",
-        "forest",
-        "grassland",
         "grove",
         "jungle",
-        "mountains",
-        "swamp",
-        "volcano"
+        "mountains"
       ],
-      "elevation_rank": 2,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d1;b1=b;d1=d;} }",
-      "summary": "ok",
+      "elevation_rank": 5,
+      "evidence": "BIO[3] (highlands) cx:60, cz:-50; BIO[1] (mountains) cx:0, cz:-98; BIO[4] (jungle) cx:-12, cz:-26; BIO[7] (grove) cx:66, cz:-10.",
+      "summary": "not connected to forest; not at a higher elevation than jungle",
       "earned": [
-        {
-          "id": "must_connect.forest",
-          "kind": "must_connect",
-          "expected": "forest",
-          "actual_neighbors": [
-            "delta",
-            "desert",
-            "forest",
-            "grassland",
-            "grove",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
-          ]
-        },
         {
           "id": "must_connect.jungle",
           "kind": "must_connect",
           "expected": "jungle",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
-            "grassland",
             "grove",
             "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
+            "mountains"
           ]
-        },
-        {
-          "id": "higher_than.jungle",
-          "kind": "higher_than",
-          "expected": "highlands before jungle in elevation_order",
-          "actual": {
-            "highlands_rank": 2,
-            "jungle_rank": 3
-          }
         },
         {
           "id": "higher_than.grassland",
           "kind": "higher_than",
           "expected": "highlands before grassland in elevation_order",
           "actual": {
-            "highlands_rank": 2,
-            "grassland_rank": 7
+            "highlands_rank": 5,
+            "grassland_rank": 6
           }
         },
         {
@@ -270,12 +212,35 @@
           "kind": "higher_than",
           "expected": "highlands before delta in elevation_order",
           "actual": {
-            "highlands_rank": 2,
+            "highlands_rank": 5,
             "delta_rank": 9
           }
         }
       ],
-      "lost": []
+      "lost": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "jungle",
+            "mountains"
+          ],
+          "why": "not_connected"
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "highlands before jungle in elevation_order",
+          "actual": {
+            "highlands_rank": 5,
+            "jungle_rank": 4
+          },
+          "why": "not_higher"
+        }
+      ]
     },
     "jungle": {
       "score": 2,
@@ -285,17 +250,14 @@
       "skipped": [],
       "neighbors": [
         "delta",
-        "desert",
         "forest",
         "grassland",
         "grove",
         "highlands",
-        "mountains",
-        "swamp",
-        "volcano"
+        "swamp"
       ],
-      "elevation_rank": 3,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "elevation_rank": 4,
+      "evidence": "BIO[4] (jungle) cx:-12, cz:-26; BIO[2] (forest) cx:-14, cz:-60; BIO[3] (highlands) cx:60, cz:-50; BIO[5] (swamp) cx:-76, cz:-30; BIO[6] (grassland) cx:0, cz:28; BIO[7] (grove) cx:66, cz:-10.",
       "summary": "ok",
       "earned": [
         {
@@ -304,14 +266,11 @@
           "expected": "highlands",
           "actual_neighbors": [
             "delta",
-            "desert",
             "forest",
             "grassland",
             "grove",
             "highlands",
-            "mountains",
-            "swamp",
-            "volcano"
+            "swamp"
           ]
         },
         {
@@ -320,14 +279,11 @@
           "expected": "grassland",
           "actual_neighbors": [
             "delta",
-            "desert",
             "forest",
             "grassland",
             "grove",
             "highlands",
-            "mountains",
-            "swamp",
-            "volcano"
+            "swamp"
           ]
         },
         {
@@ -336,14 +292,11 @@
           "expected": "swamp",
           "actual_neighbors": [
             "delta",
-            "desert",
             "forest",
             "grassland",
             "grove",
             "highlands",
-            "mountains",
-            "swamp",
-            "volcano"
+            "swamp"
           ]
         },
         {
@@ -351,8 +304,8 @@
           "kind": "higher_than",
           "expected": "jungle before grassland in elevation_order",
           "actual": {
-            "jungle_rank": 3,
-            "grassland_rank": 7
+            "jungle_rank": 4,
+            "grassland_rank": 6
           }
         },
         {
@@ -360,7 +313,7 @@
           "kind": "higher_than",
           "expected": "jungle before delta in elevation_order",
           "actual": {
-            "jungle_rank": 3,
+            "jungle_rank": 4,
             "delta_rank": 9
           }
         }
@@ -375,17 +328,12 @@
       "skipped": [],
       "neighbors": [
         "delta",
-        "desert",
         "forest",
-        "grassland",
-        "grove",
-        "highlands",
         "jungle",
-        "mountains",
         "volcano"
       ],
       "elevation_rank": 8,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "evidence": "BIO[5] (swamp) cx:-76, cz:-30; BIO[2] (forest) cx:-14, cz:-60; BIO[4] (jungle) cx:-12, cz:-26; BIO[9] (volcano) cx:-60, cz:38.",
       "summary": "incorrectly connected to delta",
       "earned": [
         {
@@ -394,13 +342,8 @@
           "expected": "jungle",
           "actual_neighbors": [
             "delta",
-            "desert",
             "forest",
-            "grassland",
-            "grove",
-            "highlands",
             "jungle",
-            "mountains",
             "volcano"
           ]
         }
@@ -412,13 +355,8 @@
           "expected": "delta",
           "actual_neighbors": [
             "delta",
-            "desert",
             "forest",
-            "grassland",
-            "grove",
-            "highlands",
             "jungle",
-            "mountains",
             "volcano"
           ],
           "why": "incorrectly_connected"
@@ -434,16 +372,12 @@
       "neighbors": [
         "delta",
         "desert",
-        "forest",
         "grassland",
         "highlands",
-        "jungle",
-        "mountains",
-        "swamp",
-        "volcano"
+        "jungle"
       ],
-      "elevation_rank": 5,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "elevation_rank": 7,
+      "evidence": "BIO[7] (grove) cx:66, cz:-10; BIO[3] (highlands) cx:60, cz:-50; BIO[4] (jungle) cx:-12, cz:-26; BIO[6] (grassland) cx:0, cz:28; BIO[8] (desert) cx:74, cz:44.",
       "summary": "ok",
       "earned": [
         {
@@ -456,13 +390,9 @@
           "actual_neighbors": [
             "delta",
             "desert",
-            "forest",
             "grassland",
             "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
+            "jungle"
           ]
         }
       ],
@@ -477,16 +407,12 @@
       "neighbors": [
         "delta",
         "desert",
-        "forest",
         "grove",
-        "highlands",
         "jungle",
-        "mountains",
-        "swamp",
         "volcano"
       ],
-      "elevation_rank": 7,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
+      "elevation_rank": 6,
+      "evidence": "BIO[6] (grassland) cx:0, cz:28; BIO[4] (jungle) cx:-12, cz:-26; BIO[7] (grove) cx:66, cz:-10; BIO[8] (desert) cx:74, cz:44; BIO[9] (volcano) cx:-60, cz:38.",
       "summary": "ok",
       "earned": [
         {
@@ -496,12 +422,8 @@
           "actual_neighbors": [
             "delta",
             "desert",
-            "forest",
             "grove",
-            "highlands",
             "jungle",
-            "mountains",
-            "swamp",
             "volcano"
           ]
         },
@@ -512,12 +434,8 @@
           "actual_neighbors": [
             "delta",
             "desert",
-            "forest",
             "grove",
-            "highlands",
             "jungle",
-            "mountains",
-            "swamp",
             "volcano"
           ]
         },
@@ -526,7 +444,7 @@
           "kind": "higher_than",
           "expected": "grassland before delta in elevation_order",
           "actual": {
-            "grassland_rank": 7,
+            "grassland_rank": 6,
             "delta_rank": 9
           }
         }
@@ -551,7 +469,7 @@
         "volcano"
       ],
       "elevation_rank": 9,
-      "evidence": "const ocean=bl>0.02&&ec<ow&&!isl;",
+      "evidence": "delta is defined as the ocean/coast edge surrounding the island regions.",
       "summary": "ok",
       "earned": [
         {
@@ -581,53 +499,24 @@
       "skipped": [],
       "neighbors": [
         "delta",
-        "forest",
         "grassland",
         "grove",
-        "highlands",
-        "jungle",
-        "mountains",
-        "swamp",
-        "volcano"
+        "mountains"
       ],
-      "elevation_rank": 6,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "summary": "incorrectly connected to mountains; incorrectly connected to forest; incorrectly connected to highlands; incorrectly connected to jungle; incorrectly connected to delta",
-      "earned": [],
-      "lost": [
-        {
-          "id": "must_not_connect.mountains",
-          "kind": "must_not_connect",
-          "expected": "mountains",
-          "actual_neighbors": [
-            "delta",
-            "forest",
-            "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
-          ],
-          "why": "incorrectly_connected"
-        },
+      "elevation_rank": 3,
+      "evidence": "BIO[8] (desert) cx:74, cz:44; BIO[1] (mountains) cx:0, cz:-98; BIO[7] (grove) cx:66, cz:-10; BIO[6] (grassland) cx:0, cz:28.",
+      "summary": "incorrectly connected to mountains; incorrectly connected to delta",
+      "earned": [
         {
           "id": "must_not_connect.forest",
           "kind": "must_not_connect",
           "expected": "forest",
           "actual_neighbors": [
             "delta",
-            "forest",
             "grassland",
             "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
-          ],
-          "why": "incorrectly_connected"
+            "mountains"
+          ]
         },
         {
           "id": "must_not_connect.highlands",
@@ -635,16 +524,10 @@
           "expected": "highlands",
           "actual_neighbors": [
             "delta",
-            "forest",
             "grassland",
             "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
-          ],
-          "why": "incorrectly_connected"
+            "mountains"
+          ]
         },
         {
           "id": "must_not_connect.jungle",
@@ -652,14 +535,22 @@
           "expected": "jungle",
           "actual_neighbors": [
             "delta",
-            "forest",
             "grassland",
             "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
+            "mountains"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "grove",
+            "mountains"
           ],
           "why": "incorrectly_connected"
         },
@@ -669,14 +560,9 @@
           "expected": "delta",
           "actual_neighbors": [
             "delta",
-            "forest",
             "grassland",
             "grove",
-            "highlands",
-            "jungle",
-            "mountains",
-            "swamp",
-            "volcano"
+            "mountains"
           ],
           "why": "incorrectly_connected"
         }
@@ -690,36 +576,22 @@
       "skipped": [],
       "neighbors": [
         "delta",
-        "desert",
-        "forest",
         "grassland",
-        "grove",
-        "highlands",
-        "jungle",
-        "mountains",
         "swamp"
       ],
-      "elevation_rank": 4,
-      "evidence": "for(let b=1;b<=9;b++){ const B=BIO[b]; const d=Math.hypot((wx-B.cx)/B.sx,(wz-B.cz)/B.sz); if(d<d1){b2=b1;d2=d1;b1=b;d1=d;} else if(d<d2){b2=b;d2=d;} }",
-      "summary": "incorrectly connected to mountains; incorrectly connected to forest; incorrectly connected to highlands; incorrectly connected to grassland; incorrectly connected to delta",
-      "earned": [],
-      "lost": [
+      "elevation_rank": 2,
+      "evidence": "BIO[9] (volcano) cx:-60, cz:38; BIO[5] (swamp) cx:-76, cz:-30; BIO[6] (grassland) cx:0, cz:28.",
+      "summary": "incorrectly connected to grassland; incorrectly connected to delta",
+      "earned": [
         {
           "id": "must_not_connect.mountains",
           "kind": "must_not_connect",
           "expected": "mountains",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
             "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
             "swamp"
-          ],
-          "why": "incorrectly_connected"
+          ]
         },
         {
           "id": "must_not_connect.forest",
@@ -727,16 +599,9 @@
           "expected": "forest",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
             "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
             "swamp"
-          ],
-          "why": "incorrectly_connected"
+          ]
         },
         {
           "id": "must_not_connect.highlands",
@@ -744,30 +609,19 @@
           "expected": "highlands",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
             "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
             "swamp"
-          ],
-          "why": "incorrectly_connected"
-        },
+          ]
+        }
+      ],
+      "lost": [
         {
           "id": "must_not_connect.grassland",
           "kind": "must_not_connect",
           "expected": "grassland",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
             "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
             "swamp"
           ],
           "why": "incorrectly_connected"
@@ -778,13 +632,7 @@
           "expected": "delta",
           "actual_neighbors": [
             "delta",
-            "desert",
-            "forest",
             "grassland",
-            "grove",
-            "highlands",
-            "jungle",
-            "mountains",
             "swamp"
           ],
           "why": "incorrectly_connected"

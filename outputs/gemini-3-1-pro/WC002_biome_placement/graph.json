@@ -3,32 +3,35 @@
     "width": 800,
     "height": 560
   },
-  "score": 11,
+  "score": 13,
   "max_score": 20,
   "passed": false,
   "elevation_order": [
     "mountains",
+    "volcano",
     "highlands",
     "forest",
-    "jungle",
-    "swamp",
     "grove",
+    "jungle",
     "grassland",
-    "delta",
     "desert",
-    "volcano"
+    "swamp",
+    "delta"
   ],
   "nodes": [
     {
       "id": "mountains",
       "label": "Snow Mountains",
-      "neighbors": [],
-      "evidence": "placement_code: let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10;",
-      "passed": false,
+      "neighbors": [
+        "forest",
+        "highlands"
+      ],
+      "evidence": "mountains(0, -55), forest(0, -25), highlands(-35, -25)",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to forest",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 340,
       "cy": 52,
       "w": 176,
@@ -37,13 +40,18 @@
     {
       "id": "forest",
       "label": "Snowy Conifer Forest",
-      "neighbors": [],
-      "evidence": "placement_code: let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10;",
+      "neighbors": [
+        "mountains",
+        "highlands",
+        "jungle",
+        "grassland"
+      ],
+      "evidence": "forest(0, -25), mountains(0, -55), highlands(-35, -25), jungle(30, -10), grassland(0, 15)",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "not connected to mountains; not connected to highlands; not at a higher elevation than highlands",
+      "reason": "not at a higher elevation than highlands",
       "cx": 340,
       "cy": 145,
       "w": 190,
@@ -52,13 +60,16 @@
     {
       "id": "highlands",
       "label": "Highlands",
-      "neighbors": [],
-      "evidence": "placement_code: let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10;",
+      "neighbors": [
+        "mountains",
+        "forest"
+      ],
+      "evidence": "highlands(-35, -25), mountains(0, -55), forest(0, -25), grove(-40, 5)",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "not connected to forest; not connected to jungle",
+      "reason": "not connected to jungle",
       "cx": 130,
       "cy": 172,
       "w": 168,
@@ -67,13 +78,17 @@
     {
       "id": "jungle",
       "label": "Dense Jungle",
-      "neighbors": [],
-      "evidence": "placement_code: let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10;",
+      "neighbors": [
+        "forest",
+        "swamp",
+        "grassland"
+      ],
+      "evidence": "jungle(30, -10), forest(0, -25), swamp(50, -25), grassland(0, 15)",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "not connected to highlands; not connected to grassland; not connected to swamp",
+      "reason": "not connected to highlands",
       "cx": 362,
       "cy": 252,
       "w": 168,
@@ -82,13 +97,16 @@
     {
       "id": "swamp",
       "label": "Backwater Swamp",
-      "neighbors": [],
-      "evidence": "placement_code: let d = getDist(wx, wz, b.x, b.z) + noise(wx*0.1, wz*0.1)*10;",
-      "passed": false,
+      "neighbors": [
+        "jungle",
+        "grassland"
+      ],
+      "evidence": "swamp(50, -25), jungle(30, -10), grassland(0, 15)",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to jungle",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 95,
       "cy": 322,
       "w": 168,
@@ -112,13 +130,19 @@
     {
       "id": "grassland",
       "label": "Grassland Plateau",
-      "neighbors": [],
-      "evidence": "not in source",
-      "passed": false,
+      "neighbors": [
+        "forest",
+        "jungle",
+        "swamp",
+        "desert",
+        "delta"
+      ],
+      "evidence": "grassland(0, 15), forest(0, -25), jungle(30, -10), swamp(50, -25), grove(-40, 5), desert(-30, 45), delta(0, 55)",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to jungle; not connected to delta",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 372,
       "cy": 372,
       "w": 180,
@@ -127,13 +151,17 @@
     {
       "id": "delta",
       "label": "Coastal Delta / Ocean",
-      "neighbors": [],
-      "evidence": "not in source",
-      "passed": false,
+      "neighbors": [
+        "grassland",
+        "desert",
+        "volcano"
+      ],
+      "evidence": "delta(0, 55), grassland(0, 15), desert(-30, 45), volcano(35, 45)",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to grassland",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 348,
       "cy": 512,
       "w": 200,
@@ -142,13 +170,17 @@
     {
       "id": "desert",
       "label": "Desert Basin",
-      "neighbors": [],
-      "evidence": "not in source",
-      "passed": true,
+      "neighbors": [
+        "grassland",
+        "delta",
+        "volcano"
+      ],
+      "evidence": "desert(-30, 45), grove(-40, 5), grassland(0, 15), delta(0, 55), volcano(35, 45)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
       "cx": 652,
       "cy": 330,
       "w": 180,
@@ -158,13 +190,16 @@
     {
       "id": "volcano",
       "label": "Volcano",
-      "neighbors": [],
-      "evidence": "not in source",
-      "passed": true,
+      "neighbors": [
+        "delta",
+        "desert"
+      ],
+      "evidence": "volcano(35, 45), delta(0, 55), desert(-30, 45)",
+      "passed": false,
       "covered": true,
-      "state": "ok",
-      "score": 2,
-      "reason": "ok",
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
       "cx": 662,
       "cy": 128,
       "w": 168,
@@ -172,5 +207,58 @@
       "isolated": true
     }
   ],
-  "edges": []
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "delta",
+      "to": "volcano"
+    },
+    {
+      "from": "desert",
+      "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "volcano"
+    },
+    {
+      "from": "forest",
+      "to": "grassland"
+    },
+    {
+      "from": "forest",
+      "to": "highlands"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "grassland",
+      "to": "jungle"
+    },
+    {
+      "from": "grassland",
+      "to": "swamp"
+    },
+    {
+      "from": "highlands",
+      "to": "mountains"
+    },
+    {
+      "from": "jungle",
+      "to": "swamp"
+    }
+  ]
 }

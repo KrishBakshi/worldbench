@@ -3,18 +3,18 @@
     "width": 800,
     "height": 560
   },
-  "score": 15,
+  "score": 18,
   "max_score": 20,
   "passed": false,
   "elevation_order": [
     "mountains",
+    "volcano",
     "forest",
     "highlands",
     "jungle",
-    "volcano",
-    "grassland",
     "desert",
     "grove",
+    "grassland",
     "swamp",
     "delta"
   ],
@@ -24,9 +24,10 @@
       "label": "Snow Mountains",
       "neighbors": [
         "forest",
-        "highlands"
+        "highlands",
+        "volcano"
       ],
-      "evidence": "elevation_code: 21 + 30*ridged + 11*clamp",
+      "evidence": "SEEDS: [0,-44,-50,1.1] (mountains) is near [1,-30,-34,1] (forest), [2,14,-30,1] (highlands), and [8,44,-18,1.1] (volcano) in the SEEDS array.",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -42,9 +43,11 @@
       "label": "Snowy Conifer Forest",
       "neighbors": [
         "mountains",
-        "highlands"
+        "highlands",
+        "swamp",
+        "jungle"
       ],
-      "evidence": "elevation_code: 18 + 2.2*fbm",
+      "evidence": "SEEDS: [1,-30,-34,1] (forest) is near [0,-44,-50,1.1] (mountains), [2,14,-30,1] (highlands), [4,-47,-32,.95] (swamp), and [3,-27,0,1] (jungle).",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -62,9 +65,10 @@
         "mountains",
         "forest",
         "jungle",
+        "grove",
         "grassland"
       ],
-      "evidence": "elevation_code: 14.5 + 2.5*fbm + 6*max(0,fbm)",
+      "evidence": "SEEDS: [2,14,-30,1] (highlands) is near [0,20,-58,1.1] (mountains), [1,1,-42,.9] (forest), [3,-27,0,1] (jungle), [6,20,-5,1] (grove), and [5,8,12,1] (grassland).",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -79,11 +83,13 @@
       "id": "jungle",
       "label": "Dense Jungle",
       "neighbors": [
+        "forest",
         "highlands",
         "swamp",
-        "grassland"
+        "grassland",
+        "delta"
       ],
-      "evidence": "elevation_code: 9 + 2.4*fbm",
+      "evidence": "SEEDS: [3,-27,0,1] (jungle) is near [1,-13,-40,1] (forest), [2,14,-30,1] (highlands), [4,-54,-20,1] (swamp), [5,-6,2,1.1] (grassland), and the delta/coast edge.",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -98,16 +104,15 @@
       "id": "swamp",
       "label": "Backwater Swamp",
       "neighbors": [
-        "jungle",
-        "delta",
-        "grove"
+        "forest",
+        "jungle"
       ],
-      "evidence": "elevation_code: 5.4 + 0.9*fbm",
-      "passed": false,
+      "evidence": "SEEDS: [4,-54,-20,1] (swamp) is near [1,-30,-34,1] (forest) and [3,-42,-6,1.15] (jungle).",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "incorrectly connected to delta",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 95,
       "cy": 322,
       "w": 168,
@@ -117,11 +122,11 @@
       "id": "grove",
       "label": "Flowering Grove",
       "neighbors": [
-        "swamp",
+        "highlands",
         "grassland",
-        "delta"
+        "desert"
       ],
-      "evidence": "elevation_code: 6.2 + 0.8*fbm",
+      "evidence": "SEEDS: [6,20,-5,1] (grove) is near [2,25,-27,1] (highlands), [5,8,12,1] (grassland), and [7,36,30,1.15] (desert).",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -141,12 +146,12 @@
         "grove",
         "desert"
       ],
-      "evidence": "elevation_code: 7 + 0.7*fbm",
-      "passed": false,
+      "evidence": "SEEDS: [5,-6,2,1.1] (grassland) is near [2,14,-30,1] (highlands), [3,-27,0,1] (jungle), [6,20,-5,1] (grove), and [7,36,30,1.15] (desert).",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to delta",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 372,
       "cy": 372,
       "w": 180,
@@ -156,17 +161,16 @@
       "id": "delta",
       "label": "Coastal Delta / Ocean",
       "neighbors": [
-        "swamp",
-        "grove",
-        "desert",
-        "volcano"
+        "jungle",
+        "grassland",
+        "desert"
       ],
-      "evidence": "elevation_code: SL-1-Math.min(5,Math.floor(cT*55))",
-      "passed": false,
+      "evidence": "The delta/coast is defined by the edgeR calculation and the ow (ocean weight) variable, bordering the southern and western regions.",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to grassland",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 348,
       "cy": 512,
       "w": 200,
@@ -176,11 +180,12 @@
       "id": "desert",
       "label": "Desert Basin",
       "neighbors": [
+        "grove",
         "grassland",
         "delta",
         "volcano"
       ],
-      "evidence": "elevation_code: 6.6 + 1.2*fbm",
+      "evidence": "SEEDS: [7,36,30,1.15] (desert) is near [6,28,5,.95] (grove), [5,4,34,1] (grassland), the delta edge, and [8,58,-5,1] (volcano).",
       "passed": false,
       "covered": true,
       "state": "fail",
@@ -196,15 +201,15 @@
       "id": "volcano",
       "label": "Volcano",
       "neighbors": [
-        "delta",
+        "mountains",
         "desert"
       ],
-      "evidence": "elevation_code: 9 + 2*fbm",
+      "evidence": "SEEDS: [8,44,-18,1.1] (volcano) is near [0,34,-52,1] (mountains) and [7,50,15,1.1] (desert).",
       "passed": false,
       "covered": true,
       "state": "fail",
       "score": 1,
-      "reason": "incorrectly connected to delta",
+      "reason": "incorrectly connected to mountains",
       "cx": 662,
       "cy": 128,
       "w": 168,
@@ -219,19 +224,19 @@
     },
     {
       "from": "delta",
-      "to": "grove"
+      "to": "grassland"
     },
     {
       "from": "delta",
-      "to": "swamp"
-    },
-    {
-      "from": "delta",
-      "to": "volcano"
+      "to": "jungle"
     },
     {
       "from": "desert",
       "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "grove"
     },
     {
       "from": "desert",
@@ -243,7 +248,15 @@
     },
     {
       "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
       "to": "mountains"
+    },
+    {
+      "from": "forest",
+      "to": "swamp"
     },
     {
       "from": "grassland",
@@ -259,7 +272,7 @@
     },
     {
       "from": "grove",
-      "to": "swamp"
+      "to": "highlands"
     },
     {
       "from": "highlands",
@@ -272,6 +285,10 @@
     {
       "from": "jungle",
       "to": "swamp"
+    },
+    {
+      "from": "mountains",
+      "to": "volcano"
     }
   ]
 }

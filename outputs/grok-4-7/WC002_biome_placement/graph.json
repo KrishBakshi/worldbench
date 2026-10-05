@@ -3,20 +3,20 @@
     "width": 800,
     "height": 560
   },
-  "score": 14,
+  "score": 18,
   "max_score": 20,
   "passed": false,
   "elevation_order": [
-    "mountains",
     "volcano",
+    "mountains",
     "forest",
     "highlands",
     "jungle",
-    "desert",
     "grove",
-    "delta",
     "grassland",
-    "swamp"
+    "desert",
+    "swamp",
+    "delta"
   ],
   "nodes": [
     {
@@ -24,9 +24,10 @@
       "label": "Snow Mountains",
       "neighbors": [
         "forest",
-        "highlands"
+        "highlands",
+        "delta"
       ],
-      "evidence": "z >= 62 && x > -58 && x < 62",
+      "evidence": "biomeName function: z >= 62 && x > -58 && x < 62 is mountain; z >= 51 && z < 62 is snow; highland is z >= 16 && z < 62; delta is nearOcean",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -42,11 +43,10 @@
       "label": "Snowy Conifer Forest",
       "neighbors": [
         "mountains",
-        "jungle",
-        "swamp",
-        "highlands"
+        "highlands",
+        "swamp"
       ],
-      "evidence": "z >= 51 && z < 62 && x <= 26 && x >= -90",
+      "evidence": "biomeName function: z >= 51 && z < 62 is snow; z >= 38 && z < 62 is snow; swamp is x <= -50 && z >= 10",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -63,15 +63,16 @@
       "neighbors": [
         "mountains",
         "forest",
+        "jungle",
         "grove",
-        "volcano"
+        "desert"
       ],
-      "evidence": "x >= 18 && x <= 84 && z >= 18 && z < 62",
-      "passed": false,
+      "evidence": "biomeName function: x >= 18 && x <= 84 && z >= 18 && z < 62 is highland; jungle is x <= 16 && z >= -4; grove is x >= 22 && x <= 82",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to jungle",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 130,
       "cy": 172,
       "w": 168,
@@ -81,16 +82,17 @@
       "id": "jungle",
       "label": "Dense Jungle",
       "neighbors": [
-        "forest",
+        "highlands",
+        "swamp",
         "grassland",
-        "swamp"
+        "delta"
       ],
-      "evidence": "x <= 16 && z >= -4 && z < 40",
-      "passed": false,
+      "evidence": "biomeName function: x <= 16 && z >= -4 && z < 40 is jungle; swamp is x <= -50; grassland is z <= 16 && x > 14",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not connected to highlands",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 362,
       "cy": 252,
       "w": 168,
@@ -101,15 +103,14 @@
       "label": "Backwater Swamp",
       "neighbors": [
         "forest",
-        "jungle",
-        "delta"
+        "jungle"
       ],
-      "evidence": "x <= -50 && z >= 10 && z <= 54",
-      "passed": false,
+      "evidence": "biomeName function: x <= -50 && z >= 10 && z <= 54 is swamp; jungle is x <= 16",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "incorrectly connected to delta",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 95,
       "cy": 322,
       "w": 168,
@@ -123,7 +124,7 @@
         "grassland",
         "desert"
       ],
-      "evidence": "x >= 22 && x <= 82 && z >= -2 && z <= 22",
+      "evidence": "biomeName function: x >= 22 && x <= 82 && z >= -2 && z <= 22 is grove; grassland is z <= 16; desert is x >= 26 && z <= -15",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -142,12 +143,12 @@
         "grove",
         "delta"
       ],
-      "evidence": "z < 10",
-      "passed": false,
+      "evidence": "biomeName function: z <= 16 && x > 14 && x < 24 is grass; grove is x > 20; delta is nearOcean",
+      "passed": true,
       "covered": true,
-      "state": "fail",
-      "score": 1,
-      "reason": "not at a higher elevation than delta",
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
       "cx": 372,
       "cy": 372,
       "w": 180,
@@ -157,11 +158,12 @@
       "id": "delta",
       "label": "Coastal Delta / Ocean",
       "neighbors": [
-        "swamp",
+        "mountains",
+        "jungle",
         "grassland",
         "desert"
       ],
-      "evidence": "nearOcean(x, z) && z < 36 && x < 90 && (z < 12 || x < -40)",
+      "evidence": "nearOcean function checks oceanContains; oceanContains uses shelf distance; delta is the edge of the island",
       "passed": true,
       "covered": true,
       "state": "ok",
@@ -176,11 +178,12 @@
       "id": "desert",
       "label": "Desert Basin",
       "neighbors": [
+        "highlands",
         "grove",
         "delta",
-        "highlands"
+        "volcano"
       ],
-      "evidence": "x > 24 && z < -14",
+      "evidence": "biomeName function: x >= 26 && z <= -15 && z > -84 is desert; volcano is x > 90",
       "passed": false,
       "covered": true,
       "state": "fail",
@@ -196,9 +199,10 @@
       "id": "volcano",
       "label": "Volcano",
       "neighbors": [
-        "highlands"
+        "highlands",
+        "desert"
       ],
-      "evidence": "x > 88 && z > 4 && z < 56",
+      "evidence": "biomeName function: (x > 88 && z > 4 && z < 56) is volcano; desert is x >= 26 && z <= -15",
       "passed": false,
       "covered": true,
       "state": "fail",
@@ -222,7 +226,11 @@
     },
     {
       "from": "delta",
-      "to": "swamp"
+      "to": "jungle"
+    },
+    {
+      "from": "delta",
+      "to": "mountains"
     },
     {
       "from": "desert",
@@ -233,12 +241,12 @@
       "to": "highlands"
     },
     {
-      "from": "forest",
-      "to": "highlands"
+      "from": "desert",
+      "to": "volcano"
     },
     {
       "from": "forest",
-      "to": "jungle"
+      "to": "highlands"
     },
     {
       "from": "forest",
@@ -259,6 +267,10 @@
     {
       "from": "grove",
       "to": "highlands"
+    },
+    {
+      "from": "highlands",
+      "to": "jungle"
     },
     {
       "from": "highlands",

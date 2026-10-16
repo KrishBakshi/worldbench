@@ -1,10 +1,42 @@
-# worldbench
+<div align="center">
 
-**A benchmark for 3D world generation in Three.js: can a language model build a living world from one description?**
+# WorldBench
+
+**Evaluating LLMs on Three.js Voxel World Generation**
+
+*A benchmark for 3D world generation in Three.js: can a language model build a living world from one description?*
+
+[![Paper](https://img.shields.io/badge/arXiv-2610.10622-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2610.10622)
+[![Website](https://img.shields.io/badge/Website-worldbench.krishbakshi.com-2ea44f?logo=googlechrome&logoColor=white)](https://worldbench.krishbakshi.com)
+[![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-KrishBakshi%2Fworldbench-ffd21e)](https://huggingface.co/datasets/KrishBakshi/worldbench)
+[![Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-WorldBench-ff9d00)](https://huggingface.co/spaces/KrishBakshi/worldbench)
+[![GitHub](https://img.shields.io/badge/GitHub-KrishBakshi%2Fworldbench-181717?logo=github)](https://github.com/KrishBakshi/worldbench)
+
+[**Paper**](https://arxiv.org/abs/2610.10622) ·
+[**Website & leaderboard**](https://worldbench.krishbakshi.com) ·
+[**Dataset**](https://huggingface.co/datasets/KrishBakshi/worldbench) ·
+[**Live worlds (Space)**](https://huggingface.co/spaces/KrishBakshi/worldbench) ·
+[**Prompt**](prompts/prompt.md) ·
+[**Citation**](#citation)
+
+<video src="https://github.com/KrishBakshi/worldbench/raw/main/public/worldbench.mp4" controls autoplay muted loop playsinline width="100%"></video>
+
+*Can't see the video? [Watch it here](public/worldbench.mp4).*
+
+</div>
+
+## Links
+
+| Resource | Link | What's there |
+| --- | --- | --- |
+| 📄 Paper | [arXiv:2610.10622](https://arxiv.org/abs/2610.10622) | Method, the judge's validation (mutation tests, fakes, renames), results |
+| 🌐 Website | [worldbench.krishbakshi.com](https://worldbench.krishbakshi.com) | Leaderboard and every scored world, running in the browser |
+| 🤗 Dataset | [KrishBakshi/worldbench](https://huggingface.co/datasets/KrishBakshi/worldbench) | Release snapshot: prompt, rubrics, judge config, per-model `validation.json` |
+| 🤗 Space | [KrishBakshi/worldbench](https://huggingface.co/spaces/KrishBakshi/worldbench) | The five worlds evaluated in the paper, side by side |
+| 💻 Code | [KrishBakshi/worldbench](https://github.com/KrishBakshi/worldbench) | This repo: generation harness, capture stage, judges, scoring |
+| 🧾 Display site | [KrishBakshi/worldbench-web](https://github.com/KrishBakshi/worldbench-web) | Source of the website |
 
 worldbench gives a model a single prompt: a detailed description of a floating voxel island with ten biomes, rivers, weather, wildlife, a day/night cycle and seasons. The model has to answer with **one self-contained HTML file** that renders that world in 3D with **Three.js**: the library imported from a CDN, with no build step and no separate asset files. The file has to open in a browser and just run, with a free camera to orbit, zoom and pan around the island. worldbench then checks, piece by piece, how much of the described world actually exists, looks right and behaves right.
-
-<!-- Hero image goes here. -->
 
 ## What kind of benchmark this is
 
@@ -43,6 +75,26 @@ Every world is scored on the same five-step ladder, 280 points in total. The max
 | [WC005 Temporal cycles](tests/WC005_day_night_seasons/README.md) | 20 | Do the day/night cycle and the seasons actually change the world, rather than only a label on screen? | Stateful simulation: the world has to change over time for real. |
 
 Each test's own README explains exactly how it is scored.
+
+## Leaderboard
+
+Totals out of 280, from the [website's leaderboard](https://worldbench.krishbakshi.com) (13 models scored).
+
+| # | Model | Voxel /40 | Placement /20 | Contents /100 | Physics /100 | Cycles /20 | **Total /280** |
+| --: | --- | --: | --: | --: | --: | --: | --: |
+| 1 | Claude Opus 5.5 | 40.00 | 18 | 77.89 | 74.75 | 11 | **221.64** |
+| 2 | Claude Fable 5.1 | 36.00 | 15 | 76.29 | 72.50 | 11 | **210.79** |
+| 3 | GPT-6 Astra | 36.00 | 16 | 74.48 | 63.25 | 10 | **199.73** |
+| 4 | Nex N2.5 Pro | 37.33 | 15 | 65.78 | 63.75 | 13 | **194.86** |
+| 5 | Kimi K3 | 38.00 | 17 | 60.11 | 62.25 | 14 | **191.36** |
+| 6 | Muse Spark 1.3 | 37.33 | 15 | 64.88 | 61.75 | 11 | **189.96** |
+| 7 | Grok 4.7 | 35.00 | 18 | 65.03 | 58.75 | 11 | **187.78** |
+| 8 | Gemini 3.7 Flash | 37.14 | 14 | 52.20 | 56.75 | 11 | **171.09** |
+| 9 | GPT-5.6 Sol | 26.00 | 13 | 57.50 | 59.25 | 11 | **166.75** |
+| 10 | Muse Spark 1.2 | 26.38 | 14 | 55.29 | 50.50 | 14 | **160.17** |
+| 11 | Qwen 3.8 Max | 26.00 | 14 | 48.04 | 57.25 | 12 | **157.29** |
+| 12 | Gemini 3.1 Pro | 37.00 | 13 | 44.25 | 44.75 | 10 | **149.00** |
+| 13 | DeepSeek V4 Pro | 30.46 | 14 | 38.01 | 42.25 | 12 | **136.72** |
 
 ## How it checks, in brief
 
@@ -94,4 +146,20 @@ outputs/<model>/    captured screenshots, per-test evidence and scores
 tests/WC00N_*/      one folder per test, with its own README
 eval/               grading: capture, judges, scoring
 harness/            generation: prompt a model, then debug and fix its output
+public/             the overview video embedded above
+```
+
+## Citation
+
+If you use WorldBench in your research, please cite the paper:
+
+```bibtex
+@misc{bakshi2026worldbench,
+      title={WorldBench: Evaluating LLMs on Three.js Voxel World Generation},
+      author={Krish Bakshi},
+      year={2026},
+      eprint={2610.10622},
+      archivePrefix={arXiv},
+      primaryClass={cs.GR}
+}
 ```

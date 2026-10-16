@@ -9,7 +9,7 @@
 [![Paper](https://img.shields.io/badge/arXiv-2610.10622-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2610.10622)
 [![Website](https://img.shields.io/badge/Website-worldbench.krishbakshi.com-2ea44f?logo=googlechrome&logoColor=white)](https://worldbench.krishbakshi.com)
 [![Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-WorldBench-ff9d00)](https://huggingface.co/spaces/KrishBakshi/worldbench)
-[![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-KrishBakshi%2Fworldbench-ffd21e)](https://huggingface.co/datasets/KrishBakshi/worldbench)
+[![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-WorldBench-ffd21e)](https://huggingface.co/datasets/KrishBakshi/worldbench)
 
 [**Paper**](https://arxiv.org/abs/2610.10622) ·
 [**Website**](https://worldbench.krishbakshi.com) ·

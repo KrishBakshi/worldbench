@@ -1,0 +1,79 @@
+[
+  {
+    "biome": "forest",
+    "item": "snow_on_canopy_cubes",
+    "seen": "White snow blocks are placed directly on tree canopies.",
+    "probe": {
+      "found": true,
+      "evidence": "props.add(x,y+h-0.1+l+0.5,w*0.82,0.35,w*0.82,0xeef6ff,0.03);"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "    props.add(x,y+h-0.1+l+0.5,z,w*0.82,0.35,w*0.82,0xeef6ff,0.03);",
+      "lines": [
+        516
+      ],
+      "explanation": "The pine function, called within the B.CONIF biome, iterates through layers of the tree and adds a white-tinted (0xeef6ff) block at each layer level (y+h-0.1+l+0.5) to represent snow on the canopy."
+    },
+    "verified": true
+  },
+  {
+    "biome": "forest",
+    "item": "forest_fauna_spawn",
+    "seen": "Deer visible on the slope below the conifer canopy.",
+    "probe": {
+      "found": true,
+      "evidence": "not in forest scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "  {t:'deer',n:6,x:-6,z:-46,r:26,sp:2.0},",
+      "lines": [
+        720
+      ],
+      "explanation": "The FAUNA array defines a group of deer centered at coordinates (x:-6, z:-46), which matches the exact location defined for the Snowy Conifer Forest (B.CONIF) biome in the layout code."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grove",
+    "item": "feeder_streams",
+    "seen": "Small streams flowing through the grove.",
+    "probe": {
+      "found": true,
+      "evidence": "/* moist feeder off the highland slope into the pink grove, then to the west coast */"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "  /* moist feeder off the highland slope into the pink grove, then to the west coast */\n  { kind:2,w:[1.6,3.6],pts:[[-66,-20,26],[-80,-6,20],[-86,10,14],[-78,24,11],[-64,36,9.5],[-48,46,8],[-34,58,6.6],[-30,74,5]] },",
+      "lines": [
+        238,
+        239
+      ],
+      "explanation": "The code defines a river object (kind: 2, indicating water) with a path that explicitly passes through the coordinates associated with the Flowering Grove (B.GROVE), effectively creating a feeder stream through the biome."
+    },
+    "verified": true
+  },
+  {
+    "biome": "desert",
+    "item": "sandstone_peaks",
+    "seen": "A sandstone mountain rises above the desert flats.",
+    "probe": {
+      "found": false,
+      "evidence": "not in desert scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "feat:(x,z)=>{const m=vnoise(x*0.03+11,z*0.03+7);const t=smoothstep(0.56,0.70,m);return Math.round(32*t/5)*5+2.4*fbm(x*0.08+5,z*0.08+9,3);}}\nif(h>SEA+14)return n>0.5?0xc8934f:0xb2793f;",
+      "lines": [
+        176,
+        177,
+        178,
+        179,
+        419
+      ],
+      "explanation": "The feat function for B.DESERT calculates a height offset using noise and fbm, creating mountain-like elevation variations. The color logic at line 419 applies specific sandstone-colored hex codes (0xc8934f and 0xb2793f) to these elevated areas (h > SEA+14) within the desert biome."
+    },
+    "verified": true
+  }
+]

@@ -1,0 +1,82 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "B.PEAK"
+      ],
+      "placement_code": "{id:B.PEAK,cx:-28,cz:-78,rx:62,rz:32,base:40,feat:(x,z)=>{const band=smoothstep(-114,-94,z)*(1-smoothstep(-66,-48,z));return 74*ridged(x*0.016+5,z*0.018+9,4)*(0.45+0.75*band)+7*fbm(x*0.07,z*0.07,3);}}",
+      "elevation_code": "return 74*ridged(x*0.016+5,z*0.018+9,4)*(0.45+0.75*band)+7*fbm(x*0.07,z*0.07,3);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "B.CONIF"
+      ],
+      "placement_code": "{id:B.CONIF,cx:-6,cz:-46,rx:54,rz:18,base:32,feat:(x,z)=>8*fbm(x*0.045+3,z*0.045+2,3)}",
+      "elevation_code": "return 8*fbm(x*0.045+3,z*0.045+2,3)"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "B.HIGH"
+      ],
+      "placement_code": "{id:B.HIGH,cx:-72,cz:-24,rx:38,rz:38,base:27,feat:(x,z)=>11*fbm(x*0.04+21,z*0.04+31,4)+4*ridged(x*0.09,z*0.09,2)}",
+      "elevation_code": "return 11*fbm(x*0.04+21,z*0.04+31,4)+4*ridged(x*0.09,z*0.09,2)"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "B.JUNGLE"
+      ],
+      "placement_code": "{id:B.JUNGLE,cx:58,cz:4,rx:42,rz:32,base:15,feat:(x,z)=>8*fbm(x*0.045+7,z*0.045+41,3)+14*smoothstep(60,80,x)*(1-smoothstep(14,34,z))}",
+      "elevation_code": "return 8*fbm(x*0.045+7,z*0.045+41,3)+14*smoothstep(60,80,x)*(1-smoothstep(14,34,z))"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "B.SWAMP"
+      ],
+      "placement_code": "{id:B.SWAMP,cx:86,cz:-30,rx:25,rz:20,base:7.6,feat:(x,z)=>2.2*fbm(x*0.07+91,z*0.07+3,3)-2.8*smoothstep(0.45,0.62,vnoise(x*0.06+2,z*0.06+8))}",
+      "elevation_code": "return 2.2*fbm(x*0.07+91,z*0.07+3,3)-2.8*smoothstep(0.45,0.62,vnoise(x*0.06+2,z*0.06+8))"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "B.GROVE"
+      ],
+      "placement_code": "{id:B.GROVE,cx:-68,cz:26,rx:34,rz:26,base:12,feat:(x,z)=>4*fbm(x*0.05+61,z*0.05+13,3)}",
+      "elevation_code": "return 4*fbm(x*0.05+61,z*0.05+13,3)"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "B.GRASS"
+      ],
+      "placement_code": "{id:B.GRASS,cx:-4,cz:46,rx:46,rz:32,base:9,feat:(x,z)=>2.2*fbm(x*0.035+77,z*0.035+15,3)}",
+      "elevation_code": "return 2.2*fbm(x*0.035+77,z*0.035+15,3)"
+    },
+    "delta": {
+      "present": false,
+      "aliases": [],
+      "placement_code": "",
+      "elevation_code": ""
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "B.DESERT"
+      ],
+      "placement_code": "{id:B.DESERT,cx:58,cz:64,rx:42,rz:32,base:11,feat:(x,z)=>{const m=vnoise(x*0.03+11,z*0.03+7);const t=smoothstep(0.56,0.70,m);return Math.round(32*t/5)*5+2.4*fbm(x*0.08+5,z*0.08+9,3);}}",
+      "elevation_code": "return Math.round(32*t/5)*5+2.4*fbm(x*0.08+5,z*0.08+9,3);"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "B.VOLC"
+      ],
+      "placement_code": "{id:B.VOLC,cx:VX,cz:VZ,rx:28,rz:25,base:9,feat:(x,z)=>{const d=Math.hypot(x-VX,z-VZ);let h=152*Math.pow(Math.max(0,1-d/32),1.8);const rim=152*Math.pow(1-10/32,1.8);if(d<10) h=rim-(10-d)*1.7;return h+3*fbm(x*0.09+2,z*0.09+4,3);}}",
+      "elevation_code": "return h+3*fbm(x*0.09+2,z*0.09+4,3);"
+    }
+  }
+}

@@ -16,7 +16,7 @@
 [**Space**](https://huggingface.co/spaces/KrishBakshi/worldbench) ·
 [**Prompt**](prompts/prompt.md)
 
-<a href="public/worldbench.mp4"><img src="public/worldbench.gif" alt="WorldBench overview" width="100%"></a>
+<a href="public/worldbench.mp4"><img src="public/worldbench.webp" alt="WorldBench overview" width="100%"></a>
 
 *Click the animation for the full-quality video.*
 

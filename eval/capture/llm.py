@@ -367,6 +367,33 @@ def _is_transient(exc: Exception) -> bool:
     return bool(_TRANSIENT_RE.search(str(exc))) and not _is_rate_limit(exc)
 
 
+def _with_timeout(fn):
+    """fn() cut at REQUEST_TIMEOUT. The client's own `timeout` is not enforced on
+    every path: a vision-judge call once sat 15+ min unanswered. fn runs in a
+    daemon thread (abandoned, not joined, on timeout) under a copy of this
+    context, so its LangSmith run still nests under the caller's."""
+    import contextvars
+    import threading
+
+    box: dict = {}
+    ctx = contextvars.copy_context()
+
+    def run():
+        try:
+            box["result"] = ctx.run(fn)
+        except BaseException as exc:  # re-raised in the caller's thread
+            box["error"] = exc
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(REQUEST_TIMEOUT)
+    if worker.is_alive():
+        raise TimeoutError(f"judge request timed out after {REQUEST_TIMEOUT}s")
+    if "error" in box:
+        raise box["error"]
+    return box["result"]
+
+
 def call_with_retry(fn, model: str | None = None, est_tokens: int = 0):
     """Run fn() under `model`'s caps, retrying rate limits and brief server errors."""
     transient_left = MAX_TRANSIENT_RETRIES
@@ -374,7 +401,7 @@ def call_with_retry(fn, model: str | None = None, est_tokens: int = 0):
         _raise_if_unavailable()
         entry = throttle(model, est_tokens)
         try:
-            result = fn()
+            result = _with_timeout(fn)
             settle(entry, result)
             return result
         except JudgeUnavailable:

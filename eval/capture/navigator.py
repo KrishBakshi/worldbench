@@ -55,7 +55,11 @@ Save when frame clearly shows the biome. shows_biome=false if you saved anyway b
 Biome truly nowhere after looking around -> give_up with short reason.
 Budget {steps} tool calls."""
 
-_UI_LINE = re.compile(r"uid=\S+\s+(?:button|link|StaticText|listitem|generic|option|checkbox|radio)\b.*\"", re.I)
+# The last alternative is role-less text (`uid=1_15 "5. Backwater Swamp"`): a
+# legend built from plain <div>s has no other trace in the snapshot. Without
+# it one world's list held only the legend's "Hide" button, and the agent
+# clicked that, guessed ids like "5_Backwater Swamp", or never tried the legend.
+_UI_LINE = re.compile(r"uid=\S+\s+(?:(?:button|link|StaticText|listitem|generic|option|checkbox|radio)\b.*\"|\")", re.I)
 
 
 def _filter_ui(snapshot: str) -> str:

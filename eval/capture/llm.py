@@ -404,7 +404,13 @@ async def acall_with_retry(make_coro, model: str | None = None, est_tokens: int 
         _raise_if_unavailable()
         entry = await asyncio.to_thread(throttle, model, est_tokens)
         try:
-            result = await make_coro()
+            # The client's own `timeout` is not enforced on every path: a
+            # navigator step sat ~3h on a call the server never answered. Cut it
+            # here; "timed out" makes it a transient error, retried like a 5xx.
+            try:
+                result = await asyncio.wait_for(make_coro(), REQUEST_TIMEOUT)
+            except asyncio.TimeoutError:
+                raise TimeoutError(f"judge request timed out after {REQUEST_TIMEOUT}s") from None
             settle(entry, result)
             return result
         except JudgeUnavailable:

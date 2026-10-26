@@ -1,0 +1,71 @@
+[
+  {
+    "biome": "highlands",
+    "item": "headwater_rills",
+    "seen": "Small water streams flowing down",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Highlands biome (B.HL) is defined by its terrain height and surface features like scrub and boulders, but it does not contain any logic to place water or rills. The water system (wk[c]===2) is explicitly managed by the 'rivers' array and 'carve' function, which are independent of the Highlands biome definition."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Gentle slope leading to flowering grove",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Highlands (B.HL) and Flowering grove (B.GV) are distinct biomes defined separately in the code. While the Highlands biome has a height function that creates a slope, there is no code connecting it to the Flowering grove or building a 'feeder' feature between them."
+    },
+    "verified": false
+  },
+  {
+    "biome": "swamp",
+    "item": "mud_banks",
+    "seen": "Dark earth banks bordering the water pools.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "    else if(wk[c]===3)bed=col(0x3b4526,.06);\n    else if(wk[c]===3)wc=col(0x5a6b30,.04);",
+      "lines": [
+        326,
+        330
+      ],
+      "explanation": "The code identifies swamp water cells with wk[c]===3 and assigns them a specific dark greenish-brown color (0x3b4526 for the bed and 0x5a6b30 for the water surface), which creates the visual appearance of silt-laden swamp banks."
+    },
+    "verified": true
+  },
+  {
+    "biome": "delta",
+    "item": "depth_banded_water",
+    "seen": "Turquoise and darker blue water bands around the coast.",
+    "probe": {
+      "found": true,
+      "evidence": "else if(wk[c]===1)bed=col(d<=1?0xe8dcae:d===2?0xc9d0b0:d===3?0x3b7fb0:d===4?0x1f5a9a:0x143a78,.03).lerp(new THREE.Color(0xa8f0dc),mixA[c]*.6)"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(wk[c]===1)wc=col(d<=1?0x5ff0e6:d===2?0x2fc4e8:0x1e7fd0,.02).lerp(new THREE.Color(0x9ff5ea),mixA[c]*.7);",
+      "lines": [
+        329
+      ],
+      "explanation": "The code defines water color (wc) for the coastal/ocean biome (wk[c]===1) using a conditional expression based on the variable 'd', which represents distance from the shore, assigning different turquoise and blue hex colors (0x5ff0e6, 0x2fc4e8, 0x1e7fd0) to create the water bands."
+    },
+    "verified": true
+  }
+]

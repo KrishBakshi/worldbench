@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const sunCore = new THREE.Mesh(new THREE.BoxGeometry(11, 11, 11), new THREE.MeshBasicMaterial({ color: 0xfff59d }));",
+      "motion_evidence": "sunGroup.position.set(sx, sy, sz);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sunLight.position.set(sx, Math.max(18, sy), sz);",
+      "motion_evidence": "sunLight.position.set(sx, Math.max(18, sy), sz);"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "ambientLight.intensity = lerp(0.22, 0.72, dayFactor);",
+      "motion_evidence": "ambientLight.intensity = lerp(0.22, 0.72, dayFactor);"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const finalSunCol = blendedSeasonTint.clone().lerp(duskColor, duskFactor * 0.65).lerp(nightColor, 1 - dayFactor);",
+      "motion_evidence": "sunLight.color.copy(finalSunCol);"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const seasonIdx = Math.floor(yearPhase * 4) % 4;",
+      "motion_evidence": "const yearPhase = (elapsedTotal % yearDuration) / yearDuration;"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const blendedSeasonTint = curSeason.tint.clone().lerp(nextSeason.tint, seasonSub);",
+      "motion_evidence": "const blendedSeasonTint = curSeason.tint.clone().lerp(nextSeason.tint, seasonSub);"
+    },
+    "season_modulates_weather": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');",
+      "motion_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const driftX = Math.sin(elapsedTotal * 0.35 + i * 0.01) * 2.4;",
+      "motion_evidence": "dummy.position.set(cb.baseX + driftX, cb.baseY, cb.baseZ + driftZ);"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "not in cycle scope"
+    }
+  }
+}

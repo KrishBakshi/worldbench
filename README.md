@@ -113,3 +113,26 @@ tests/WC00N_*/      one folder per test, with its own README
 eval/               grading: capture, judges, scoring
 harness/            generation: prompt a model, then debug and fix its output
 ```
+
+## Contributing
+
+To add a model's results or change a test, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+The code is licensed under the [MIT License](LICENSE). The data in `outputs/`
+(generated worlds, judge reports and scores, also published as the Hugging Face
+dataset) is licensed under [CC BY 4.0](outputs/LICENSE).
+
+## Citation
+
+If you use WorldBench, please cite it ([CITATION.cff](CITATION.cff)):
+
+```bibtex
+@misc{bakshi2026worldbench,
+  title  = {WorldBench: Evaluating LLMs on Three.js Voxel World Generation},
+  author = {Bakshi, Krish},
+  year   = {2026},
+  url    = {https://github.com/KrishBakshi/worldbench}
+}
+```

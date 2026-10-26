@@ -1,0 +1,68 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "var ridge = fbm(x*0.012, z*0.012, 4); var falloff = Math.max(0, 1-Math.min(1, Math.sqrt(Math.pow((u-b.u)/b.sigma,2)+Math.pow((v-b.v)/b.sigma,2))/1.4)); h = 14 + b.baseH*falloff*(0.55+0.6*ridge);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "conifer"
+      ],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "h = b.baseH*0.28 + fbm(x*0.02,z*0.02,3)*b.baseH*0.22 + 4;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "beach"
+      ],
+      "placement_code": "var isCoast = frac > 0.86;",
+      "elevation_code": "var t = Math.min(1, (frac-0.86)/0.16); h = THREE.MathUtils.lerp(heightAt(u,v,x,z,cls), 3, t) ;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "var dm = fbm(x*0.02+50, z*0.02+50, 3); var spike = dm>0.62 ? (dm-0.62)*140 : 0; h = 6 + fbm(x*0.02,z*0.02,3)*10 + spike;"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [],
+      "placement_code": "var dx=(u-b.u)/b.sigma, dz=(v-b.v)/b.sigma; var d2 = dx*dx+dz*dz; var w = Math.exp(-d2*0.5);",
+      "elevation_code": "var dist = Math.sqrt(Math.pow((u-b.u)*HALF_X,2)+Math.pow((v-b.v)*HALF_Z,2)); var cone = Math.max(0, b.baseH - dist*2.1); var crater = dist < 9 ? -18*(1-dist/9) : 0; h = 8 + cone + crater + fbm(x*0.03,z*0.03,2)*4;"
+    }
+  }
+}

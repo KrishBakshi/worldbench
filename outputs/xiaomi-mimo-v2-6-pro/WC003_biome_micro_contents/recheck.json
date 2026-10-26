@@ -1,0 +1,224 @@
+[
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "Meltwater stream flowing down into the corridor.",
+    "probe": {
+      "found": true,
+      "evidence": "/* mountain melt meets lava -> obsidian + steam */ carve([[58,-84,40],[64,-74,32],[70,-66,26],[74,-58,22],[68,-58,20],[62,-60,19]], 1.8, 3.2, 2);"
+    },
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  {
+    "biome": "mountains",
+    "item": "summit_blizzard",
+    "seen": "Blizzard particles swirling around peaks.",
+    "probe": {
+      "found": true,
+      "evidence": "/* blizzard : the behind face of the snow massif */ systems.push(particles(1500, 0xf2f7ff, 2.2, 0.75,"
+    },
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  {
+    "biome": "forest",
+    "item": "foothill_in_front_of_peaks",
+    "seen": "Foothill shelf positioned before snow mountains.",
+    "probe": {
+      "found": true,
+      "evidence": "/* snowfall over the conifer foothills */"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines biome-specific coloring and flora placement for the Snowy Conifer Forest (SNOWF), but there is no logic that creates an elevated shelf or foothill feature specifically for this biome. The elevation is determined by global region parameters and peak offsets, not by biome-specific terrain generation logic."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Slope leads down toward grove.",
+    "probe": {
+      "found": true,
+      "evidence": "/* highlands -> flowering grove feeder -> main river */"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "/* highlands -> flowering grove feeder -> main river */\ncarve([[-64,-6,36],[-62,4,28],[-58,14,21],[-54,24,16],[-50,32,14],[-44,40,12],[-38,48,11],[-33,55,10.5]], 2.2, 4.2, 2);",
+      "lines": [
+        398,
+        399
+      ],
+      "explanation": "The code explicitly defines a 'highlands -> flowering grove feeder' path using the carve function, which lowers the terrain elevation (H[id] = Math.min(H[id], wq - 2)) to create a drainage channel or feeder stream from the highlands toward the grove."
+    },
+    "verified": true
+  },
+  {
+    "biome": "highlands",
+    "item": "hardy_tussock_plants",
+    "seen": "Low hardy vegetation present.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  {
+    "biome": "jungle",
+    "item": "waterfall",
+    "seen": "Water flowing beside the jungle.",
+    "probe": {
+      "found": false,
+      "evidence": "not in jungle scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The 'Dense Jungle' biome code only defines terrain color and flora placement (P.jungle). While the biome's metadata note mentions 'waterfalls', there is no functional code in the biome's logic or the object placement loop that generates waterfall geometry."
+    },
+    "verified": false
+  },
+  {
+    "biome": "jungle",
+    "item": "rising_mist_particles",
+    "seen": "Particle effects present around the area.",
+    "probe": {
+      "found": true,
+      "evidence": "/* swamp + jungle mist */"
+    },
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  {
+    "biome": "grassland",
+    "item": "tributary_geometry",
+    "seen": "Water streams and river delta flowing.",
+    "probe": {
+      "found": true,
+      "evidence": "/* grassland tributaries */ carve([[6,26,15],[16,32,14],[12,42,13],[2,46,12.4],[-6,30,14]], 1.6, 2.6, 2);"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "While the PLAINS biome is included in the waterCellsOf function for animal placement, there is no code that generates or renders river geometry or water bodies within the PLAINS biome itself. The WAT[id] array is only populated for ocean, swamp, and beach biomes, and no logic exists to create winding river tributaries in the grassland plateau."
+    },
+    "verified": false
+  },
+  {
+    "biome": "delta",
+    "item": "cliff_waterfalls_to_void",
+    "seen": "Waterfalls stream down the outer cliff edge.",
+    "probe": {
+      "found": true,
+      "evidence": "/* ocean spilling over the cliff edge into the void */"
+    },
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "Meltwater stream flowing down into the corridor.",
+    "probe": {
+      "found": true,
+      "evidence": "/* mountain melt meets lava -> obsidian + steam */ carve([[58,-84,40],[64,-74,32],[70,-66,26],[74,-58,22],[68,-58,20],[62,-60,19]], 1.8, 3.2, 2);"
+    },
+    "repair": "2026-10-20T16:51:19Z",
+    "agent": {
+      "found": true,
+      "evidence": "carve([[58,-84,40],[64,-74,32],[70,-66,26],[74,-58,22],[68,-58,20],[62,-60,19]], 1.8, 3.2, 2);",
+      "lines": [
+        413
+      ],
+      "explanation": "The code uses the carve function with a 'kind' parameter of 2 (representing water/stream) to create a path of coordinates starting from high elevation (40) down to lower elevation (19), effectively building a meltwater stream."
+    },
+    "verified": true
+  },
+  {
+    "biome": "mountains",
+    "item": "summit_blizzard",
+    "seen": "Blizzard particles swirling around peaks.",
+    "probe": {
+      "found": true,
+      "evidence": "/* blizzard : the behind face of the snow massif */ systems.push(particles(1500, 0xf2f7ff, 2.2, 0.75,"
+    },
+    "repair": "2026-10-20T16:51:19Z",
+    "agent": {
+      "found": true,
+      "evidence": "/* blizzard : the behind face of the snow massif */\nsystems.push(particles(1500, 0xf2f7ff, 2.2, 0.75,\n  boxInit(0, -112, 190, 60, 30, 120),",
+      "lines": [
+        909,
+        910,
+        911
+      ],
+      "explanation": "The code defines a particle system labeled as a blizzard for the 'snow massif' (a synonym for the snow mountain biome). The particles are initialized with a whitish color (0xf2f7ff) and a high-altitude vertical range (30 to 120) to simulate the wind-sheet effect."
+    },
+    "verified": true
+  },
+  {
+    "biome": "highlands",
+    "item": "hardy_tussock_plants",
+    "seen": "Low hardy vegetation present.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "repair": "2026-10-20T16:51:19Z",
+    "agent": {
+      "found": true,
+      "evidence": "case HIGH:  if (r < 0.055) add(P.scrub); else if (r > 0.07 && r < 0.11) add(P.rock); break;",
+      "lines": [
+        716
+      ],
+      "explanation": "The code for the Highlands biome (HIGH) explicitly adds 'P.scrub' objects to the world based on a random hash value. The 'scrubBlocks' function defines these as low-lying, hardy vegetation structures with specific dimensions and colors."
+    },
+    "verified": true
+  },
+  {
+    "biome": "jungle",
+    "item": "rising_mist_particles",
+    "seen": "Particle effects present around the area.",
+    "probe": {
+      "found": true,
+      "evidence": "/* swamp + jungle mist */"
+    },
+    "repair": "2026-10-20T16:51:19Z",
+    "agent": {
+      "found": true,
+      "evidence": "systems.push(particles(420, 0xb8c9c2, 12, 0.16,\n  boxInit(66, 6, 130, 110, 10, 32),",
+      "lines": [
+        956,
+        957
+      ],
+      "explanation": "The code explicitly defines a particle system labeled as 'jungle mist' in the comments, using a light greenish-grey color (0xb8c9c2) and a large size (12) to simulate mist particles."
+    },
+    "verified": true
+  },
+  {
+    "biome": "delta",
+    "item": "cliff_waterfalls_to_void",
+    "seen": "Waterfalls stream down the outer cliff edge.",
+    "probe": {
+      "found": true,
+      "evidence": "/* ocean spilling over the cliff edge into the void */"
+    },
+    "repair": "2026-10-20T16:51:19Z",
+    "agent": {
+      "found": true,
+      "evidence": "for (let j = 0; j < N; j++) {\n  for (let i = 0; i < N; i++) {\n    const id = j * N + i;\n    if (!LAND[id] || DN[id] < 0.975 || WAT[id] <= 0) continue;\n    if (hash2(i * 3.7, j * 8.1) < 0.988) continue;\n    const x = (i - HALF) * B, z = (j - HALF) * B;\n    for (let s = 0; s < 26; s++) {\n      waterData.push({ x, y: 9 - s * 2, z, sx: B * 1.1, sy: 2, sz: B * 1.1, r: 0.34, g: 0.76, b: 0.94 });\n    }",
+      "lines": [
+        534,
+        535,
+        536,
+        537,
+        538,
+        539,
+        540,
+        541
+      ],
+      "explanation": "The code iterates through land cells near the edge of the island (DN[id] > 0.975) that contain water (WAT[id] > 0) and pushes a series of water mesh instances (waterData) with decreasing Y coordinates (9 - s * 2) to simulate a waterfall cascading down the cliff."
+    },
+    "verified": true
+  }
+]

@@ -1,0 +1,265 @@
+{
+  "viewBox": {
+    "width": 800,
+    "height": 560
+  },
+  "score": 14,
+  "max_score": 20,
+  "passed": false,
+  "elevation_order": [
+    "volcano",
+    "mountains",
+    "highlands",
+    "forest",
+    "jungle",
+    "desert",
+    "grassland",
+    "grove",
+    "swamp",
+    "delta"
+  ],
+  "nodes": [
+    {
+      "id": "mountains",
+      "label": "Snow Mountains",
+      "neighbors": [
+        "forest",
+        "jungle",
+        "volcano"
+      ],
+      "evidence": "REGIONS[0] (mountains) is at cx:-4, cz:-72. REGIONS[1] (forest) is at cx:-6, cz:-32. REGIONS[3] (jungle) is at cx:46, cz:-14. REGIONS[8] (volcano) is at cx:78, cz:-32. Proximity and river flow carve: [[-2,-96,84],[-6,-84,68],[-4,-72,54]] connects mountains to forest.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 52,
+      "w": 176,
+      "h": 46
+    },
+    {
+      "id": "forest",
+      "label": "Snowy Conifer Forest",
+      "neighbors": [
+        "mountains",
+        "jungle",
+        "highlands"
+      ],
+      "evidence": "REGIONS[1] (forest) at cx:-6, cz:-32 is adjacent to REGIONS[0] (mountains) at cx:-4, cz:-72 and REGIONS[2] (highlands) at cx:-62, cz:-4.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not at a higher elevation than highlands",
+      "cx": 340,
+      "cy": 145,
+      "w": 190,
+      "h": 46
+    },
+    {
+      "id": "highlands",
+      "label": "Highlands",
+      "neighbors": [
+        "forest",
+        "grove",
+        "swamp"
+      ],
+      "evidence": "REGIONS[2] (highlands) at cx:-62, cz:-4 is adjacent to REGIONS[1] (forest) at cx:-6, cz:-32 and REGIONS[6] (swamp) at cx:-56, cz:42.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to jungle",
+      "cx": 130,
+      "cy": 172,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "jungle",
+      "label": "Dense Jungle",
+      "neighbors": [
+        "mountains",
+        "forest",
+        "grassland"
+      ],
+      "evidence": "REGIONS[3] (jungle) at cx:46, cz:-14 is adjacent to REGIONS[0] (mountains) and REGIONS[5] (grassland) at cx:0, cz:48.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to highlands; not connected to swamp",
+      "cx": 362,
+      "cy": 252,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "swamp",
+      "label": "Backwater Swamp",
+      "neighbors": [
+        "highlands",
+        "grassland"
+      ],
+      "evidence": "REGIONS[6] (swamp) at cx:-56, cz:42 is adjacent to REGIONS[2] (highlands) at cx:-62, cz:-4 and REGIONS[5] (grassland) at cx:0, cz:48.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to jungle",
+      "cx": 95,
+      "cy": 322,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grove",
+      "label": "Flowering Grove",
+      "neighbors": [
+        "highlands",
+        "grassland"
+      ],
+      "evidence": "REGIONS[5] (grassland) at cx:0, cz:48 and REGIONS[6] (swamp) at cx:-56, cz:42 are near the grove region.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 250,
+      "cy": 438,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland Plateau",
+      "neighbors": [
+        "jungle",
+        "swamp",
+        "grove",
+        "delta"
+      ],
+      "evidence": "REGIONS[5] (grassland) at cx:0, cz:48 is central to jungle, swamp, and grove.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 372,
+      "cy": 372,
+      "w": 180,
+      "h": 46
+    },
+    {
+      "id": "delta",
+      "label": "Coastal Delta / Ocean",
+      "neighbors": [
+        "grassland",
+        "desert"
+      ],
+      "evidence": "REGIONS[7] (delta) at cx:44, cz:72 is adjacent to REGIONS[5] (grassland) and REGIONS[4] (desert) at cx:84, cz:28.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 348,
+      "cy": 512,
+      "w": 200,
+      "h": 46
+    },
+    {
+      "id": "desert",
+      "label": "Desert Basin",
+      "neighbors": [
+        "delta",
+        "volcano"
+      ],
+      "evidence": "REGIONS[4] (desert) at cx:84, cz:28 is adjacent to REGIONS[7] (delta) and REGIONS[8] (volcano) at cx:78, cz:-32.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 652,
+      "cy": 330,
+      "w": 180,
+      "h": 46,
+      "isolated": true
+    },
+    {
+      "id": "volcano",
+      "label": "Volcano",
+      "neighbors": [
+        "mountains",
+        "desert"
+      ],
+      "evidence": "REGIONS[8] (volcano) at cx:78, cz:-32 is adjacent to REGIONS[0] (mountains) and REGIONS[4] (desert).",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to mountains",
+      "cx": 662,
+      "cy": 128,
+      "w": 168,
+      "h": 46,
+      "isolated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "volcano"
+    },
+    {
+      "from": "forest",
+      "to": "highlands"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "grassland",
+      "to": "grove"
+    },
+    {
+      "from": "grassland",
+      "to": "jungle"
+    },
+    {
+      "from": "grassland",
+      "to": "swamp"
+    },
+    {
+      "from": "grove",
+      "to": "highlands"
+    },
+    {
+      "from": "highlands",
+      "to": "swamp"
+    },
+    {
+      "from": "jungle",
+      "to": "mountains"
+    },
+    {
+      "from": "mountains",
+      "to": "volcano"
+    }
+  ]
+}

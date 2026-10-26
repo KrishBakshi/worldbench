@@ -1,0 +1,283 @@
+{
+  "viewBox": {
+    "width": 800,
+    "height": 560
+  },
+  "score": 15,
+  "max_score": 20,
+  "passed": false,
+  "elevation_order": [
+    "mountains",
+    "forest",
+    "highlands",
+    "jungle",
+    "volcano",
+    "grassland",
+    "grove",
+    "desert",
+    "swamp",
+    "delta"
+  ],
+  "nodes": [
+    {
+      "id": "mountains",
+      "label": "Snow Mountains",
+      "neighbors": [
+        "forest",
+        "highlands",
+        "delta"
+      ],
+      "evidence": "mountains are defined by blab(wu,wv,-.05,-1.3,.85,.9,1.2) and sit at the top of the island (bk=-wv, bk > 0.44). They border the forest (blab -0.84), highlands (blab -0.16), and the northern delta edge.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 52,
+      "w": 176,
+      "h": 46
+    },
+    {
+      "id": "forest",
+      "label": "Snowy Conifer Forest",
+      "neighbors": [
+        "mountains",
+        "highlands",
+        "grassland"
+      ],
+      "evidence": "forests are defined by blab(wu,wv,-.05,-.84,1.0,.235,.7) and blab(wu,wv,.05,-.58,.95,.16,.8). They sit between the mountains and the central highlands/grassland.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 145,
+      "w": 190,
+      "h": 46
+    },
+    {
+      "id": "highlands",
+      "label": "Highlands",
+      "neighbors": [
+        "mountains",
+        "forest",
+        "jungle",
+        "grassland"
+      ],
+      "evidence": "highlands are defined by blab(wu,wv,-.6,-.16,.33,.3,1.5). They are centrally located, bordering the mountains, forest, jungle, and grassland.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 130,
+      "cy": 172,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "jungle",
+      "label": "Dense Jungle",
+      "neighbors": [
+        "highlands",
+        "swamp",
+        "delta"
+      ],
+      "evidence": "jungle is defined by blab(wu,wv,.5,-.08,.42,.35,1.4) and blab(wu,wv,.38,.14,.26,.2,1.4). It sits east of the highlands and north of the swamp.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to grassland",
+      "cx": 362,
+      "cy": 252,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "swamp",
+      "label": "Backwater Swamp",
+      "neighbors": [
+        "jungle",
+        "delta"
+      ],
+      "evidence": "swamp is defined by blab(wu,wv,.7,.05,.2,.17,1.3). It is located in the southeastern region near the delta.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 95,
+      "cy": 322,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grove",
+      "label": "Flowering Grove",
+      "neighbors": [
+        "grassland",
+        "delta"
+      ],
+      "evidence": "grove is defined by blab(wu,wv,-.6,.19,.2,.17,1.3). It sits in the western basin near the grassland and delta.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 250,
+      "cy": 438,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland Plateau",
+      "neighbors": [
+        "forest",
+        "highlands",
+        "grove",
+        "delta"
+      ],
+      "evidence": "grassland is defined by blab(wu,wv,-.02,.36,.44,.3,1.4). It occupies the central-western plateau.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to jungle",
+      "cx": 372,
+      "cy": 372,
+      "w": 180,
+      "h": 46
+    },
+    {
+      "id": "delta",
+      "label": "Coastal Delta / Ocean",
+      "neighbors": [
+        "mountains",
+        "jungle",
+        "swamp",
+        "grove",
+        "grassland",
+        "desert",
+        "volcano"
+      ],
+      "evidence": "delta is defined by w[9] (marine) and covers the coastal shelf (ss(.66,.85,wv), etc.). It surrounds the island perimeter.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 348,
+      "cy": 512,
+      "w": 200,
+      "h": 46
+    },
+    {
+      "id": "desert",
+      "label": "Desert Basin",
+      "neighbors": [
+        "delta",
+        "volcano"
+      ],
+      "evidence": "desert is defined by ss(.2,.42,wu)*ss(.3,.52,wv). It is located in the southeastern quadrant.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 652,
+      "cy": 330,
+      "w": 180,
+      "h": 46,
+      "isolated": true
+    },
+    {
+      "id": "volcano",
+      "label": "Volcano",
+      "neighbors": [
+        "delta",
+        "desert"
+      ],
+      "evidence": "volcano is defined by blab(wu,wv,-.78,.66,.155,.135,1.3). It is located in the far southwest.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 662,
+      "cy": 128,
+      "w": 168,
+      "h": 46,
+      "isolated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "delta",
+      "to": "grove"
+    },
+    {
+      "from": "delta",
+      "to": "jungle"
+    },
+    {
+      "from": "delta",
+      "to": "mountains"
+    },
+    {
+      "from": "delta",
+      "to": "swamp"
+    },
+    {
+      "from": "delta",
+      "to": "volcano"
+    },
+    {
+      "from": "desert",
+      "to": "volcano"
+    },
+    {
+      "from": "forest",
+      "to": "grassland"
+    },
+    {
+      "from": "forest",
+      "to": "highlands"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "grassland",
+      "to": "grove"
+    },
+    {
+      "from": "grassland",
+      "to": "highlands"
+    },
+    {
+      "from": "highlands",
+      "to": "jungle"
+    },
+    {
+      "from": "highlands",
+      "to": "mountains"
+    },
+    {
+      "from": "jungle",
+      "to": "swamp"
+    }
+  ]
+}

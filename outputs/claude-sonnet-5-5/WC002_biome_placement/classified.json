@@ -1,0 +1,82 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "B.MT"
+      ],
+      "placement_code": "if(wz<-33)return B.MT;",
+      "elevation_code": "case B.MT:{const ridge=clamp(1-Math.abs(2*fbm(x*.05,z*.05,7,5)-1)*2.4,0,1);const amp=clamp(.45+1.1*(fbm(x*.035,z*.035,8,3)-.3),.3,1.2);const mt=ss(0,1,(-wz-32)/9),rear=1-.3*ss(-46,-56,wz);return Math.min(47,14+mt*(4+28*Math.pow(ridge,1.6)*amp)*rear+n2*.8)}"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "B.SF"
+      ],
+      "placement_code": "if(wz<-14)return B.SF;",
+      "elevation_code": "case B.SF:return 14+1.3*n1+.7*n2;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "B.HL"
+      ],
+      "placement_code": "if(wz<-10&&wx<-8)return B.HL;",
+      "elevation_code": "case B.HL:return 13-.4*clamp(wz+24,0,30)+2.2*n1+2.5*ss(.55,.75,fbm(x*.1,z*.1,5));"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "B.JG"
+      ],
+      "placement_code": "return wx>32?B.SW:B.JG;",
+      "elevation_code": "case B.JG:return 8-.12*(wz+14)+2.2*n1-4*ss(24,34,wx);"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "B.SW"
+      ],
+      "placement_code": "return wx>32?B.SW:B.JG;",
+      "elevation_code": "case B.SW:return fbm(x*.14,z*.14,13)>.56?0:2.3+.7*n1;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "B.GV"
+      ],
+      "placement_code": "if(wx<-12)return wz<8?B.GV:B.GR;",
+      "elevation_code": "case B.GV:return 3.7+.9*n1;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "B.GR"
+      ],
+      "placement_code": "if(wz>=10)return B.GR;",
+      "elevation_code": "case B.GR:return 4.3+.7*n1+.4*n2;"
+    },
+    "delta": {
+      "present": false,
+      "aliases": [],
+      "placement_code": "",
+      "elevation_code": ""
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "B.DS"
+      ],
+      "placement_code": "if(wx>=16&&wz>=10)return B.DS;",
+      "elevation_code": "case B.DS:return 3.2+2*(fbm(x*.07,z*.07,15)-.5)*2*.6+.3*n2;"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "B.VC"
+      ],
+      "placement_code": "if(Math.hypot(x-VX,z-VZ)+3*(fbm(x*.15,z*.15,8)-.5)<15)return B.VC;",
+      "elevation_code": "case B.VC:{const d=Math.hypot(x-VX,z-VZ);if(d<2.4)return 24;if(d<3.6)return 30+n2*.4;return d<15?3+31*Math.pow(1-d/15,1.1)+.5*n2:3.3}"
+    }
+  }
+}

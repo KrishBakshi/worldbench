@@ -1,0 +1,599 @@
+{
+  "score": 15,
+  "max_score": 20,
+  "points_per_biome": 2,
+  "passed": false,
+  "reason": "Scored 15/20; not covered: none; misplaced: highlands, jungle, swamp, desert, volcano",
+  "elevation_order": [
+    "mountains",
+    "volcano",
+    "forest",
+    "highlands",
+    "jungle",
+    "grassland",
+    "desert",
+    "grove",
+    "swamp",
+    "delta"
+  ],
+  "biomes": {
+    "mountains": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "forest",
+        "highlands"
+      ],
+      "elevation_rank": 0,
+      "evidence": "mMt>0.5&&h>34; mMt is defined by z in -105 to -170; forest and highlands overlap these z-ranges",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "highlands"
+          ]
+        },
+        {
+          "id": "higher_than.forest",
+          "kind": "higher_than",
+          "expected": "mountains before forest in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "forest_rank": 2
+          }
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "mountains before highlands in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "highlands_rank": 3
+          }
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "mountains before jungle in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "mountains before grassland in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "grassland_rank": 5
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "mountains before delta in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "forest": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "highlands",
+        "mountains"
+      ],
+      "elevation_rank": 2,
+      "evidence": "mCon>0.45&&h>28; mCon uses x in 70,35 and -205,-175 and z in -70,-92 and -150,-125",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.mountains",
+          "kind": "must_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "highlands",
+            "mountains"
+          ]
+        },
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "highlands",
+            "mountains"
+          ]
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "forest before highlands in elevation_order",
+          "actual": {
+            "forest_rank": 2,
+            "highlands_rank": 3
+          }
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "forest before jungle in elevation_order",
+          "actual": {
+            "forest_rank": 2,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "forest before grassland in elevation_order",
+          "actual": {
+            "forest_rank": 2,
+            "grassland_rank": 5
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "forest before delta in elevation_order",
+          "actual": {
+            "forest_rank": 2,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "highlands": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "forest",
+        "grassland",
+        "mountains"
+      ],
+      "elevation_rank": 3,
+      "evidence": "mHi>0.5&&h>24; mHi uses x in 45,70 and 200,175 and z in -8,-32 and -165,-140",
+      "summary": "not connected to jungle",
+      "earned": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grassland",
+            "mountains"
+          ]
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "highlands before jungle in elevation_order",
+          "actual": {
+            "highlands_rank": 3,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "highlands before grassland in elevation_order",
+          "actual": {
+            "highlands_rank": 3,
+            "grassland_rank": 5
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "highlands before delta in elevation_order",
+          "actual": {
+            "highlands_rank": 3,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grassland",
+            "mountains"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "jungle": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grassland",
+        "swamp"
+      ],
+      "elevation_rank": 4,
+      "evidence": "mJu>0.5; mJu uses x in -24,-52 and z in -108,-84 and 84,58",
+      "summary": "not connected to highlands",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "must_connect.swamp",
+          "kind": "must_connect",
+          "expected": "swamp",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "jungle before grassland in elevation_order",
+          "actual": {
+            "jungle_rank": 4,
+            "grassland_rank": 5
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "jungle before delta in elevation_order",
+          "actual": {
+            "jungle_rank": 4,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "swamp"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "swamp": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "jungle"
+      ],
+      "elevation_rank": 8,
+      "evidence": "mSw>0.5; mSw uses x in -172,-198 and mJu",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "grove": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grassland"
+      ],
+      "elevation_rank": 7,
+      "evidence": "mGr>0.5; mGr uses x in 64,84 and 190,168 and z in -36,-18 and 58,42",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect_any",
+          "kind": "must_connect_any",
+          "expected": [
+            "highlands",
+            "grassland"
+          ],
+          "actual_neighbors": [
+            "delta",
+            "grassland"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "grassland": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "desert",
+        "grove",
+        "highlands",
+        "jungle"
+      ],
+      "elevation_rank": 5,
+      "evidence": "biome='grass' is default; borders mHi, mJu, mGr",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "desert",
+            "grove",
+            "highlands",
+            "jungle"
+          ]
+        },
+        {
+          "id": "must_connect.delta",
+          "kind": "must_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "desert",
+            "grove",
+            "highlands",
+            "jungle"
+          ]
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "grassland before delta in elevation_order",
+          "actual": {
+            "grassland_rank": 5,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "delta": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "desert",
+        "forest",
+        "grassland",
+        "grove",
+        "highlands",
+        "jungle",
+        "mountains",
+        "swamp",
+        "volcano"
+      ],
+      "elevation_rank": 9,
+      "evidence": "ocM>0.45&&h<SEA-0.6; delta is the ocean/shore/beach boundary surrounding the island",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "desert",
+            "forest",
+            "grassland",
+            "grove",
+            "highlands",
+            "jungle",
+            "mountains",
+            "swamp",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "desert": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grassland",
+        "volcano"
+      ],
+      "elevation_rank": 6,
+      "evidence": "mDe>0.5; mDe uses x in 30,60 and z in 42,70",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.jungle",
+          "kind": "must_not_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "volcano": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "desert"
+      ],
+      "elevation_rank": 1,
+      "evidence": "dV<62; dV is distance to VOLC {x:215,z:-95}",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.grassland",
+          "kind": "must_not_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    }
+  }
+}

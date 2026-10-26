@@ -1,0 +1,86 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "mountain"
+      ],
+      "placement_code": "else if(mMt>0.5&&h>34)biome='mountain';",
+      "elevation_code": "if(mMt>0)h+=mMt*(26+95*Math.pow(fbm(x*0.022+31,z*0.022+17),1.7));"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "conifer"
+      ],
+      "placement_code": "else if(mCon>0.45&&h>28)biome='conifer';",
+      "elevation_code": "h=lerp(h,37+fbm(x*0.05,z*0.05)*6,mCon*(1-mMt));"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highland"
+      ],
+      "placement_code": "else if(mHi>0.5&&h>24)biome='highland';",
+      "elevation_code": "h=lerp(h,35-ss(rmp(z,-70,-24))*15+fbm(x*0.04,z*0.04)*5,mHi*(1-mMt));"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "else if(mJu>0.5)biome='jungle';",
+      "elevation_code": "h=lerp(h,19+fbm(x*0.045+7.7,z*0.045+2.2)*7,mJu*(1-mCon));"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "else if(mSw>0.5)biome='swamp';",
+      "elevation_code": "h=lerp(h,14.2+fbm(x*0.07,z*0.07)*1.6,mSw);"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "else if(mGr>0.5)biome='grove';",
+      "elevation_code": "h=lerp(h,17+fbm(x*0.05+3.1,z*0.05)*2.5,mGr*(1-mHi));"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grass"
+      ],
+      "placement_code": "else biome='grass';",
+      "elevation_code": "var h=16+fbm(x*0.03,z*0.03)*4;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "beach",
+        "shore",
+        "deep"
+      ],
+      "placement_code": "else if(water&&water.ocean)biome=(h<9.2)?'deep':'shore'; else if(beachM>0.45)biome='beach';",
+      "elevation_code": "h=lerp(h,14.1,beachM); h=lerp(h,7.5+fbm(x*0.05+61,z*0.05)*2.5,ocM);"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "else if(mDe>0.5)biome='desert';",
+      "elevation_code": "h=lerp(h,17.5+vnoise(x*0.05,z*0.05)*2.5,mDe*(1-mGr));"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "if(lava||dV<62)biome='volcano';",
+      "elevation_code": "if(dV<80)h=lerp(h,23+fbm(x*0.06,z*0.06)*3,ss(rmp(dV,80,55)));"
+    }
+  }
+}

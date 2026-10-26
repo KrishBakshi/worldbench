@@ -1,0 +1,91 @@
+[
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Gentle slope descending into the pink flowering grove.",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "h=lerp(h,35-ss(rmp(z,-70,-24))*15+fbm(x*0.04,z*0.04)*5,mHi*(1-mMt));",
+      "lines": [
+        113
+      ],
+      "explanation": "The terrain height function for the highland biome uses a ramp function (rmp) on the z-coordinate to subtract up to 15 units from the base height, creating a gentle downward slope. This slope is calculated within the highland biome's influence (mHi) and is designed to transition the terrain height."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "stagnant_channels",
+    "seen": "Stagnant backwater channels interwoven within the swamp terrain.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(!water&&mSw>0.55&&vnoise(x*0.09+5,z*0.09)<0.42){h=Math.min(h,13.1);water={top:14,swamp:true};}\nif(s.water.swamp)wc=0x3f5540;\npb(waterB,x,(wt+s.h)/2,z,CELL,sy,CELL,wc);",
+      "lines": [
+        148,
+        214,
+        220
+      ],
+      "explanation": "The code uses a noise function (vnoise) to conditionally place water bodies within the swamp biome (line 148), which are then assigned a specific dark green color (line 214) and rendered as physical water blocks (line 220) to create stagnant channels."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grove",
+    "item": "moist_basin_below_highland",
+    "seen": "Moist basin area near slope",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "150:   var dP=Math.hypot(x-168,z+58);\n151:   if(dP<6.5){h=Math.min(h,18.4);water={top:20,pondV:true};}",
+      "lines": [
+        150,
+        151
+      ],
+      "explanation": "The code defines a circular area (dP) centered at (168, -58) which overlaps with the Flowering Grove biome's spatial distribution. Within this area, it lowers the terrain height (h) to create a basin and assigns a 'pondV' water type, which is rendered as a distinct water feature."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grove",
+    "item": "feeder_streams",
+    "seen": "Small streams flowing into grove",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The code defines the 'grove' biome based on the mGr variable, but the river/stream generation logic (RIVERS array and polyInfo) is independent of the biome assignment and does not specifically target or place streams within the 'grove' biome."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grove",
+    "item": "pollinators",
+    "seen": "Blue bee class pollinators on trees",
+    "probe": {
+      "found": false,
+      "evidence": "not in grove scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The Flowering Grove biome only spawns 'deer' entities via the pickSpots function. There is no code in the provided source that defines, spawns, or places any bee or pollinator class entities."
+    },
+    "verified": false
+  }
+]

@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Floating Voxel Biome Continent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000000;
+    font-family: 'Courier New', Courier, monospace;
+    color: #e8eef5;
+  }
+  #canvas-container {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    inset: 0;
+    background: #000000;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: none;
+  }
+  #hud {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 292px;
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(8, 11, 16, 0.86);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(5px);
+    z-index: 10;
+    overflow: hidden;
+  }
+  .hud-header {
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(18, 25, 36, 0.85);
+  }
+  .hud-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .hud-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    color: #ffffff;
+    text-transform: uppercase;
+  }
+  .hud-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #dbe7f4;
+    font-family: inherit;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .hud-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .cycle-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 11px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+  .season-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+  }
+  .season-dot {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 2px;
+  }
+  .time-badge {
+    font-size: 10px;
+    color: #b8c7d9;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 25%;
+    background: #7ed957;
+    transition: background 0.3s;
+  }
+  .legend-list {
+    padding: 6px 8px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legend-list::-webkit-scrollbar {
+    width: 5px;
+  }
+  .legend-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 3px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 7px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.14s, border-color 0.14s, transform 0.1s;
+  }
+  .legend-item:hover {
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(255, 255, 255, 0.38);
+    transform: translateX(2px);
+  }
+  .legend-item.active {
+    background: rgba(90, 175, 255, 0.22);
+    border-color: #6bc1ff;
+  }
+  .legend-item.overview-btn {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.26);
+    margin-bottom: 2px;
+  }
+  .swatch {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 2px;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+  }
+  .legend-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+  .biome-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f0f5fa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .biome-sub {
+    font-size: 9.5px;
+    color: #96aac0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hud-footer {
+    padding: 7px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(12, 16, 22, 0.92);
+    font-size: 9.5px;
+    line-height: 1.42;
+    color: #9fb1c4;
+  }
+  .hud-footer strong {
+    color: #e2edf8;
+  }
+  #hud.collapsed .legend-list,
+  #hud.collapsed .hud-footer {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    #hud {
+      width: 250px;
+      top: 8px;
+      left: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div id="hud">
+  <div class="hud-header">
+    <div class="hud-title-row">
+      <div class="hud-title">Voxel Biome Island</div>
+      <button class="hud-toggle" id="hud-toggle-btn" title="Collapse/Expand Legend">Hide</button>
+    </div>
+    <div class="cycle-bar">
+      <div class="season-badge">
+        <span class="season-dot" id="season-dot" style="background:#7ed957;"></span>
+        <span id="season-name">SPRING</span>
+      </div>
+      <div class="time-badge" id="time-readout">DAY • NOON</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="season-progress"></div>
+    </div>
+  </div>
+
+  <div class="legend-list" id="legend-list"></div>
+
+  <div class="hud-footer">
+    <strong>Controls:</strong> Left-Drag Orbit • Right-Drag / Shift-Drag Pan • Scroll Zoom • Click any biome above to fly camera.
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 0. BUILT-IN ORBIT CONTROLS (ZERO EXTERNAL DEPENDENCIES, MOUSE + TOUCH)
+// ============================================================================
+class SimpleOrbitControls {
+  constructor(camera, domElement) {
+    this.camera = camera;
+    this.domElement = domElement;
+    this.target = new THREE.Vector3(2, 8, -2);
+    this.minDistance = 12;
+    this.maxDistance = 360;
+    this.minPolarAngle = 0.05;
+    this.maxPolarAngle = Math.PI - 0.08;
+    this.dampingFactor = 0.08;
+
+    this.spherical = new THREE.Spherical();
+    this.sphericalDelta = new THREE.Spherical(0, 0, 0);
+    this.panOffset = new THREE.Vector3();
+    this.scale = 1.0;
+
+    this.isDragging = false;
+    this.mode = 'none'; // 'rotate' | 'pan'
+    this.prevPos = { x: 0, y: 0 };
+    this.prevPinchDist = 0;
+    this.onStartCallbacks = [];
+
+    this.syncFromCamera();
+    this._bindEvents();
+  }
+
+  addEventListener(type, fn) {
+    if (type === 'start') this.onStartCallbacks.push(fn);
+  }
+
+  _notifyStart() {
+    for (let i = 0; i < this.onStartCallbacks.length; i++) {
+      this.onStartCallbacks[i]();
+    }
+  }
+
+  syncFromCamera() {
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.target);
+    this.spherical.setFromVector3(offset);
+    this.sphericalDelta.set(0, 0, 0);
+    this.panOffset.set(0, 0, 0);
+    this.scale = 1.0;
+  }
+
+  _pan(deltaX, deltaY) {
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.target);
+    let targetDistance = offset.length() * Math.tan((this.camera.fov / 2) * Math.PI / 180.0);
+    const panLeft = new THREE.Vector3();
+    const panUp = new THREE.Vector3();
+    const m = this.camera.matrix.elements;
+
+    // X column of camera matrix
+    panLeft.set(m[0], m[1], m[2]);
+    panLeft.multiplyScalar(-2 * deltaX * targetDistance / this.domElement.clientHeight);
+
+    // Y column of camera matrix
+    panUp.set(m[4], m[5], m[6]);
+    panUp.multiplyScalar(2 * deltaY * targetDistance / this.domElement.clientHeight);
+
+    this.panOffset.add(panLeft).add(panUp);
+  }
+
+  _bindEvents() {
+    const el = this.domElement;
+
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    el.addEventListener('mousedown', (e) => {
+      this._notifyStart();
+      this.isDragging = true;
+      this.prevPos.x = e.clientX;
+      this.prevPos.y = e.clientY;
+      if (e.button === 0 && !e.shiftKey) {
+        this.mode = 'rotate';
+      } else {
+        this.mode = 'pan';
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!this.isDragging) return;
+      const dx = e.clientX - this.prevPos.x;
+      const dy = e.clientY - this.prevPos.y;
+      this.prevPos.x = e.clientX;
+      this.prevPos.y = e.clientY;
+
+      if (this.mode === 'rotate') {
+        const rotSpeed = 2 * Math.PI / this.domElement.clientHeight;
+        this.sphericalDelta.theta -= dx * rotSpeed;
+        this.sphericalDelta.phi -= dy * rotSpeed;
+      } else if (this.mode === 'pan') {
+        this._pan(dx, dy);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      this.isDragging = false;
+      this.mode = 'none';
+    });
+
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this._notifyStart();
+      if (e.deltaY < 0) {
+        this.scale *= 0.91;
+      } else if (e.deltaY > 0) {
+        this.scale /= 0.91;
+      }
+    }, { passive: false });
+
+    // Touch support (1-finger orbit, 2-finger pinch zoom + pan)
+    el.addEventListener('touchstart', (e) => {
+      this._notifyStart();
+      if (e.touches.length === 1) {
+        this.isDragging = true;
+        this.mode = 'rotate';
+        this.prevPos.x = e.touches[0].pageX;
+        this.prevPos.y = e.touches[0].pageY;
+      } else if (e.touches.length === 2) {
+        this.isDragging = true;
+        this.mode = 'pinch';
+        const dx = e.touches[0].pageX - e.touches[1].pageX;
+        const dy = e.touches[0].pageY - e.touches[1].pageY;
+        this.prevPinchDist = Math.hypot(dx, dy);
+        this.prevPos.x = (e.touches[0].pageX + e.touches[1].pageX) * 0.5;
+        this.prevPos.y = (e.touches[0].pageY + e.touches[1].pageY) * 0.5;
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchmove', (e) => {
+      if (!this.isDragging) return;
+      if (e.touches.length === 1 && this.mode === 'rotate') {
+        const dx = e.touches[0].pageX - this.prevPos.x;
+        const dy = e.touches[0].pageY - this.prevPos.y;
+        this.prevPos.x = e.touches[0].pageX;
+        this.prevPos.y = e.touches[0].pageY;
+        const rotSpeed = 2 * Math.PI / this.domElement.clientHeight;
+        this.sphericalDelta.theta -= dx * rotSpeed;
+        this.sphericalDelta.phi -= dy * rotSpeed;
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].pageX - e.touches[1].pageX;
+        const dy = e.touches[0].pageY - e.touches[1].pageY;
+        const dist = Math.hypot(dx, dy);
+        if (this.prevPinchDist > 0) {
+          const ratio = this.prevPinchDist / Math.max(10, dist);
+          this.scale *= lerp(1.0, ratio, 0.4);
+        }
+        this.prevPinchDist = dist;
+
+        const midX = (e.touches[0].pageX + e.touches[1].pageX) * 0.5;
+        const midY = (e.touches[0].pageY + e.touches[1].pageY) * 0.5;
+        this._pan(midX - this.prevPos.x, midY - this.prevPos.y);
+        this.prevPos.x = midX;
+        this.prevPos.y = midY;
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchend', () => {
+      this.isDragging = false;
+      this.mode = 'none';
+    });
+  }
+
+  update() {
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.target);
+    this.spherical.setFromVector3(offset);
+
+    this.spherical.theta += this.sphericalDelta.theta * this.dampingFactor * 2.2;
+    this.spherical.phi += this.sphericalDelta.phi * this.dampingFactor * 2.2;
+    this.spherical.phi = Math.max(this.minPolarAngle, Math.min(this.maxPolarAngle, this.spherical.phi));
+
+    this.spherical.radius *= (1 + (this.scale - 1) * 0.35);
+    this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
+
+    this.target.addScaledVector(this.panOffset, 0.35);
+
+    offset.setFromSpherical(this.spherical);
+    this.camera.position.copy(this.target).add(offset);
+    this.camera.lookAt(this.target);
+
+    this.sphericalDelta.theta *= (1 - this.dampingFactor * 2.2);
+    this.sphericalDelta.phi *= (1 - this.dampingFactor * 2.2);
+    this.panOffset.multiplyScalar(1 - 0.35);
+    this.scale = 1 + (this.scale - 1) * (1 - 0.35);
+  }
+}
+
+// ============================================================================
+// 1. DETERMINISTIC HASH & NOISE UTILITIES
+// ============================================================================
+function hash2(x, z) {
+  const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453123;
+  return n - Math.floor(n);
+}
+
+function hash3(x, y, z) {
+  const n = Math.sin(x * 127.1 + y * 269.5 + z * 311.7) * 43758.5453123;
+  return n - Math.floor(n);
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function valueNoise2D(x, z) {
+  const xi = Math.floor(x);
+  const zi = Math.floor(z);
+  const xf = x - xi;
+  const zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf);
+  const v = zf * zf * (3 - 2 * zf);
+  const aa = hash2(xi, zi);
+  const ba = hash2(xi + 1, zi);
+  const ab = hash2(xi, zi + 1);
+  const bb = hash2(xi + 1, zi + 1);
+  return lerp(lerp(aa, ba, u), lerp(ab, bb, u), v);
+}
+
+function fbm2D(x, z, octaves) {
+  let val = 0;
+  let amp = 0.5;
+  let freq = 1.0;
+  for (let i = 0; i < octaves; i++) {
+    val += amp * valueNoise2D(x * freq, z * freq);
+    freq *= 2.02;
+    amp *= 0.5;
+  }
+  return val;
+}
+
+function distToSegment(px, pz, ax, az, bx, bz) {
+  const dx = bx - ax;
+  const dz = bz - az;
+  const len2 = dx * dx + dz * dz;
+  if (len2 === 0) return Math.hypot(px - ax, pz - az);
+  let t = ((px - ax) * dx + (pz - az) * dz) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
+}
+
+function distToPolyline(px, pz, pts) {
+  let minD = Infinity;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const d = distToSegment(px, pz, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+    if (d < minD) minD = d;
+  }
+  return minD;
+}
+
+// ============================================================================
+// 2. CRISP VOXEL BOX GEOMETRY WITH DIRECTIONAL FACE SHADING
+// ============================================================================
+function createVoxelBoxGeometry() {
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const posAttr = geo.attributes.position;
+  const normAttr = geo.attributes.normal;
+  const colors = new Float32Array(posAttr.count * 3);
+
+  // Give each face a subtle Minecraft-like directional brightness multiplier
+  // so every block reads with crisp edges from orbit and close-up
+  for (let i = 0; i < posAttr.count; i++) {
+    const nx = normAttr.getX(i);
+    const ny = normAttr.getY(i);
+    const nz = normAttr.getZ(i);
+    let shade = 1.0;
+    if (ny > 0.5) shade = 1.00;       // Top face (+Y)
+    else if (ny < -0.5) shade = 0.55; // Bottom face (-Y)
+    else if (nz > 0.5) shade = 0.90;  // South/Front face (+Z)
+    else if (nz < -0.5) shade = 0.82; // North/Back face (-Z)
+    else if (nx > 0.5) shade = 0.75;  // East/Right face (+X)
+    else shade = 0.72;                // West/Left face (-X)
+
+    colors[i * 3 + 0] = shade;
+    colors[i * 3 + 1] = shade;
+    colors[i * 3 + 2] = shade;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+// ============================================================================
+// 3. SCENE, CAMERA, RENDERER & HUD INITIALIZATION
+// ============================================================================
+function initWorld() {
+  const container = document.getElementById('canvas-container');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x000000, 1);
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.set(-48, 96, 128);
+
+  const controls = new SimpleOrbitControls(camera, renderer.domElement);
+  controls.target.set(2, 8, -2);
+  controls.syncFromCamera();
+
+  let flyAnim = null;
+  controls.addEventListener('start', () => {
+    flyAnim = null;
+  });
+
+  // Toggle HUD collapse on small screens or when desired
+  const hudEl = document.getElementById('hud');
+  const toggleBtn = document.getElementById('hud-toggle-btn');
+  toggleBtn.addEventListener('click', () => {
+    hudEl.classList.toggle('collapsed');
+    toggleBtn.textContent = hudEl.classList.contains('collapsed') ? 'Show' : 'Hide';
+  });
+
+  // ==========================================================================
+  // 4. BIOME DEFINITIONS & CAMERA VANTAGE POINTS
+  // ==========================================================================
+  const BIOME_DEFS = [
+    {
+      id: 'overview',
+      name: 'Whole Island Overview',
+      sub: 'High orbit panoramic view',
+      color: '#ffffff',
+      camPos: [-48, 96, 128],
+      target: [2, 8, -2],
+      isOverview: true
+    },
+    {
+      id: 'mountains',
+      name: '1. Snow Mountain Range',
+      sub: 'Rear-face blizzard & alpine melt',
+      color: '#f0f6ff',
+      camPos: [-22, 62, -98],
+      target: [-8, 28, -46]
+    },
+    {
+      id: 'conifers',
+      name: '2. Snowy Conifer Forest',
+      sub: 'Foothill shelf & snowfall clouds',
+      color: '#2e6b56',
+      camPos: [-36, 42, -52],
+      target: [-10, 17, -25]
+    },
+    {
+      id: 'highlands',
+      name: '3. Temperate Highlands',
+      sub: 'Elevated scrub plain & mist',
+      color: '#739169',
+      camPos: [-78, 38, -14],
+      target: [-38, 14, -7]
+    },
+    {
+      id: 'jungle',
+      name: '4. Dense Jungle',
+      sub: 'Emerald canopy, waterfall & rain',
+      color: '#16803c',
+      camPos: [56, 38, -32],
+      target: [22, 12, -8]
+    },
+    {
+      id: 'swamp',
+      name: '5. Backwater Swamp',
+      sub: 'Mangroves, murky pools & fog',
+      color: '#526334',
+      camPos: [84, 28, -12],
+      target: [47, 5, -8]
+    },
+    {
+      id: 'grasslands',
+      name: '6. Central Grasslands',
+      sub: 'Flat river plateau & copses',
+      color: '#74b843',
+      camPos: [-6, 34, 48],
+      target: [-2, 5, 12]
+    },
+    {
+      id: 'grove',
+      name: '7. Flowering Grove',
+      sub: 'Moist pink basin below highlands',
+      color: '#f48fb1',
+      camPos: [-68, 30, 42],
+      target: [-34, 7, 19]
+    },
+    {
+      id: 'desert',
+      name: '8. Desert & Sandstone Mesas',
+      sub: 'Arid flats, dry washes & sandstorm',
+      color: '#e3ac4d',
+      camPos: [26, 34, 68],
+      target: [28, 8, 26]
+    },
+    {
+      id: 'volcano',
+      name: '9. Volcanic Wasteland',
+      sub: 'Stratovolcano, lava & obsidian quench',
+      color: '#ff4500',
+      camPos: [76, 42, 82],
+      target: [47, 18, 46]
+    },
+    {
+      id: 'ocean',
+      name: '10. Coastal Ocean & Beaches',
+      sub: 'Braided delta, reefs & void falls',
+      color: '#19c7de',
+      camPos: [-46, 32, 82],
+      target: [-14, 3, 40]
+    },
+    {
+      id: 'underside',
+      name: 'Cliffs & Underside Seams',
+      sub: 'Glowing blue minerals & void rocks',
+      color: '#00e5ff',
+      camPos: [-66, -18, 72],
+      target: [-6, -14, 10]
+    }
+  ];
+
+  const legendListEl = document.getElementById('legend-list');
+  const legendButtons = new Map();
+
+  let boostedBiomeId = null;
+  let boostTimer = 0;
+
+  function flyToBiome(biomeDef) {
+    flyAnim = {
+      startPos: camera.position.clone(),
+      endPos: new THREE.Vector3(biomeDef.camPos[0], biomeDef.camPos[1], biomeDef.camPos[2]),
+      startTarget: controls.target.clone(),
+      endTarget: new THREE.Vector3(biomeDef.target[0], biomeDef.target[1], biomeDef.target[2]),
+      elapsed: 0,
+      duration: 1.35
+    };
+    if (!biomeDef.isOverview) {
+      boostedBiomeId = biomeDef.id;
+      boostTimer = 14.0;
+    }
+  }
+
+  BIOME_DEFS.forEach((b) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item' + (b.isOverview ? ' overview-btn active' : '');
+    item.innerHTML =
+      '<div class="swatch" style="background:' + b.color + '"></div>' +
+      '<div class="legend-text">' +
+        '<div class="biome-name">' + b.name + '</div>' +
+        '<div class="biome-sub">' + b.sub + '</div>' +
+      '</div>';
+    item.addEventListener('click', () => {
+      legendButtons.forEach((el) => el.classList.remove('active'));
+      item.classList.add('active');
+      flyToBiome(b);
+    });
+    legendListEl.appendChild(item);
+    legendButtons.set(b.id, item);
+  });
+
+  // ==========================================================================
+  // 5. HYDROLOGY PATHS & WORLD GENERATION
+  // ==========================================================================
+  const GRID_HALF = 66;
+  const GRID_SIZE = GRID_HALF * 2 + 1;
+
+  // Wet-corridor rivers (strictly avoiding the desert and volcano)
+  const RIVER_MAIN = [
+    [2, -37], [6, -28], [10, -21], [13, -15], // Alpine melt -> Snow forest edge -> Jungle waterfall lip
+    [14, -10], [15, -4], [11, 2], [5, 8], [0, 15], [-2, 23], [-3, 30] // Jungle plunge pond -> Central grasslands -> Delta head
+  ];
+  const RIVER_WEST_FOOTHILL = [
+    [-15, -24], [-13, -15], [-10, -6], [-7, 3], [-2, 12] // Snow forest west -> Grasslands confluence
+  ];
+  const RIVER_GRASS_TRIB_EAST = [
+    [10, 7], [6, 14], [1, 20] // Grasslands eastern meadow branch
+  ];
+  const RIVER_GRASS_TRIB_WEST = [
+    [-13, 6], [-10, 15], [-5, 22] // Grasslands western meadow branch
+  ];
+  // Braided coastal delta channels
+  const DELTA_CH_1 = [[-3, 30], [-11, 36], [-17, 43]];
+  const DELTA_CH_2 = [[-3, 30], [-5, 38], [-7, 45]];
+  const DELTA_CH_3 = [[-2, 27], [3, 35], [5, 43]];
+  const DELTA_CH_4 = [[-6, 33], [-14, 41], [-22, 46]];
+
+  // Highland gentle slope feeder into the Flowering Grove and out to western bay
+  const RIVER_GROVE_FEEDER = [
+    [-37, -8], [-36, 0], [-35, 9], [-34, 17], [-35, 25], [-39, 32], [-45, 37]
+  ];
+  const RIVER_GROVE_BRANCH = [
+    [-28, 14], [-31, 19], [-34, 23]
+  ];
+
+  // Jungle backwater channel feeding the stagnant Swamp on the jungle's far side
+  const RIVER_SWAMP_BACKWATER = [
+    [18, -7], [28, -9], [38, -10], [46, -11], [52, -6], [47, 1], [41, -3]
+  ];
+
+  // Fading dry washes in the Desert (start near sandstone mesas, fade on desert floor)
+  const DESERT_DRY_WASH_1 = [
+    [31, 23], [26, 27], [21, 30], [18, 34]
+  ];
+  const DESERT_DRY_WASH_2 = [
+    [35, 29], [31, 35], [27, 39]
+  ];
+
+  // Volcano lava tributaries on volcanic ground only (one meets coastal seep -> obsidian)
+  const LAVA_TRIB_SOUTH = [
+    [50, 48], [50, 52], [49, 55]
+  ];
+  const LAVA_TRIB_NE = [
+    [50, 48], [54, 45], [57, 43]
+  ];
+  const LAVA_TRIB_WEST_OBSIDIAN = [
+    [50, 48], [45, 48], [41, 49], [38, 50]
+  ];
+
+  // Storage arrays for grid cells
+  const cellValid = new Uint8Array(GRID_SIZE * GRID_SIZE);
+  const cellTopY = new Int16Array(GRID_SIZE * GRID_SIZE);
+  const cellBotY = new Int16Array(GRID_SIZE * GRID_SIZE);
+  const cellWaterY = new Int16Array(GRID_SIZE * GRID_SIZE);
+  const cellBiome = new Uint8Array(GRID_SIZE * GRID_SIZE);
+  const cellSurfaceColor = new Array(GRID_SIZE * GRID_SIZE);
+  const cellWaterColor = new Array(GRID_SIZE * GRID_SIZE);
+  const cellIsLava = new Uint8Array(GRID_SIZE * GRID_SIZE);
+  const cellIsObsidian = new Uint8Array(GRID_SIZE * GRID_SIZE);
+  const cellIsRiver = new Uint8Array(GRID_SIZE * GRID_SIZE);
+
+  // Biome numeric codes
+  const B_OCEAN = 1;
+  const B_BEACH = 2;
+  const B_MOUNTAIN = 3;
+  const B_CONIFER = 4;
+  const B_HIGHLAND = 5;
+  const B_JUNGLE = 6;
+  const B_SWAMP = 7;
+  const B_GRASSLAND = 8;
+  const B_GROVE = 9;
+  const B_DESERT = 10;
+  const B_VOLCANO = 11;
+
+  function idx(x, z) {
+    return (x + GRID_HALF) * GRID_SIZE + (z + GRID_HALF);
+  }
+
+  function insideContinent(x, z) {
+    const n1 = fbm2D(x * 0.045 + 11.3, z * 0.045 + 7.1, 3);
+    const n2 = fbm2D(x * 0.09 - 5.2, z * 0.09 + 19.4, 2);
+    const angle = Math.atan2(z, x);
+
+    let maxR = 57.5 + (n1 - 0.5) * 9.0 + (n2 - 0.5) * 4.0;
+    if (z < -30) maxR += 3.5 * smoothstep(-30, -55, z);
+    if (x > 35 && z > -26 && z < 12) maxR += 4.0;
+    maxR += Math.sin(angle * 4.0 + 1.2) * 2.2;
+
+    const rMain = Math.hypot(x, z * 1.02);
+    if (rMain <= maxR) return true;
+
+    // Southeastern Volcanic Peninsula
+    const dv = Math.hypot(x - 49, z - 47);
+    const vMax = 15.5 + (n1 - 0.5) * 3.5;
+    if (dv <= vMax) return true;
+
+    return false;
+  }
+
+  // Compute biome weights and surface elevations for every cell
+  for (let x = -GRID_HALF; x <= GRID_HALF; x++) {
+    for (let z = -GRID_HALF; z <= GRID_HALF; z++) {
+      const i = idx(x, z);
+      if (!insideContinent(x, z)) {
+        cellValid[i] = 0;
+        continue;
+      }
+      cellValid[i] = 1;
+      cellWaterY[i] = -999;
+
+      const nSmall = fbm2D(x * 0.12 + 3.7, z * 0.12 + 9.2, 2);
+      const nMed = fbm2D(x * 0.055 - 14.1, z * 0.055 + 2.8, 3);
+      const nRidges = 1.0 - Math.abs(fbm2D(x * 0.07 + 5.0, z * 0.07 - 8.0, 3) * 2.0 - 1.0);
+
+      const dVolcano = Math.hypot(x - 50, z - 48);
+      const isSouthOrWest = (x < -38 && z > -20) || (z > 31 && x < 34) || (x < -26 && z > 24);
+      const distFromCenter = Math.hypot(x * 0.96, (z - 2) * 1.02);
+      const oceanEdgeMetric = distFromCenter + (nMed - 0.5) * 6.0;
+
+      const dRiverMain = distToPolyline(x, z, RIVER_MAIN);
+      const dRiverWest = distToPolyline(x, z, RIVER_WEST_FOOTHILL);
+      const dRiverTribE = distToPolyline(x, z, RIVER_GRASS_TRIB_EAST);
+      const dRiverTribW = distToPolyline(x, z, RIVER_GRASS_TRIB_WEST);
+      const dDelta1 = distToPolyline(x, z, DELTA_CH_1);
+      const dDelta2 = distToPolyline(x, z, DELTA_CH_2);
+      const dDelta3 = distToPolyline(x, z, DELTA_CH_3);
+      const dDelta4 = distToPolyline(x, z, DELTA_CH_4);
+      const dGroveStream = Math.min(
+        distToPolyline(x, z, RIVER_GROVE_FEEDER),
+        distToPolyline(x, z, RIVER_GROVE_BRANCH)
+      );
+      const dSwampChan = distToPolyline(x, z, RIVER_SWAMP_BACKWATER);
+
+      const dDryWash = Math.min(
+        distToPolyline(x, z, DESERT_DRY_WASH_1),
+        distToPolyline(x, z, DESERT_DRY_WASH_2)
+      );
+
+      const dLavaS = distToPolyline(x, z, LAVA_TRIB_SOUTH);
+      const dLavaNE = distToPolyline(x, z, LAVA_TRIB_NE);
+      const dLavaW = distToPolyline(x, z, LAVA_TRIB_WEST_OBSIDIAN);
+
+      let biome = B_GRASSLAND;
+      let h = 5.0;
+      let col = '#6db33f';
+
+      // --- VOLCANIC WASTELAND (SE Peninsula) ---
+      if (dVolcano < 16.5 && x > 33 && z > 31) {
+        biome = B_VOLCANO;
+        const coneDist = Math.hypot(x - 50, z - 48);
+        if (coneDist < 12.8) {
+          const rawCone = 6.5 + Math.pow(Math.max(0, (12.8 - coneDist) / 12.8), 1.32) * 35.5 + nSmall * 2.2;
+          if (coneDist < 3.4) {
+            h = 35.0;
+            cellIsLava[i] = 1;
+            col = coneDist < 1.8 ? '#ffcc00' : '#ff4d00';
+          } else {
+            h = rawCone;
+            col = (h > 28 && nSmall > 0.58) ? '#3b3332' : (nSmall > 0.45 ? '#242022' : '#181517');
+          }
+        } else {
+          h = 5.0 + nSmall * 2.2;
+          col = nSmall > 0.5 ? '#282427' : '#1b181b';
+        }
+
+        const inLavaPoolS = Math.hypot(x - 49, z - 55.5) < 3.2;
+        const inLavaPoolNE = Math.hypot(x - 57.5, z - 42.5) < 2.8;
+        const inLavaPoolW = Math.hypot(x - 41.5, z - 49) < 2.6;
+        if (dLavaS < 1.35 || dLavaNE < 1.3 || dLavaW < 1.35 || inLavaPoolS || inLavaPoolNE || inLavaPoolW) {
+          if (x <= 39.5 && z >= 47 && z <= 53) {
+            cellIsObsidian[i] = 1;
+            cellIsLava[i] = 0;
+            h = Math.max(4, Math.round(h));
+            col = (x + z) % 2 === 0 ? '#24133d' : '#351c57';
+          } else {
+            cellIsLava[i] = 1;
+            col = nSmall > 0.55 ? '#ff7b00' : '#ff3c00';
+          }
+        }
+        // Obsidian quench rim where coastal water seeps against western volcanic edge
+        if (x >= 35 && x <= 39.8 && z >= 47.5 && z <= 53.5 && Math.hypot(x - 38, z - 50) < 3.2) {
+          cellIsObsidian[i] = 1;
+          cellIsLava[i] = 0;
+          h = 4.0;
+          col = ((x * 3 + z) % 2 === 0) ? '#211138' : '#381e5e';
+        }
+      }
+      // --- SNOW MOUNTAIN RANGE (Far / Behind North Massif) ---
+      else if (z < -33 + (nMed - 0.5) * 4.5 && x > -48 && x < 32) {
+        biome = B_MOUNTAIN;
+        const northDepth = smoothstep(-32, -49, z);
+        const p1 = Math.exp(-((x + 24) * (x + 24) + (z + 46) * (z + 46)) / 95.0) * 24.0;
+        const p2 = Math.exp(-((x + 5) * (x + 5) + (z + 49) * (z + 49)) / 120.0) * 29.0;
+        const p3 = Math.exp(-((x - 14) * (x - 14) + (z + 45) * (z + 45)) / 90.0) * 23.0;
+        h = 19.0 + northDepth * 9.5 + p1 + p2 + p3 + nRidges * 6.5 + nSmall * 2.5;
+        if (h >= 27.5) {
+          col = nSmall > 0.5 ? '#f5faff' : '#e4effa';
+        } else {
+          col = nSmall > 0.5 ? '#617182' : '#4e5c6b';
+        }
+      }
+      // --- SNOWY CONIFER FOREST (Elevated Foothills in front of the Snow Mountains) ---
+      else if (z >= -35 && z < -14 + (nMed - 0.5) * 3.5 && x > -33 && x < 14) {
+        biome = B_CONIFER;
+        const foothillSlope = smoothstep(-14, -34, z);
+        h = 14.0 + foothillSlope * 6.5 + nMed * 3.2 + nSmall * 1.4;
+        col = nSmall > 0.42 ? '#dcebf5' : '#355748';
+      }
+      // --- TEMPERATE HIGHLANDS (Elevated plain beside snow forest, sloping into pink grove) ---
+      else if (x <= -20 + (nMed - 0.5) * 3.0 && z >= -28 && z < 9 && oceanEdgeMetric < 46.5) {
+        biome = B_HIGHLAND;
+        const slopeToGrove = smoothstep(9.5, -2.0, z);
+        const hillKnolls = Math.pow(nRidges, 1.5) * 4.2;
+        h = 8.0 + slopeToGrove * 6.5 + hillKnolls + nSmall * 1.5;
+        if (h > 16.2 && nSmall > 0.55) {
+          col = '#7a847e';
+        } else {
+          col = nSmall > 0.48 ? '#6d8a63' : '#5c7855';
+        }
+      }
+      // --- BACKWATER SWAMP (Far eastern side of the Jungle, away from plains outlet) ---
+      else if (x >= 37 + (nMed - 0.5) * 3.5 && z >= -25 && z <= 10) {
+        biome = B_SWAMP;
+        h = 4.0 + (nSmall > 0.62 ? 1.0 : 0.0);
+        col = nSmall > 0.5 ? '#4b5930' : '#3d4a26';
+        if (dSwampChan < 2.5 || (nMed < 0.46 && x > 40 && x < 55 && z > -19 && z < 6)) {
+          h = 3.0;
+          cellWaterY[i] = 4;
+          cellWaterColor[i] = '#2c4730';
+          col = '#2f381f';
+        }
+      }
+      // --- DENSE JUNGLE / RAINFOREST (Wet canopy corridor with waterfall & plunge pond) ---
+      else if (x >= 8 + (nMed - 0.5) * 3.0 && x < 40 && z >= -26 && z < 13 + (nMed - 0.5) * 3.0) {
+        biome = B_JUNGLE;
+        const upperLedge = smoothstep(-11, -16, z) * smoothstep(22, 9, x);
+        h = 7.0 + upperLedge * 8.5 + nMed * 4.2 + nSmall * 1.8;
+        if (upperLedge > 0.45 && nSmall > 0.55) {
+          col = '#57665c';
+        } else {
+          col = nSmall > 0.45 ? '#147a38' : '#0f612c';
+        }
+        const dPond = Math.hypot(x - 14.5, z + 9.5);
+        if (dPond < 4.2) {
+          h = 5.0;
+          cellWaterY[i] = 6;
+          cellWaterColor[i] = '#14b8b8';
+          col = '#1d523a';
+        }
+      }
+      // --- FLOWERING GROVE (Moist pink basin below highland slope & off plains) ---
+      else if (x <= -17 + (nMed - 0.5) * 2.5 && z >= 8 && z < 33 && oceanEdgeMetric < 46.5) {
+        biome = B_GROVE;
+        const gentleRise = smoothstep(14, 7, z) * 2.2;
+        h = 6.0 + gentleRise + nSmall * 1.2;
+        col = nSmall > 0.62 ? '#f7a8c4' : (nSmall > 0.3 ? '#d97fa6' : '#8abf75');
+      }
+      // --- DESERT (Flat arid basin on SE rain-shadow side with sandstone desert mountains) ---
+      else if (x >= 14 + (nMed - 0.5) * 2.5 && z >= 11 && dVolcano >= 16.5 && !(z > 35 && x < 24)) {
+        biome = B_DESERT;
+        h = 5.0 + nSmall * 1.1;
+        col = nSmall > 0.5 ? '#e3b159' : '#d69e47';
+
+        // Distinct Sandstone Desert Mountains / Mesas (NOT the volcano)
+        const m1 = Math.hypot((x - 32) * 0.9, (z - 24) * 1.1);
+        const m2 = Math.hypot((x - 38) * 1.1, (z - 30) * 0.9);
+        const m3 = Math.hypot((x - 24) * 1.1, (z - 20) * 1.1);
+        const mesaD = Math.min(m1, m2 * 1.08, m3 * 1.25);
+        if (mesaD < 8.5) {
+          const mesaFactor = smoothstep(8.5, 1.8, mesaD);
+          h = 6.0 + Math.floor(mesaFactor * 15.5) + nRidges * 2.5;
+          const iy = Math.round(h);
+          if (iy % 4 === 0) col = '#c76d3a';
+          else if (iy % 4 === 1) col = '#db8b46';
+          else if (iy % 4 === 2) col = '#b5562f';
+          else col = '#e6b265';
+        } else if (dDryWash < 1.35) {
+          h = 5.0;
+          col = '#bfa06f';
+        }
+      }
+      // --- COASTAL OCEAN & SANDY BEACHES (Wrapping West & South edges) ---
+      else if (isSouthOrWest && oceanEdgeMetric >= 42.5) {
+        if (oceanEdgeMetric < 46.8) {
+          biome = B_BEACH;
+          h = 3.0 + (oceanEdgeMetric < 44.5 ? 1.0 : 0.0);
+          if (nRidges > 0.78 && nSmall > 0.55) {
+            h = 5.0;
+            col = '#6d7578';
+          } else {
+            col = nSmall > 0.55 ? '#f5ebd1' : '#e8d6af';
+          }
+        } else {
+          biome = B_OCEAN;
+          const dIslet1 = Math.hypot(x + 48, z - 22);
+          const dIslet2 = Math.hypot(x + 22, z - 49);
+          if (dIslet1 < 3.2 || dIslet2 < 2.8) {
+            h = 3.0 + (dIslet1 < 1.8 || dIslet2 < 1.5 ? 1.0 : 0.0);
+            col = h > 3.5 ? '#6e787a' : '#f2e4c4';
+          } else {
+            const depthFactor = smoothstep(46.8, 55.0, oceanEdgeMetric);
+            h = Math.round(1.0 - depthFactor * 3.5);
+            cellWaterY[i] = 2;
+            if (h >= 0) {
+              cellWaterColor[i] = '#1fd1e0';
+              col = '#d6c89e';
+            } else if (h === -1) {
+              cellWaterColor[i] = '#129ec4';
+              col = '#4c808a';
+            } else {
+              cellWaterColor[i] = '#0b6ca1';
+              col = '#284c61';
+            }
+          }
+        }
+      }
+      // --- CENTRAL GRASSLANDS (Open flat green river plateau) ---
+      else {
+        biome = B_GRASSLAND;
+        h = 5.0 + (nMed > 0.66 ? 1.0 : 0.0);
+        col = nSmall > 0.48 ? '#72b842' : '#5ea135';
+      }
+
+      // --- APPLY WET-CORRIDOR RIVERS & BRAIDED COASTAL DELTA ---
+      if (biome !== B_DESERT && biome !== B_VOLCANO) {
+        let onRiver = false;
+        let riverWidth = 1.45;
+        if (z > 10 && x > -20 && x < 14) riverWidth = 1.75;
+
+        if (dRiverMain < riverWidth || dRiverWest < 1.35 || dRiverTribE < 1.25 || dRiverTribW < 1.25) {
+          onRiver = true;
+        }
+        const inDeltaZone = z >= 25 && z <= 48 && x >= -25 && x <= 10;
+        if (inDeltaZone && (dDelta1 < 1.65 || dDelta2 < 1.7 || dDelta3 < 1.6 || dDelta4 < 1.55)) {
+          onRiver = true;
+        }
+        if ((biome === B_HIGHLAND || biome === B_GROVE || biome === B_BEACH || biome === B_OCEAN) && dGroveStream < 1.3) {
+          onRiver = true;
+        }
+
+        if (onRiver) {
+          cellIsRiver[i] = 1;
+          if (biome === B_OCEAN) {
+            cellWaterY[i] = 2;
+            cellWaterColor[i] = '#2ce6f0';
+          } else if (biome === B_BEACH || inDeltaZone) {
+            h = 2.0;
+            cellWaterY[i] = 2;
+            cellWaterColor[i] = '#2ae3eb';
+            col = '#c9ba93';
+          } else {
+            const surfaceH = Math.max(3, Math.round(h) - 1);
+            h = surfaceH - 1;
+            cellWaterY[i] = surfaceH;
+            cellWaterColor[i] = '#24d9ed';
+            col = '#3b666b';
+          }
+        }
+      }
+
+      const topY = Math.round(h);
+      cellTopY[i] = topY;
+      cellBiome[i] = biome;
+      cellSurfaceColor[i] = col;
+
+      const edgeProx = smoothstep(59.0, 20.0, distFromCenter);
+      const spireNoise = Math.pow(nRidges, 1.6) * 14.0 + nSmall * 5.0;
+      const heightWeight = Math.max(0, topY) * 0.48;
+      const botY = -Math.max(5, Math.round(5.0 + edgeProx * 13.0 + heightWeight + spireNoise));
+      cellBotY[i] = botY;
+    }
+  }
+
+  // ==========================================================================
+  // 6. COLLECT SOLID VOXELS, WATER VOXELS, FLORA & GLOWING BLOCKS
+  // ==========================================================================
+  const solidBlocks = [];
+  const waterBlocks = [];
+  const emissiveBlocks = [];
+
+  const tmpColor = new THREE.Color();
+
+  function shadeHex(hex, dx, dy, dz, scale) {
+    const s = scale !== undefined ? scale : 0.032;
+    tmpColor.set(hex);
+    const jitter = (hash3(dx, dy, dz) - 0.5) * 2.0 * s;
+    tmpColor.r = Math.max(0, Math.min(1, tmpColor.r + jitter));
+    tmpColor.g = Math.max(0, Math.min(1, tmpColor.g + jitter));
+    tmpColor.b = Math.max(0, Math.min(1, tmpColor.b + jitter));
+    return tmpColor.getHex();
+  }
+
+  function addSolid(x, y, z, hex, jitterScale) {
+    solidBlocks.push({ x: x, y: y, z: z, color: shadeHex(hex, x, y, z, jitterScale) });
+  }
+
+  function addWater(x, y, z, hex) {
+    waterBlocks.push({ x: x, y: y, z: z, color: shadeHex(hex, x, y, z, 0.02) });
+  }
+
+  function addEmissive(x, y, z, hex) {
+    emissiveBlocks.push({ x: x, y: y, z: z, color: shadeHex(hex, x, y, z, 0.04) });
+  }
+
+  const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  for (let x = -GRID_HALF; x <= GRID_HALF; x++) {
+    for (let z = -GRID_HALF; z <= GRID_HALF; z++) {
+      const i = idx(x, z);
+      if (!cellValid[i]) continue;
+
+      const topY = cellTopY[i];
+      const botY = cellBotY[i];
+      const biome = cellBiome[i];
+      const surfCol = cellSurfaceColor[i];
+
+      let minNeighborTop = topY;
+      let maxNeighborBot = botY;
+      let isPerimeter = false;
+
+      for (let d = 0; d < 4; d++) {
+        const nx = x + DIRS4[d][0];
+        const nz = z + DIRS4[d][1];
+        if (nx < -GRID_HALF || nx > GRID_HALF || nz < -GRID_HALF || nz > GRID_HALF) {
+          isPerimeter = true;
+          break;
+        }
+        const ni = idx(nx, nz);
+        if (!cellValid[ni]) {
+          isPerimeter = true;
+          break;
+        }
+        if (cellTopY[ni] < minNeighborTop) minNeighborTop = cellTopY[ni];
+        if (cellBotY[ni] > maxNeighborBot) maxNeighborBot = cellBotY[ni];
+      }
+
+      for (let y = botY; y <= topY; y++) {
+        const isTop = (y === topY);
+        const isBot = (y === botY);
+        const isExposedSide = isPerimeter || (y > minNeighborTop) || (y < maxNeighborBot);
+
+        if (!isTop && !isBot && !isExposedSide) continue;
+
+        if (isTop) {
+          if (cellIsLava[i]) {
+            addEmissive(x, y, z, surfCol);
+          } else {
+            addSolid(x, y, z, surfCol, cellIsObsidian[i] ? 0.05 : 0.032);
+          }
+        } else {
+          const seamNoise = fbm2D(x * 0.16 + y * 0.19, z * 0.16 - y * 0.14, 2);
+          const isMineralSeam = (y < topY - 3 && y > botY + 2 && seamNoise > 0.755 && ((x + y + z) % 3 === 0));
+
+          if (isMineralSeam) {
+            addEmissive(x, y, z, (y % 2 === 0) ? '#00e5ff' : '#00a6ff');
+          } else if (biome === B_DESERT && y > 3) {
+            const bandCol = (y % 3 === 0) ? '#bf6937' : '#d48c46';
+            addSolid(x, y, z, bandCol);
+          } else if (biome === B_VOLCANO) {
+            addSolid(x, y, z, '#1a181b');
+          } else if (biome === B_MOUNTAIN && y > 26) {
+            addSolid(x, y, z, '#dce8f2');
+          } else {
+            const rockCol = (y < -12) ? '#2b333e' : ((y % 4 === 0) ? '#3d4756' : '#4c5766');
+            addSolid(x, y, z, rockCol);
+          }
+        }
+      }
+
+      const wy = cellWaterY[i];
+      if (wy > -900) {
+        const wCol = cellWaterColor[i] || '#1fcce0';
+        for (let y = Math.max(topY + 1, wy - 1); y <= wy; y++) {
+          if (y === wy || isPerimeter) {
+            addWater(x, y, z, wCol);
+          }
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // 7. WATERFALLS (JUNGLE + PERIMETER VOID FALLS) & FLOATING UNDERSIDE ROCKS
+  // ==========================================================================
+  const waterfallColumns = [];
+
+  // A. Major Interior Jungle Waterfall
+  for (let wx = 12; wx <= 14; wx++) {
+    const topH = cellTopY[idx(wx, -15)] || 15;
+    const botH = 6;
+    for (let y = botH; y <= topH; y++) {
+      addWater(wx, y, -13, (y % 2 === 0) ? '#3beeff' : '#1ad1e8');
+    }
+    waterfallColumns.push({ x: wx, topY: topH, botY: botH, z: -13, isVoid: false });
+  }
+
+  // B. Perimeter Ocean & Cliff Waterfalls plunging into the black void
+  const voidFallSpots = [
+    [-58, 12], [-57, 13],
+    [-48, 36], [-47, 37],
+    [-22, 54], [-21, 54], [-20, 54],
+    [-6, 56], [-5, 56], [-4, 56],
+    [12, 54], [13, 54],
+    [54, -4], [54, -3]
+  ];
+
+  voidFallSpots.forEach((spot) => {
+    const fx = spot[0];
+    const fz = spot[1];
+    let bestX = fx, bestZ = fz;
+    for (let s = 0.75; s <= 1.25; s += 0.02) {
+      const tx = Math.round(fx * s);
+      const tz = Math.round(fz * s);
+      if (tx >= -GRID_HALF && tx <= GRID_HALF && tz >= -GRID_HALF && tz <= GRID_HALF) {
+        if (cellValid[idx(tx, tz)]) {
+          bestX = tx;
+          bestZ = tz;
+        } else {
+          break;
+        }
+      }
+    }
+    const bi = idx(bestX, bestZ);
+    const startY = cellWaterY[bi] > -900 ? cellWaterY[bi] : Math.max(2, cellTopY[bi]);
+    const dropDepth = startY - 26 - Math.floor(hash2(bestX, bestZ) * 8);
+    const dirX = Math.sign(bestX);
+    const dirZ = Math.sign(bestZ);
+    const outX = bestX + (Math.abs(bestX) > Math.abs(bestZ) ? dirX : 0);
+    const outZ = bestZ + (Math.abs(bestZ) >= Math.abs(bestX) ? dirZ : 0);
+
+    for (let y = startY; y >= dropDepth; y--) {
+      const col = (y % 3 === 0) ? '#6bf4ff' : '#1ac6de';
+      addWater(outX, y, outZ, col);
+    }
+    waterfallColumns.push({ x: outX, topY: startY, botY: dropDepth, z: outZ, isVoid: true });
+  });
+
+  // C. Floating Rock Fragments beneath the island with glowing blue mineral seams
+  for (let f = 0; f < 34; f++) {
+    const angle = hash2(f * 13.1, 7.7) * Math.PI * 2;
+    const rad = 10 + hash2(f * 3.7, 19.3) * 44;
+    const cx = Math.round(Math.cos(angle) * rad);
+    const cz = Math.round(Math.sin(angle) * rad);
+    const cy = -22 - Math.floor(hash2(cx, cz) * 22);
+    const rx = 1 + Math.floor(hash2(f, 1) * 2.5);
+    const rz = 1 + Math.floor(hash2(f, 2) * 2.5);
+    const ry = 2 + Math.floor(hash2(f, 3) * 3.5);
+
+    for (let dx = -rx; dx <= rx; dx++) {
+      for (let dz = -rz; dz <= rz; dz++) {
+        const dist = Math.hypot(dx / rx, dz / rz);
+        if (dist > 1.05) continue;
+        const colTop = Math.round((1 - dist * 0.5) * 1);
+        const colBot = -Math.round((1 - dist * 0.65) * ry);
+        for (let dy = colBot; dy <= colTop; dy++) {
+          if (dy === 0 && (Math.abs(dx) + Math.abs(dz) === 1) && f % 2 === 0) {
+            addEmissive(cx + dx, cy + dy, cz + dz, '#00e5ff');
+          } else {
+            addSolid(cx + dx, cy + dy, cz + dz, dy === colTop ? '#444f5e' : '#2a323d');
+          }
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // 8. BLOCKY VOXEL FLORA BUILDERS (TREES, CACTI, MANGROVES, PALMS, CORAL)
+  // ==========================================================================
+  const occupiedFlora = new Set();
+  function canPlaceTree(x, z, spacing) {
+    for (let dx = -spacing; dx <= spacing; dx++) {
+      for (let dz = -spacing; dz <= spacing; dz++) {
+        if (occupiedFlora.has((x + dx) + ',' + (z + dz))) return false;
+      }
+    }
+    occupiedFlora.add(x + ',' + z);
+    return true;
+  }
+
+  function buildSnowConifer(x, y, z, tall) {
+    const trunkH = tall ? 6 : 5;
+    for (let ty = 1; ty <= trunkH; ty++) {
+      addSolid(x, y + ty, z, '#4a3222');
+    }
+    const layers = tall
+      ? [{ dy: 3, r: 2 }, { dy: 5, r: 2 }, { dy: 6, r: 1 }, { dy: 7, r: 1 }, { dy: 8, r: 0 }]
+      : [{ dy: 2, r: 2 }, { dy: 4, r: 1 }, { dy: 5, r: 1 }, { dy: 6, r: 0 }];
+
+    layers.forEach((layer, idxL) => {
+      const ly = y + layer.dy;
+      const r = layer.r;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+          if (dx === 0 && dz === 0 && layer.dy <= trunkH) continue;
+          addSolid(x + dx, ly, z + dz, '#1f4d3a');
+          const isOuter = (Math.abs(dx) + Math.abs(dz) >= r) || idxL === layers.length - 1;
+          if (isOuter) {
+            addSolid(x + dx, ly + 1, z + dz, '#f2f8ff');
+          }
+        }
+      }
+    });
+  }
+
+  function buildJungleTree(x, y, z, giant) {
+    const trunkH = giant ? 8 : 5;
+    for (let ty = 1; ty <= trunkH; ty++) {
+      addSolid(x, y + ty, z, '#4d3524');
+    }
+    const rMain = giant ? 3 : 2;
+    const topY = y + trunkH;
+    for (let dy = 0; dy <= 2; dy++) {
+      const r = dy === 2 ? rMain - 1 : rMain;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (Math.abs(dx) === r && Math.abs(dz) === r && r > 1) continue;
+          const leafCol = (dy === 2 || (dx + dz) % 2 === 0) ? '#178a3d' : '#0e5e28';
+          addSolid(x + dx, topY + dy, z + dz, leafCol);
+          if (dy === 0 && (Math.abs(dx) === r || Math.abs(dz) === r) && hash2(x + dx, z + dz) > 0.65) {
+            const vLen = 1 + Math.floor(hash2(dx * 7, dz * 13) * 3);
+            for (let v = 1; v <= vLen; v++) {
+              addSolid(x + dx, topY - v, z + dz, '#1f7a34');
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function buildMangroveTree(x, y, z) {
+    const rootOffsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    rootOffsets.forEach((ro) => {
+      addSolid(x + ro[0], y + 1, z + ro[1], '#4a3b2a');
+      addSolid(x + ro[0], y + 2, z + ro[1], '#4a3b2a');
+    });
+    for (let ty = 2; ty <= 5; ty++) {
+      addSolid(x, y + ty, z, '#4a3b2a');
+    }
+    const cy = y + 5;
+    for (let dy = 0; dy <= 1; dy++) {
+      const r = dy === 0 ? 2 : 1;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+          addSolid(x + dx, cy + dy, z + dz, '#4b662c');
+          if (dy === 0 && (Math.abs(dx) === r || Math.abs(dz) === r) && (dx + dz) % 2 === 0) {
+            addSolid(x + dx, cy - 1, z + dz, '#627838');
+            addSolid(x + dx, cy - 2, z + dz, '#627838');
+          }
+        }
+      }
+    }
+  }
+
+  function buildBlossomTree(x, y, z) {
+    const trunkH = 4 + (Math.abs(x + z) % 2);
+    for (let ty = 1; ty <= trunkH; ty++) {
+      addSolid(x, y + ty, z, '#3d2622');
+    }
+    const cy = y + trunkH;
+    for (let dy = 0; dy <= 2; dy++) {
+      const r = dy === 2 ? 1 : 2;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+          const hVal = hash3(x + dx, cy + dy, z + dz);
+          const pinkCol = hVal > 0.65 ? '#ff9ebb' : (hVal > 0.3 ? '#f472a0' : '#ffbfd4');
+          addSolid(x + dx, cy + dy, z + dz, pinkCol);
+        }
+      }
+    }
+  }
+
+  function buildGrasslandTree(x, y, z) {
+    for (let ty = 1; ty <= 4; ty++) {
+      addSolid(x, y + ty, z, '#5c4028');
+    }
+    for (let dy = 0; dy <= 2; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          if (dy === 2 && Math.abs(dx) + Math.abs(dz) > 1) continue;
+          addSolid(x + dx, y + 4 + dy, z + dz, '#4ca638');
+        }
+      }
+    }
+  }
+
+  function buildCactus(x, y, z, withArms) {
+    const h = withArms ? 4 : 3;
+    for (let cy = 1; cy <= h; cy++) {
+      addSolid(x, y + cy, z, '#2e8b3c');
+    }
+    if (withArms) {
+      const dir = (Math.abs(x) % 2 === 0) ? [1, 0] : [0, 1];
+      addSolid(x + dir[0], y + 2, z + dir[1], '#2e8b3c');
+      addSolid(x + dir[0], y + 3, z + dir[1], '#2e8b3c');
+      addSolid(x - dir[0], y + 3, z - dir[1], '#2e8b3c');
+      addSolid(x - dir[0], y + 4, z - dir[1], '#2e8b3c');
+    }
+  }
+
+  function buildPalmTree(x, y, z) {
+    const leanX = x < 0 ? -1 : 1;
+    addSolid(x, y + 1, z, '#7a5835');
+    addSolid(x, y + 2, z, '#7a5835');
+    addSolid(x + leanX, y + 3, z, '#7a5835');
+    addSolid(x + leanX, y + 4, z, '#7a5835');
+    const tx = x + leanX;
+    const ty = y + 5;
+    addSolid(tx, ty, z, '#52b835');
+    const fronds = [[1, 0], [2, 0], [-1, 0], [-2, 0], [0, 1], [0, 2], [0, -1], [0, -2]];
+    fronds.forEach((fr) => {
+      const drop = (Math.abs(fr[0]) === 2 || Math.abs(fr[1]) === 2) ? -1 : 0;
+      addSolid(tx + fr[0], ty + drop, z + fr[1], '#45a629');
+    });
+  }
+
+  for (let x = -GRID_HALF + 3; x <= GRID_HALF - 3; x++) {
+    for (let z = -GRID_HALF + 3; z <= GRID_HALF - 3; z++) {
+      const i = idx(x, z);
+      if (!cellValid[i]) continue;
+      const biome = cellBiome[i];
+      const y = cellTopY[i];
+      const wy = cellWaterY[i];
+      const r = hash2(x * 3.1, z * 5.7);
+
+      if (cellIsRiver[i] || cellIsLava[i] || cellIsObsidian[i]) continue;
+
+      if (biome === B_CONIFER && wy < -100) {
+        if (r > 0.72 && canPlaceTree(x, z, 2)) {
+          buildSnowConifer(x, y, z, r > 0.86);
+        }
+      } else if (biome === B_JUNGLE && wy < -100 && y < 15) {
+        if (r > 0.62 && canPlaceTree(x, z, 2)) {
+          buildJungleTree(x, y, z, r > 0.82);
+        } else if (r > 0.35 && r <= 0.44) {
+          addSolid(x, y + 1, z, '#166e30');
+        }
+      } else if (biome === B_SWAMP) {
+        if (r > 0.78 && canPlaceTree(x, z, 3)) {
+          buildMangroveTree(x, y, z);
+        } else if (r > 0.45 && r < 0.52 && wy > -100) {
+          addSolid(x, wy + 1, z, '#5a782f');
+        }
+      } else if (biome === B_GROVE && wy < -100) {
+        if (r > 0.73 && canPlaceTree(x, z, 2)) {
+          buildBlossomTree(x, y, z);
+        } else if (r > 0.3 && r < 0.38) {
+          addSolid(x, y + 1, z, '#ff94b8');
+        }
+      } else if (biome === B_GRASSLAND && wy < -100) {
+        const copseNoise = valueNoise2D(x * 0.14, z * 0.14);
+        if (copseNoise > 0.68 && r > 0.78 && canPlaceTree(x, z, 2)) {
+          buildGrasslandTree(x, y, z);
+        } else if (r > 0.87) {
+          addSolid(x, y + 1, z, (x + z) % 2 === 0 ? '#ffd93d' : '#f7f9fc');
+        }
+      } else if (biome === B_HIGHLAND && wy < -100) {
+        if (r > 0.87) {
+          addSolid(x, y + 1, z, r > 0.94 ? '#6e7875' : '#4a6b46');
+        }
+      } else if (biome === B_DESERT && y <= 7) {
+        if (r > 0.88 && canPlaceTree(x, z, 2)) {
+          buildCactus(x, y, z, r > 0.93);
+        } else if (r > 0.83 && r <= 0.85) {
+          addSolid(x, y + 1, z, '#9e7b42');
+        }
+      } else if (biome === B_BEACH && wy < -100 && y <= 4) {
+        if (r > 0.91 && canPlaceTree(x, z, 3)) {
+          buildPalmTree(x, y, z);
+        }
+      } else if (biome === B_OCEAN && y >= -1 && y <= 0) {
+        if (r > 0.91) {
+          const coralColors = ['#ff6b9d', '#ffbe3b', '#b86bff', '#29f2c8'];
+          const cCol = coralColors[(Math.abs(x * 3 + z * 7)) % coralColors.length];
+          addSolid(x, y + 1, z, cCol);
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // 9. BUILD INSTANCED MESHES FOR TERRAIN, FLORA, WATER & EMISSIVE VOXELS
+  // ==========================================================================
+  const boxGeo = createVoxelBoxGeometry();
+  const dummy = new THREE.Object3D();
+  const colorHelper = new THREE.Color();
+
+  // Solid Voxels
+  const solidMat = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+  const solidMesh = new THREE.InstancedMesh(boxGeo, solidMat, solidBlocks.length);
+  solidMesh.castShadow = true;
+  solidMesh.receiveShadow = true;
+
+  for (let i = 0; i < solidBlocks.length; i++) {
+    const b = solidBlocks[i];
+    dummy.position.set(b.x, b.y, b.z);
+    dummy.updateMatrix();
+    solidMesh.setMatrixAt(i, dummy.matrix);
+    colorHelper.setHex(b.color);
+    solidMesh.setColorAt(i, colorHelper);
+  }
+  solidMesh.instanceMatrix.needsUpdate = true;
+  if (solidMesh.instanceColor) solidMesh.instanceColor.needsUpdate = true;
+  scene.add(solidMesh);
+
+  // Water Voxels
+  const waterMat = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85
+  });
+  const waterMesh = new THREE.InstancedMesh(boxGeo, waterMat, waterBlocks.length);
+  waterMesh.receiveShadow = true;
+
+  for (let i = 0; i < waterBlocks.length; i++) {
+    const b = waterBlocks[i];
+    dummy.position.set(b.x, b.y, b.z);
+    dummy.updateMatrix();
+    waterMesh.setMatrixAt(i, dummy.matrix);
+    colorHelper.setHex(b.color);
+    waterMesh.setColorAt(i, colorHelper);
+  }
+  waterMesh.instanceMatrix.needsUpdate = true;
+  if (waterMesh.instanceColor) waterMesh.instanceColor.needsUpdate = true;
+  scene.add(waterMesh);
+
+  // Emissive Voxels (Volcano Lava & Blue Glowing Mineral Seams)
+  const emissiveMat = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true });
+  const emissiveMesh = new THREE.InstancedMesh(boxGeo, emissiveMat, emissiveBlocks.length);
+
+  for (let i = 0; i < emissiveBlocks.length; i++) {
+    const b = emissiveBlocks[i];
+    dummy.position.set(b.x, b.y, b.z);
+    dummy.updateMatrix();
+    emissiveMesh.setMatrixAt(i, dummy.matrix);
+    colorHelper.setHex(b.color);
+    emissiveMesh.setColorAt(i, colorHelper);
+  }
+  emissiveMesh.instanceMatrix.needsUpdate = true;
+  if (emissiveMesh.instanceColor) emissiveMesh.instanceColor.needsUpdate = true;
+  scene.add(emissiveMesh);
+
+  // ==========================================================================
+  // 10. BLOCKY VOXEL FAUNA (ANIMATED MULTI-CUBE ANIMALS BY BIOME)
+  // ==========================================================================
+  const animals = [];
+
+  function findValidSpotInBiome(targetBiome, minX, maxX, minZ, maxZ) {
+    for (let tries = 0; tries < 80; tries++) {
+      const rx = Math.floor(lerp(minX, maxX, Math.random()));
+      const rz = Math.floor(lerp(minZ, maxZ, Math.random()));
+      if (rx < -GRID_HALF || rx > GRID_HALF || rz < -GRID_HALF || rz > GRID_HALF) continue;
+      const i = idx(rx, rz);
+      if (!cellValid[i]) continue;
+      if (cellBiome[i] !== targetBiome) continue;
+      if (cellIsLava[i] || cellIsObsidian[i]) continue;
+      if (targetBiome !== B_OCEAN && targetBiome !== B_SWAMP && cellWaterY[i] > -100) continue;
+      return { x: rx, z: rz };
+    }
+    return { x: (minX + maxX) * 0.5, z: (minZ + maxZ) * 0.5 };
+  }
+
+  function spawnAnimals(count, type, targetBiome, bounds, bodyColor, detailColor) {
+    for (let n = 0; n < count; n++) {
+      const pt = findValidSpotInBiome(targetBiome, bounds[0], bounds[1], bounds[2], bounds[3]);
+      animals.push({
+        type: type,
+        biome: targetBiome,
+        bounds: bounds,
+        x: pt.x,
+        z: pt.z,
+        angle: Math.random() * Math.PI * 2,
+        speed: type === 'deer' ? 2.2 : (type === 'fox' ? 3.0 : (type === 'bird' ? 5.2 : 1.6)),
+        phase: Math.random() * 10,
+        pauseTimer: Math.random() * 2,
+        bodyColor: new THREE.Color(bodyColor),
+        detailColor: new THREE.Color(detailColor)
+      });
+    }
+  }
+
+  spawnAnimals(9, 'deer', B_GRASSLAND, [-15, 13, -6, 26], '#9c6638', '#e6ccb2');
+  spawnAnimals(6, 'deer', B_GROVE, [-45, -20, 10, 29], '#ad7142', '#fff0f5');
+  spawnAnimals(5, 'deer', B_CONIFER, [-28, 10, -31, -16], '#7a5843', '#dce8f2');
+  spawnAnimals(4, 'deer', B_HIGHLAND, [-50, -24, -20, 4], '#8c6239', '#d9c5b2');
+  spawnAnimals(4, 'deer', B_JUNGLE, [9, 24, -6, 11], '#8f5b34', '#ebd5b3');
+
+  spawnAnimals(8, 'fox', B_DESERT, [17, 43, 14, 41], '#e6953e', '#fff3d6');
+  spawnAnimals(7, 'fox', B_SWAMP, [39, 55, -20, 6], '#a84a24', '#cde09b');
+
+  spawnAnimals(7, 'crab', B_BEACH, [-48, 16, 28, 52], '#e83f25', '#ff7b54');
+  spawnAnimals(7, 'turtle', B_OCEAN, [-55, 18, 34, 56], '#268f55', '#6fd99c');
+  spawnAnimals(6, 'bird', B_OCEAN, [-42, 12, 24, 52], '#f5f8fc', '#ffb703');
+
+  const PARTS_PER_ANIMAL = 7;
+  const faunaMat = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+  const faunaMesh = new THREE.InstancedMesh(boxGeo, faunaMat, animals.length * PARTS_PER_ANIMAL);
+  faunaMesh.castShadow = true;
+
+  // Initialize fauna instanceColor buffer before first render
+  for (let i = 0; i < animals.length * PARTS_PER_ANIMAL; i++) {
+    dummy.position.set(0, -500, 0);
+    dummy.updateMatrix();
+    faunaMesh.setMatrixAt(i, dummy.matrix);
+    faunaMesh.setColorAt(i, new THREE.Color(0xffffff));
+  }
+  scene.add(faunaMesh);
+
+  function updateFauna(dt, time) {
+    let ptr = 0;
+    for (let i = 0; i < animals.length; i++) {
+      const a = animals[i];
+      if (a.pauseTimer > 0) {
+        a.pauseTimer -= dt;
+      } else {
+        const nx = a.x + Math.cos(a.angle) * a.speed * dt;
+        const nz = a.z + Math.sin(a.angle) * a.speed * dt;
+        const gx = Math.round(nx);
+        const gz = Math.round(nz);
+        let ok = false;
+        if (gx >= a.bounds[0] && gx <= a.bounds[1] && gz >= a.bounds[2] && gz <= a.bounds[3]) {
+          const ci = idx(gx, gz);
+          if (cellValid[ci] && (cellBiome[ci] === a.biome || a.type === 'bird')) {
+            ok = true;
+          }
+        }
+        if (ok) {
+          a.x = nx;
+          a.z = nz;
+        } else {
+          a.angle += Math.PI * (0.55 + Math.random() * 0.9);
+          a.pauseTimer = 0.35 + Math.random() * 1.1;
+        }
+        if (Math.random() < 0.015) {
+          a.angle += (Math.random() - 0.5) * 1.4;
+        }
+      }
+
+      const gx = Math.max(-GRID_HALF, Math.min(GRID_HALF, Math.round(a.x)));
+      const gz = Math.max(-GRID_HALF, Math.min(GRID_HALF, Math.round(a.z)));
+      const ci = idx(gx, gz);
+      let baseY = (cellWaterY[ci] > -100 ? cellWaterY[ci] : cellTopY[ci]) + 0.5;
+      if (a.type === 'bird') {
+        baseY = 12.0 + Math.sin(time * 2.0 + a.phase) * 2.5;
+      }
+
+      const stride = Math.sin(time * 8.0 + a.phase) * 0.22;
+      const cosA = Math.cos(a.angle);
+      const sinA = Math.sin(a.angle);
+
+      const setPart = (lx, ly, lz, sx, sy, sz, col) => {
+        const wx = a.x + lx * cosA - lz * sinA;
+        const wz = a.z + lx * sinA + lz * cosA;
+        dummy.position.set(wx, baseY + ly, wz);
+        dummy.rotation.set(0, -a.angle, 0);
+        dummy.scale.set(sx, sy, sz);
+        dummy.updateMatrix();
+        faunaMesh.setMatrixAt(ptr, dummy.matrix);
+        faunaMesh.setColorAt(ptr, col);
+        ptr++;
+      };
+
+      if (a.type === 'deer') {
+        setPart(0, 0.65, 0, 0.95, 0.52, 0.48, a.bodyColor);
+        setPart(0.55, 1.08, 0, 0.42, 0.42, 0.38, a.bodyColor);
+        setPart(0.62, 1.45, 0.16, 0.16, 0.38, 0.14, a.detailColor);
+        setPart(0.62, 1.45, -0.16, 0.16, 0.38, 0.14, a.detailColor);
+        setPart(0.32 + stride, 0.25, 0.15, 0.2, 0.5, 0.2, a.bodyColor);
+        setPart(-0.32 - stride, 0.25, -0.15, 0.2, 0.5, 0.2, a.bodyColor);
+        setPart(-0.52, 0.78, 0, 0.22, 0.22, 0.22, a.detailColor);
+      } else if (a.type === 'fox') {
+        setPart(0, 0.42, 0, 0.78, 0.38, 0.38, a.bodyColor);
+        setPart(0.45, 0.62, 0, 0.38, 0.34, 0.36, a.bodyColor);
+        setPart(0.48, 0.88, 0.14, 0.14, 0.24, 0.14, a.detailColor);
+        setPart(0.48, 0.88, -0.14, 0.14, 0.24, 0.14, a.detailColor);
+        setPart(0.24 + stride, 0.18, 0.12, 0.16, 0.32, 0.16, a.bodyColor);
+        setPart(-0.24 - stride, 0.18, -0.12, 0.16, 0.32, 0.16, a.bodyColor);
+        setPart(-0.55, 0.48, 0, 0.42, 0.26, 0.26, a.detailColor);
+      } else if (a.type === 'bird') {
+        const flap = Math.sin(time * 11.0 + a.phase) * 0.28;
+        setPart(0, 0, 0, 0.65, 0.26, 0.32, a.bodyColor);
+        setPart(0.42, 0.08, 0, 0.28, 0.22, 0.22, a.detailColor);
+        setPart(0, 0.05 + flap, 0.45, 0.38, 0.12, 0.58, a.bodyColor);
+        setPart(0, 0.05 + flap, -0.45, 0.38, 0.12, 0.58, a.bodyColor);
+        setPart(-0.4, 0, 0, 0.28, 0.12, 0.28, a.bodyColor);
+        setPart(0, 0, 0, 0.001, 0.001, 0.001, a.bodyColor);
+        setPart(0, 0, 0, 0.001, 0.001, 0.001, a.bodyColor);
+      } else {
+        setPart(0, 0.24, 0, 0.68, 0.28, 0.58, a.bodyColor);
+        setPart(0.42, 0.26, 0, 0.26, 0.22, 0.26, a.detailColor);
+        setPart(0.18, 0.16, 0.38 + stride * 0.4, 0.22, 0.14, 0.24, a.detailColor);
+        setPart(0.18, 0.16, -0.38 - stride * 0.4, 0.22, 0.14, 0.24, a.detailColor);
+        setPart(-0.18, 0.16, 0.36 - stride * 0.4, 0.22, 0.14, 0.24, a.detailColor);
+        setPart(-0.18, 0.16, -0.36 + stride * 0.4, 0.22, 0.14, 0.24, a.detailColor);
+        setPart(-0.38, 0.2, 0, 0.18, 0.14, 0.18, a.bodyColor);
+      }
+    }
+    dummy.scale.set(1, 1, 1);
+    dummy.rotation.set(0, 0, 0);
+    faunaMesh.instanceMatrix.needsUpdate = true;
+    if (faunaMesh.instanceColor) faunaMesh.instanceColor.needsUpdate = true;
+  }
+
+  // ==========================================================================
+  // 11. CYCLIC CLOUD DECKS & STAGGERED WEATHER / WATER-CYCLE PARTICLE SYSTEMS
+  // ==========================================================================
+  const cloudBlocks = [];
+  function buildCloudDeck(cx, cy, cz, rx, rz, colHex, groupTag) {
+    for (let c = 0; c < 6; c++) {
+      const ox = cx + (hash2(c * 7.1, cx) - 0.5) * rx * 1.4;
+      const oz = cz + (hash2(c * 13.3, cz) - 0.5) * rz * 1.4;
+      const oy = cy + (c % 2) * 1.5;
+      const crx = 3 + Math.floor(hash2(c, 1) * 3);
+      const crz = 2 + Math.floor(hash2(c, 2) * 3);
+      for (let dx = -crx; dx <= crx; dx++) {
+        for (let dz = -crz; dz <= crz; dz++) {
+          if (Math.abs(dx) === crx && Math.abs(dz) === crz) continue;
+          cloudBlocks.push({
+            baseX: ox + dx,
+            baseY: oy,
+            baseZ: oz + dz,
+            color: shadeHex(colHex, dx, oy, dz, 0.025),
+            group: groupTag
+          });
+          if (Math.abs(dx) < crx - 1 && Math.abs(dz) < crz - 1) {
+            cloudBlocks.push({
+              baseX: ox + dx,
+              baseY: oy + 1,
+              baseZ: oz + dz,
+              color: shadeHex(colHex, dx, oy + 1, dz, 0.025),
+              group: groupTag
+            });
+          }
+        }
+      }
+    }
+  }
+
+  buildCloudDeck(-10, 34, -25, 16, 10, '#eef6ff', 'conifers');
+  buildCloudDeck(23, 30, -6, 18, 14, '#b8c7d4', 'jungle');
+  buildCloudDeck(46, 26, -8, 10, 10, '#9eacb8', 'swamp');
+  buildCloudDeck(-36, 31, 4, 14, 14, '#d7e3ed', 'highlands');
+  buildCloudDeck(-2, 29, 14, 14, 12, '#dce8f2', 'grasslands');
+  buildCloudDeck(50, 48, 48, 10, 10, '#3a3638', 'volcano');
+
+  const cloudMat = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.86
+  });
+  const cloudMesh = new THREE.InstancedMesh(boxGeo, cloudMat, cloudBlocks.length);
+  for (let i = 0; i < cloudBlocks.length; i++) {
+    dummy.position.set(cloudBlocks[i].baseX, cloudBlocks[i].baseY, cloudBlocks[i].baseZ);
+    dummy.updateMatrix();
+    cloudMesh.setMatrixAt(i, dummy.matrix);
+    colorHelper.setHex(cloudBlocks[i].color);
+    cloudMesh.setColorAt(i, colorHelper);
+  }
+  scene.add(cloudMesh);
+
+  // Weather & Water-Cycle Particle Systems
+  const weatherParticles = [];
+
+  // 1. Rear Alpine Blizzard (behind face of Snow Mountains)
+  for (let i = 0; i < 240; i++) {
+    weatherParticles.push({
+      type: 'blizzard',
+      biomeId: 'mountains',
+      x: lerp(-42, 26, Math.random()),
+      y: lerp(21, 48, Math.random()),
+      z: lerp(-62, -44, Math.random()),
+      vx: 26 + Math.random() * 14,
+      vy: -1.5 + (Math.random() - 0.5) * 2.0,
+      vz: (Math.random() - 0.5) * 3.0,
+      sx: 2.6 + Math.random() * 2.2,
+      sy: 0.28,
+      sz: 0.35,
+      color: new THREE.Color(i % 2 === 0 ? '#ffffff' : '#dbeeff')
+    });
+  }
+
+  // 2. Snowy Conifer Forest Snowfall
+  for (let i = 0; i < 180; i++) {
+    weatherParticles.push({
+      type: 'snow',
+      biomeId: 'conifers',
+      x: lerp(-31, 12, Math.random()),
+      y: lerp(15, 34, Math.random()),
+      z: lerp(-33, -15, Math.random()),
+      vx: 1.5,
+      vy: -5.5 - Math.random() * 2.5,
+      vz: 0.8,
+      sx: 0.42,
+      sy: 0.42,
+      sz: 0.42,
+      color: new THREE.Color('#f5faff')
+    });
+  }
+
+  // 3. Dense Jungle Persistent Rain Shafts
+  for (let i = 0; i < 210; i++) {
+    weatherParticles.push({
+      type: 'rain_jungle',
+      biomeId: 'jungle',
+      x: lerp(9, 38, Math.random()),
+      y: lerp(8, 30, Math.random()),
+      z: lerp(-22, 11, Math.random()),
+      vx: 0.5,
+      vy: -22.0 - Math.random() * 6.0,
+      vz: 0.5,
+      sx: 0.16,
+      sy: 1.85,
+      sz: 0.16,
+      color: new THREE.Color('#5ce1ff')
+    });
+  }
+
+  // 4. Temperate Highlands, Flowering Grove & Central Grasslands Light Rain
+  for (let i = 0; i < 150; i++) {
+    const inHighlands = i < 80;
+    weatherParticles.push({
+      type: 'rain_corridor',
+      biomeId: inHighlands ? 'highlands' : 'grasslands',
+      x: inHighlands ? lerp(-50, -20, Math.random()) : lerp(-16, 12, Math.random()),
+      y: lerp(7, 30, Math.random()),
+      z: inHighlands ? lerp(-20, 26, Math.random()) : lerp(-6, 28, Math.random()),
+      vx: 0.4,
+      vy: -20.0 - Math.random() * 5.0,
+      vz: 0.4,
+      sx: 0.15,
+      sy: 1.6,
+      sz: 0.15,
+      color: new THREE.Color('#7ae8ff')
+    });
+  }
+
+  // 5. Desert Winds & Sandstorm Sheets
+  for (let i = 0; i < 200; i++) {
+    weatherParticles.push({
+      type: 'sandstorm',
+      biomeId: 'desert',
+      x: lerp(15, 45, Math.random()),
+      y: lerp(6, 21, Math.random()),
+      z: lerp(13, 42, Math.random()),
+      vx: 20.0 + Math.random() * 10.0,
+      vy: (Math.random() - 0.5) * 1.2,
+      vz: 4.5 + (Math.random() - 0.5) * 3.0,
+      sx: 2.2 + Math.random() * 1.8,
+      sy: 0.32,
+      sz: 0.38,
+      color: new THREE.Color(i % 2 === 0 ? '#e3b25b' : '#cfa055')
+    });
+  }
+
+  // 6. Volcano Eruptions, Rising Ash Plumes & Obsidian Quench Steam
+  for (let i = 0; i < 120; i++) {
+    weatherParticles.push({
+      type: 'ash',
+      biomeId: 'volcano',
+      x: 50 + (Math.random() - 0.5) * 16,
+      y: lerp(10, 52, Math.random()),
+      z: 48 + (Math.random() - 0.5) * 16,
+      vx: (Math.random() - 0.5) * 2.5,
+      vy: i < 65 ? (4.5 + Math.random() * 3.5) : (-2.5 - Math.random() * 2.0),
+      vz: (Math.random() - 0.5) * 2.5,
+      sx: 0.55,
+      sy: 0.55,
+      sz: 0.55,
+      color: new THREE.Color(i < 65 ? '#4a4446' : '#6e6668')
+    });
+  }
+
+  for (let i = 0; i < 36; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 2.5 + Math.random() * 5.0;
+    weatherParticles.push({
+      type: 'lava_bomb',
+      biomeId: 'volcano',
+      x: 50,
+      y: 38 + Math.random() * 4,
+      z: 48,
+      vx: Math.cos(ang) * spd,
+      vy: 8 + Math.random() * 10,
+      vz: Math.sin(ang) * spd,
+      sx: 0.58,
+      sy: 0.58,
+      sz: 0.58,
+      color: new THREE.Color(i % 2 === 0 ? '#ff6a00' : '#ffbe00')
+    });
+  }
+
+  for (let i = 0; i < 40; i++) {
+    weatherParticles.push({
+      type: 'obsidian_steam',
+      biomeId: 'volcano',
+      x: 37.5 + (Math.random() - 0.5) * 3.5,
+      y: 5 + Math.random() * 9,
+      z: 50.0 + (Math.random() - 0.5) * 3.8,
+      vx: (Math.random() - 0.5) * 1.0,
+      vy: 3.2 + Math.random() * 2.0,
+      vz: (Math.random() - 0.5) * 1.0,
+      sx: 0.65,
+      sy: 0.65,
+      sz: 0.65,
+      color: new THREE.Color('#e6f2f8')
+    });
+  }
+
+  // 7. Water-Cycle Evaporation Mist
+  for (let i = 0; i < 160; i++) {
+    const mode = i % 4;
+    let bx = 22, by = 12, bz = -6, bId = 'jungle';
+    if (mode === 1) {
+      bx = 47 + (Math.random() - 0.5) * 14;
+      by = 5 + Math.random() * 4;
+      bz = -8 + (Math.random() - 0.5) * 18;
+      bId = 'swamp';
+    } else if (mode === 2) {
+      bx = 22 + (Math.random() - 0.5) * 24;
+      by = 11 + Math.random() * 12;
+      bz = -6 + (Math.random() - 0.5) * 22;
+      bId = 'jungle';
+    } else if (mode === 3) {
+      bx = -10 + (Math.random() - 0.5) * 26;
+      by = 4 + Math.random() * 11;
+      bz = 34 + (Math.random() - 0.5) * 14;
+      bId = 'ocean';
+    } else {
+      const wf = waterfallColumns[i % waterfallColumns.length];
+      bx = wf.x + (Math.random() - 0.5) * 2.5;
+      by = wf.botY + Math.random() * 6;
+      bz = wf.z + (Math.random() - 0.5) * 2.5;
+      bId = wf.isVoid ? 'ocean' : 'jungle';
+    }
+    weatherParticles.push({
+      type: 'mist',
+      mode: mode,
+      biomeId: bId,
+      wfIndex: i % waterfallColumns.length,
+      x: bx,
+      y: by,
+      z: bz,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: 1.4 + Math.random() * 1.2,
+      vz: (Math.random() - 0.5) * 0.8,
+      sx: 0.95,
+      sy: 0.55,
+      sz: 0.95,
+      color: new THREE.Color('#d2e3eb')
+    });
+  }
+
+  const weatherMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85
+  });
+  const weatherMesh = new THREE.InstancedMesh(boxGeo, weatherMat, weatherParticles.length);
+  for (let i = 0; i < weatherParticles.length; i++) {
+    dummy.position.set(weatherParticles[i].x, weatherParticles[i].y, weatherParticles[i].z);
+    dummy.updateMatrix();
+    weatherMesh.setMatrixAt(i, dummy.matrix);
+    weatherMesh.setColorAt(i, weatherParticles[i].color);
+  }
+  scene.add(weatherMesh);
+
+  function burstEnvelope(time, period, offset, seasonBoost, biomeId) {
+    if (boostTimer > 0 && boostedBiomeId === biomeId) return 1.0;
+    const phase = ((time + offset) % period) / period;
+    let env = 0.0;
+    if (phase < 0.15) env = phase / 0.15;
+    else if (phase < 0.62) env = 1.0;
+    else if (phase < 0.78) env = 1.0 - (phase - 0.62) / 0.16;
+    else env = 0.0;
+    return Math.min(1.0, env * seasonBoost);
+  }
+
+  // ==========================================================================
+  // 12. SQUARE SUN, LIGHTING, DAY/NIGHT & SEASONAL CYCLES
+  // ==========================================================================
+  const ambientLight = new THREE.AmbientLight(0xdbe8ff, 0.72);
+  scene.add(ambientLight);
+
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x263242, 0.55);
+  scene.add(hemiLight);
+
+  const sunLight = new THREE.DirectionalLight(0xfff6e0, 1.55);
+  sunLight.position.set(60, 110, 45);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 2048;
+  sunLight.shadow.mapSize.height = 2048;
+  sunLight.shadow.camera.near = 10;
+  sunLight.shadow.camera.far = 320;
+  const dCam = 82;
+  sunLight.shadow.camera.left = -dCam;
+  sunLight.shadow.camera.right = dCam;
+  sunLight.shadow.camera.top = dCam;
+  sunLight.shadow.camera.bottom = -dCam;
+  sunLight.shadow.bias = -0.0008;
+  scene.add(sunLight);
+
+  const volcanoLight = new THREE.PointLight(0xff4d00, 2.5, 48, 1.4);
+  volcanoLight.position.set(50, 24, 48);
+  scene.add(volcanoLight);
+
+  const undersideLight = new THREE.PointLight(0x00d9ff, 1.6, 65, 1.3);
+  undersideLight.position.set(-8, -22, 6);
+  scene.add(undersideLight);
+
+  // Visible Square Voxel Sun
+  const sunGroup = new THREE.Group();
+  const sunCore = new THREE.Mesh(
+    new THREE.BoxGeometry(11, 11, 11),
+    new THREE.MeshBasicMaterial({ color: 0xfff59d })
+  );
+  const sunHalo = new THREE.Mesh(
+    new THREE.BoxGeometry(15, 15, 15),
+    new THREE.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.35 })
+  );
+  sunGroup.add(sunCore);
+  sunGroup.add(sunHalo);
+  scene.add(sunGroup);
+
+  const SEASONS = [
+    { name: 'SPRING', color: '#7ed957', tint: new THREE.Color(0xfff9eb), rainMod: 1.2, snowMod: 0.9, sandMod: 0.85 },
+    { name: 'SUMMER', color: '#ffca3a', tint: new THREE.Color(0xfff0cc), rainMod: 1.3, snowMod: 0.75, sandMod: 1.35 },
+    { name: 'AUTUMN', color: '#ff7b3b', tint: new THREE.Color(0xffe1b8), rainMod: 1.0, snowMod: 1.05, sandMod: 1.15 },
+    { name: 'WINTER', color: '#6bc5ff', tint: new THREE.Color(0xe6f3ff), rainMod: 0.85, snowMod: 1.4, sandMod: 0.9 }
+  ];
+
+  const seasonNameEl = document.getElementById('season-name');
+  const seasonDotEl = document.getElementById('season-dot');
+  const seasonProgEl = document.getElementById('season-progress');
+  const timeReadoutEl = document.getElementById('time-readout');
+
+  // ==========================================================================
+  // 13. MAIN ANIMATION LOOP
+  // ==========================================================================
+  const clock = new THREE.Clock();
+  let elapsedTotal = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    elapsedTotal += dt;
+
+    if (boostTimer > 0) {
+      boostTimer -= dt;
+    }
+
+    // 1. Smooth Camera Fly-To Transition
+    if (flyAnim) {
+      flyAnim.elapsed += dt;
+      const t = Math.min(1, flyAnim.elapsed / flyAnim.duration);
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      camera.position.lerpVectors(flyAnim.startPos, flyAnim.endPos, ease);
+      controls.target.lerpVectors(flyAnim.startTarget, flyAnim.endTarget, ease);
+      controls.syncFromCamera();
+      camera.lookAt(controls.target);
+      if (t >= 1) flyAnim = null;
+    } else {
+      controls.update();
+    }
+
+    // 2. Seasonal Cycle (64 seconds per full 4-season year)
+    const yearDuration = 64.0;
+    const yearPhase = (window.__WB_TIME && window.__WB_TIME.season !== null) ? window.__WB_TIME.season / 4 : (elapsedTotal % yearDuration) / yearDuration;
+    const seasonIdx = Math.floor(yearPhase * 4) % 4;
+    const seasonSub = (yearPhase * 4) % 1;
+    const curSeason = SEASONS[seasonIdx];
+    const nextSeason = SEASONS[(seasonIdx + 1) % 4];
+
+    seasonNameEl.textContent = curSeason.name;
+    seasonDotEl.style.background = curSeason.color;
+    seasonProgEl.style.width = Math.round(seasonSub * 100) + '%';
+    seasonProgEl.style.background = curSeason.color;
+
+    // 3. Square Sun & Day / Night Cycle (52 seconds per day/night orbit)
+    const dayDuration = 52.0;
+    const dayAngle = (window.__WB_TIME && window.__WB_TIME.tod !== null) ? (window.__WB_TIME.tod * Math.PI * 2) : ((elapsedTotal + 11.0) / dayDuration) * Math.PI * 2;
+    const sunOrbitR = 148;
+    const sx = Math.cos(dayAngle) * sunOrbitR;
+    const sy = Math.sin(dayAngle) * 118;
+    const sz = Math.sin(dayAngle * 0.5) * 42;
+
+    sunGroup.position.set(sx, sy, sz);
+    sunGroup.rotation.y = elapsedTotal * 0.25;
+
+    const sunElev = sy / 118;
+    const dayFactor = smoothstep(-0.28, 0.35, sunElev);
+    const duskFactor = Math.max(0, 1.0 - Math.abs(sunElev) * 2.8);
+
+    if (sunElev > 0.38) timeReadoutEl.textContent = 'DAY • NOON';
+    else if (sunElev > -0.08) timeReadoutEl.textContent = (Math.cos(dayAngle) < 0 ? 'DUSK' : 'DAWN');
+    else timeReadoutEl.textContent = 'NIGHT';
+
+    sunLight.position.set(sx, Math.max(18, sy), sz);
+    sunLight.intensity = lerp(0.18, 1.55, dayFactor);
+    ambientLight.intensity = lerp(0.22, 0.72, dayFactor);
+    hemiLight.intensity = lerp(0.16, 0.54, dayFactor);
+
+    const blendedSeasonTint = curSeason.tint.clone().lerp(nextSeason.tint, seasonSub);
+    const duskColor = new THREE.Color(0xff7e38);
+    const nightColor = new THREE.Color(0x4a699c);
+    const finalSunCol = blendedSeasonTint.clone().lerp(duskColor, duskFactor * 0.65).lerp(nightColor, 1 - dayFactor);
+    sunLight.color.copy(finalSunCol);
+
+    sunCore.material.color.setHex(sunElev > 0.08 ? 0xfff59d : (sunElev > -0.2 ? 0xff7b29 : 0x5c7699));
+    volcanoLight.intensity = lerp(3.4, 2.0, dayFactor) + Math.sin(elapsedTotal * 7.0) * 0.35;
+
+    // 4. Update Drifting Cloud Decks
+    const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');
+    const envJungle = burstEnvelope(elapsedTotal, 20, 5.0, curSeason.rainMod, 'jungle');
+    const envSwamp = burstEnvelope(elapsedTotal, 24, 10.0, 1.1, 'swamp');
+    const envHighlands = burstEnvelope(elapsedTotal, 25, 14.0, curSeason.rainMod, 'highlands');
+    const envBlizzard = burstEnvelope(elapsedTotal, 19, 3.0, curSeason.snowMod, 'mountains');
+    const envDesert = burstEnvelope(elapsedTotal, 23, 8.0, curSeason.sandMod, 'desert');
+    const envVolcano = burstEnvelope(elapsedTotal, 18, 12.0, 1.15, 'volcano');
+
+    for (let i = 0; i < cloudBlocks.length; i++) {
+      const cb = cloudBlocks[i];
+      let env = 0.85;
+      if (cb.group === 'conifers') env = 0.35 + envConifer * 0.65;
+      else if (cb.group === 'jungle') env = 0.4 + envJungle * 0.6;
+      else if (cb.group === 'swamp') env = 0.35 + envSwamp * 0.65;
+      else if (cb.group === 'highlands' || cb.group === 'grasslands') env = 0.3 + envHighlands * 0.7;
+      else if (cb.group === 'volcano') env = 0.4 + envVolcano * 0.6;
+
+      const driftX = Math.sin(elapsedTotal * 0.35 + i * 0.01) * 2.4;
+      const driftZ = Math.cos(elapsedTotal * 0.28 + i * 0.01) * 1.6;
+      dummy.position.set(cb.baseX + driftX, cb.baseY, cb.baseZ + driftZ);
+      dummy.scale.setScalar(env);
+      dummy.updateMatrix();
+      cloudMesh.setMatrixAt(i, dummy.matrix);
+    }
+    cloudMesh.instanceMatrix.needsUpdate = true;
+
+    // 5. Update Weather & Water-Cycle Particles
+    for (let i = 0; i < weatherParticles.length; i++) {
+      const p = weatherParticles[i];
+      let env = 1.0;
+
+      if (p.type === 'blizzard') {
+        env = envBlizzard;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.x > 27) {
+          p.x = -43;
+          p.y = lerp(21, 48, Math.random());
+          p.z = lerp(-62, -44, Math.random());
+        }
+      } else if (p.type === 'snow') {
+        env = envConifer;
+        p.x += (p.vx + Math.sin(elapsedTotal * 2.0 + i) * 1.2) * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.y < 14) {
+          p.x = lerp(-31, 12, Math.random());
+          p.y = 33;
+          p.z = lerp(-33, -15, Math.random());
+        }
+      } else if (p.type === 'rain_jungle') {
+        env = envJungle;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.y < 7) {
+          p.x = lerp(9, 38, Math.random());
+          p.y = 29;
+          p.z = lerp(-22, 11, Math.random());
+        }
+      } else if (p.type === 'rain_corridor') {
+        env = envHighlands;
+        p.y += p.vy * dt;
+        if (p.y < 6) {
+          p.y = 29;
+        }
+      } else if (p.type === 'sandstorm') {
+        env = envDesert;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.x > 46 || p.z > 43) {
+          p.x = 15 + Math.random() * 6;
+          p.y = lerp(6, 21, Math.random());
+          p.z = lerp(13, 39, Math.random());
+        }
+      } else if (p.type === 'ash') {
+        env = envVolcano;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.y > 54 || p.y < 7) {
+          p.x = 50 + (Math.random() - 0.5) * 8;
+          p.y = p.vy > 0 ? 38 : 48;
+          p.z = 48 + (Math.random() - 0.5) * 8;
+        }
+      } else if (p.type === 'lava_bomb') {
+        env = envVolcano;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        p.vy -= 14.5 * dt;
+        if (p.y < 14) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 2.5 + Math.random() * 5.0;
+          p.x = 50;
+          p.y = 39;
+          p.z = 48;
+          p.vx = Math.cos(ang) * spd;
+          p.vy = 9 + Math.random() * 10;
+          p.vz = Math.sin(ang) * spd;
+        }
+      } else if (p.type === 'obsidian_steam') {
+        env = 1.0;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.y > 15) {
+          p.x = 37.5 + (Math.random() - 0.5) * 3.2;
+          p.y = 4.8;
+          p.z = 50.0 + (Math.random() - 0.5) * 3.5;
+        }
+      } else if (p.type === 'mist') {
+        env = 0.75;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        if (p.mode === 0) {
+          const wf = waterfallColumns[p.wfIndex];
+          if (p.y > wf.botY + 8) {
+            p.x = wf.x + (Math.random() - 0.5) * 2.4;
+            p.y = wf.botY;
+            p.z = wf.z + (Math.random() - 0.5) * 2.4;
+          }
+        } else if (p.y > 22) {
+          p.y = p.mode === 1 ? 4.5 : 7.5;
+        }
+      }
+
+      dummy.position.set(p.x, p.y, p.z);
+      const sFactor = Math.max(0.001, env);
+      dummy.scale.set(p.sx * sFactor, p.sy * sFactor, p.sz * sFactor);
+      dummy.updateMatrix();
+      weatherMesh.setMatrixAt(i, dummy.matrix);
+    }
+    dummy.scale.set(1, 1, 1);
+    weatherMesh.instanceMatrix.needsUpdate = true;
+
+    // 6. Update Blocky Fauna
+    updateFauna(dt, elapsedTotal);
+
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
+}
+
+window.onload = function () {
+  initWorld();
+};
+</script>
+</body>
+</html>

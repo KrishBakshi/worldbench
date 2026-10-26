@@ -55,12 +55,38 @@ Save when frame clearly shows the biome. shows_biome=false if you saved anyway b
 Biome truly nowhere after looking around -> give_up with short reason.
 Budget {steps} tool calls."""
 
-_UI_LINE = re.compile(r"uid=\S+\s+(?:button|link|StaticText|listitem|generic|option|checkbox|radio)\b.*\"", re.I)
+# The last alternative is role-less text (`uid=1_15 "5. Backwater Swamp"`): a
+# legend built from plain <div>s has no other trace in the snapshot. Without
+# it one world's list held only the legend's "Hide" button, and the agent
+# clicked that, guessed ids like "5_Backwater Swamp", or never tried the legend.
+_UI_LINE = re.compile(r"uid=\S+\s+(?:(?:button|link|StaticText|listitem|generic|option|checkbox|radio)\b.*\"|\")", re.I)
 
 
 def _filter_ui(snapshot: str) -> str:
     lines = [ln.strip() for ln in snapshot.splitlines() if _UI_LINE.search(ln)]
     return "\n".join(lines[:UI_MAX_LINES]) or "(no clickable/text UI found)"
+
+
+_UID = re.compile(r"\d+_\d+")
+_SNAPSHOT_TEXT = re.compile(r'uid=(\S+)[^"]*"([^"]*)"')
+
+
+def _resolve_uid(snapshot: str, uid: str) -> str:
+    """A legend label passed as the uid -> the uid of the node with that exact text.
+
+    A legend built from plain <div>s shows in the snapshot as role-less text
+    (`uid=1_12 "Snow Mountains"`), which _filter_ui drops, so the agent is told
+    there is no UI while the legend is on screen; it then clicks by label. Every
+    such click failed, and one world framed 0/10 biomes clicking working
+    legend entries. A real uid is returned unchanged.
+    """
+    if _UID.fullmatch(uid):
+        return uid
+    want = " ".join(uid.split()).casefold()
+    for match in _SNAPSHOT_TEXT.finditer(snapshot):
+        if " ".join(match.group(2).split()).casefold() == want:
+            return match.group(1)
+    return uid
 
 
 def _estimate(messages: list) -> int:
@@ -104,6 +130,8 @@ async def frame_biome(
     @tool
     async def click(uid: str) -> str:
         """Click a UI element by uid (from ui)."""
+        if not _UID.fullmatch(uid):
+            uid = _resolve_uid(await browser.snapshot(), uid)
         await browser.click(uid)
         return "clicked; camera may be flying, frame follows"
 

@@ -1,0 +1,139 @@
+{
+  "score": 20.0,
+  "max_score": 20,
+  "items": [
+    {
+      "id": "cube_primitive",
+      "label": "Terrain is built from cube primitives (BoxGeometry or 8-corner cube faces), not only spheres/planes",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "var geo=new THREE.BoxGeometry(1,1,1);",
+      "reason": "The world is built using BoxGeometry primitives for all terrain and decor elements."
+    },
+    {
+      "id": "bulk_placement",
+      "label": "Cubes are placed in bulk over the island (cell loops, InstancedMesh of boxes, merged cube buffers)",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "var mesh=new THREE.InstancedMesh(geo,mat,list.length);",
+      "reason": "The code uses InstancedMesh to render large numbers of cubes efficiently."
+    },
+    {
+      "id": "discrete_grid",
+      "label": "Land sits on a discrete cell grid, not continuous vertex displacement of a plane",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "for(i=0;i<NX;i++)for(j=0;j<NZ;j++){",
+      "reason": "Terrain generation iterates over a discrete 2D grid of cells (NX by NZ)."
+    },
+    {
+      "id": "stacked_columns",
+      "label": "Columns and cliffs are stacks of unit cubes, not one stretched prism per cell",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "pb(land,x,(bottom+s.h-1.6)/2,z,CELL,(s.h-1.6-bottom),CELL,jit(side,f1));",
+      "reason": "The terrain is constructed by placing vertical box segments representing columns."
+    },
+    {
+      "id": "cube_terrain",
+      "label": "The ground itself is cubes (a sun or UI may use planes)",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "pb(land,x,(bottom+s.h-1.6)/2,z,CELL,(s.h-1.6-bottom),CELL,jit(side,f1));",
+      "reason": "The ground is composed of stacked cube primitives."
+    },
+    {
+      "id": "grid_aligned",
+      "label": "Land cubes snap to integer cell positions; no fractional offsets or random world-space cubes",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "x=wx(i);z=wz(j);",
+      "reason": "Coordinates are calculated based on cell indices i and j, snapping to a grid."
+    },
+    {
+      "id": "unit_voxels",
+      "label": "One cell size for land/structure cubes, not scaled blobs",
+      "points": 1,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 1.0,
+      "passed": true,
+      "why": "",
+      "evidence": "var CELL=5,NX=124,NZ=104,SEA=13;",
+      "reason": "A constant CELL size is used for all terrain cubes."
+    },
+    {
+      "id": "contained_water",
+      "label": "An ocean or river is actually built",
+      "points": 2,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 2.0,
+      "passed": true,
+      "why": "",
+      "evidence": "pb(waterB,x,(wt+s.h)/2,z,CELL,sy,CELL,wc);",
+      "reason": "Water is explicitly built as box meshes within the world."
+    },
+    {
+      "id": "water_physics",
+      "label": "Every water body is supported: resting on blocks or walled by a solid rim, or visibly falling (waterfalls off edges). Static water is fine; this is about support, not simulation",
+      "points": 3,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 3.0,
+      "passed": true,
+      "why": "",
+      "evidence": "if(cellOcean[id2]){fallSites.push([wx(i),wz(j)]);}",
+      "reason": "The code identifies edge cells to create waterfall meshes, simulating water pouring off the island."
+    },
+    {
+      "id": "water_bed",
+      "label": "Still water sits on solid terrestrial blocks (sand/stone/dirt/bedrock) beneath it, not a flat sheet over the void",
+      "points": 5,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 5.0,
+      "passed": true,
+      "why": "",
+      "evidence": "cellH[idx]=s.h;cellB[idx]=bottom;",
+      "reason": "Water is placed on top of calculated terrain heights (cellH/cellB), not floating over the void."
+    },
+    {
+      "id": "grounded_props",
+      "label": "Flora, fauna and structures are placed on the island's own cells, not thrown at random world coordinates",
+      "points": 3,
+      "probability": 1.0,
+      "evidence_verified": true,
+      "earned": 3.0,
+      "passed": true,
+      "why": "",
+      "evidence": "g.position.set(px,groundH(px,pz),pz);",
+      "reason": "Flora and fauna are positioned using the groundH function to snap to the island's surface."
+    }
+  ],
+  "missing": []
+}

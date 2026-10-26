@@ -1,0 +1,599 @@
+{
+  "score": 14,
+  "max_score": 20,
+  "points_per_biome": 2,
+  "passed": false,
+  "reason": "Scored 14/20; not covered: none; misplaced: forest, highlands, jungle, swamp, desert, volcano",
+  "elevation_order": [
+    "mountains",
+    "volcano",
+    "highlands",
+    "jungle",
+    "forest",
+    "grove",
+    "grassland",
+    "desert",
+    "swamp",
+    "delta"
+  ],
+  "biomes": {
+    "mountains": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "forest"
+      ],
+      "elevation_rank": 0,
+      "evidence": "mEdge=rect(x,z,-38,24,-74,-38,10); ridge=26*g(x,z,-20,-56,13)+30*g(x,z,-2,-62,12)+24*g(x,z,16,-54,12). Touches shelf (forest) at z=-38/-40 and delta (ocean) at the outer rim.",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "forest"
+          ]
+        },
+        {
+          "id": "higher_than.forest",
+          "kind": "higher_than",
+          "expected": "mountains before forest in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "forest_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "mountains before highlands in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "highlands_rank": 2
+          }
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "mountains before jungle in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "jungle_rank": 3
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "mountains before grassland in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "mountains before delta in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "forest": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "jungle",
+        "mountains"
+      ],
+      "elevation_rank": 4,
+      "evidence": "shelf=rect(x,z,-38,28,-40,-23,8). Touches mEdge (mountains) at z=-38/-40 and jg (jungle) at z=-23/-18 and delta (ocean) at the outer rim.",
+      "summary": "not connected to highlands; not at a higher elevation than highlands; not at a higher elevation than jungle",
+      "earned": [
+        {
+          "id": "must_connect.mountains",
+          "kind": "must_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "jungle",
+            "mountains"
+          ]
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "forest before grassland in elevation_order",
+          "actual": {
+            "forest_rank": 4,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "forest before delta in elevation_order",
+          "actual": {
+            "forest_rank": 4,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "jungle",
+            "mountains"
+          ],
+          "why": "not_connected"
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "forest before highlands in elevation_order",
+          "actual": {
+            "forest_rank": 4,
+            "highlands_rank": 2
+          },
+          "why": "not_higher"
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "forest before jungle in elevation_order",
+          "actual": {
+            "forest_rank": 4,
+            "jungle_rank": 3
+          },
+          "why": "not_higher"
+        }
+      ]
+    },
+    "highlands": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grove"
+      ],
+      "elevation_rank": 2,
+      "evidence": "hl=rect(x,z,26,58,-36,6,8). Touches gr (grove) at z=6 and delta (ocean) at the outer rim.",
+      "summary": "not connected to forest; not connected to jungle",
+      "earned": [
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "highlands before jungle in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "jungle_rank": 3
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "highlands before grassland in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "highlands before delta in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "grove"
+          ],
+          "why": "not_connected"
+        },
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "grove"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "jungle": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "forest",
+        "grassland",
+        "swamp"
+      ],
+      "elevation_rank": 3,
+      "evidence": "jg=rect(x,z,-58,-8,-18,32,8). Touches shelf (forest) at z=-18, sw (swamp) at x=-58/-46, ga (grassland) at x=-8/-16 and delta (ocean) at the outer rim.",
+      "summary": "not connected to highlands",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "must_connect.swamp",
+          "kind": "must_connect",
+          "expected": "swamp",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "jungle before grassland in elevation_order",
+          "actual": {
+            "jungle_rank": 3,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "jungle before delta in elevation_order",
+          "actual": {
+            "jungle_rank": 3,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grassland",
+            "swamp"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "swamp": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "jungle"
+      ],
+      "elevation_rank": 8,
+      "evidence": "sw=rect(x,z,-74,-46,4,36,7). Touches jg (jungle) at x=-46 and delta (ocean) at the outer rim.",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "grove": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grassland",
+        "highlands"
+      ],
+      "elevation_rank": 5,
+      "evidence": "gr=rect(x,z,26,58,6,32,7). Touches hl (highlands) at z=6, ga (grassland) at x=26 and delta (ocean) at the outer rim.",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect_any",
+          "kind": "must_connect_any",
+          "expected": [
+            "highlands",
+            "grassland"
+          ],
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "highlands"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "grassland": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "desert",
+        "grove",
+        "jungle"
+      ],
+      "elevation_rank": 6,
+      "evidence": "ga=rect(x,z,-16,24,6,50,7). Touches jg (jungle) at x=-8/-16, gr (grove) at x=26, de (desert) at z=50/32 and delta (ocean) at the outer rim.",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "desert",
+            "grove",
+            "jungle"
+          ]
+        },
+        {
+          "id": "must_connect.delta",
+          "kind": "must_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "desert",
+            "grove",
+            "jungle"
+          ]
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "grassland before delta in elevation_order",
+          "actual": {
+            "grassland_rank": 6,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "delta": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "desert",
+        "forest",
+        "grassland",
+        "grove",
+        "highlands",
+        "jungle",
+        "mountains",
+        "swamp",
+        "volcano"
+      ],
+      "elevation_rank": 9,
+      "evidence": "d>R-13 is OCEAN. All other biomes are defined within d<R and can touch the rim.",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "desert",
+            "forest",
+            "grassland",
+            "grove",
+            "highlands",
+            "jungle",
+            "mountains",
+            "swamp",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "desert": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grassland",
+        "volcano"
+      ],
+      "elevation_rank": 7,
+      "evidence": "de=rect(x,z,16,68,32,78,8). Touches ga (grassland) at z=32 and basaltM (volcano) at x=16 and delta (ocean) at the outer rim.",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.jungle",
+          "kind": "must_not_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "grassland",
+            "volcano"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "volcano": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "desert"
+      ],
+      "elevation_rank": 1,
+      "evidence": "basaltM=g(x,z,-34,58,19). Touches de (desert) at x=16 and delta (ocean) at the outer rim.",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.grassland",
+          "kind": "must_not_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "viewBox": {
+    "width": 800,
+    "height": 560
+  },
+  "score": 14,
+  "max_score": 20,
+  "passed": false,
+  "elevation_order": [
+    "mountains",
+    "volcano",
+    "highlands",
+    "jungle",
+    "forest",
+    "grove",
+    "grassland",
+    "desert",
+    "swamp",
+    "delta"
+  ],
+  "nodes": [
+    {
+      "id": "mountains",
+      "label": "Snow Mountains",
+      "neighbors": [
+        "forest",
+        "delta"
+      ],
+      "evidence": "mEdge=rect(x,z,-38,24,-74,-38,10); ridge=26*g(x,z,-20,-56,13)+30*g(x,z,-2,-62,12)+24*g(x,z,16,-54,12). Touches shelf (forest) at z=-38/-40 and delta (ocean) at the outer rim.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 340,
+      "cy": 52,
+      "w": 176,
+      "h": 46
+    },
+    {
+      "id": "forest",
+      "label": "Snowy Conifer Forest",
+      "neighbors": [
+        "mountains",
+        "jungle",
+        "delta"
+      ],
+      "evidence": "shelf=rect(x,z,-38,28,-40,-23,8). Touches mEdge (mountains) at z=-38/-40 and jg (jungle) at z=-23/-18 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to highlands; not at a higher elevation than highlands; not at a higher elevation than jungle",
+      "cx": 340,
+      "cy": 145,
+      "w": 190,
+      "h": 46
+    },
+    {
+      "id": "highlands",
+      "label": "Highlands",
+      "neighbors": [
+        "grove",
+        "delta"
+      ],
+      "evidence": "hl=rect(x,z,26,58,-36,6,8). Touches gr (grove) at z=6 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to forest; not connected to jungle",
+      "cx": 130,
+      "cy": 172,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "jungle",
+      "label": "Dense Jungle",
+      "neighbors": [
+        "forest",
+        "swamp",
+        "grassland",
+        "delta"
+      ],
+      "evidence": "jg=rect(x,z,-58,-8,-18,32,8). Touches shelf (forest) at z=-18, sw (swamp) at x=-58/-46, ga (grassland) at x=-8/-16 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "not connected to highlands",
+      "cx": 362,
+      "cy": 252,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "swamp",
+      "label": "Backwater Swamp",
+      "neighbors": [
+        "jungle",
+        "delta"
+      ],
+      "evidence": "sw=rect(x,z,-74,-46,4,36,7). Touches jg (jungle) at x=-46 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 95,
+      "cy": 322,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grove",
+      "label": "Flowering Grove",
+      "neighbors": [
+        "highlands",
+        "grassland",
+        "delta"
+      ],
+      "evidence": "gr=rect(x,z,26,58,6,32,7). Touches hl (highlands) at z=6, ga (grassland) at x=26 and delta (ocean) at the outer rim.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 250,
+      "cy": 438,
+      "w": 168,
+      "h": 46
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland Plateau",
+      "neighbors": [
+        "jungle",
+        "grove",
+        "desert",
+        "delta"
+      ],
+      "evidence": "ga=rect(x,z,-16,24,6,50,7). Touches jg (jungle) at x=-8/-16, gr (grove) at x=26, de (desert) at z=50/32 and delta (ocean) at the outer rim.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 372,
+      "cy": 372,
+      "w": 180,
+      "h": 46
+    },
+    {
+      "id": "delta",
+      "label": "Coastal Delta / Ocean",
+      "neighbors": [
+        "mountains",
+        "forest",
+        "highlands",
+        "jungle",
+        "swamp",
+        "grove",
+        "grassland",
+        "desert",
+        "volcano"
+      ],
+      "evidence": "d>R-13 is OCEAN. All other biomes are defined within d<R and can touch the rim.",
+      "passed": true,
+      "covered": true,
+      "state": "ok",
+      "score": 2,
+      "reason": "ok",
+      "cx": 348,
+      "cy": 512,
+      "w": 200,
+      "h": 46
+    },
+    {
+      "id": "desert",
+      "label": "Desert Basin",
+      "neighbors": [
+        "grassland",
+        "volcano",
+        "delta"
+      ],
+      "evidence": "de=rect(x,z,16,68,32,78,8). Touches ga (grassland) at z=32 and basaltM (volcano) at x=16 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 652,
+      "cy": 330,
+      "w": 180,
+      "h": 46,
+      "isolated": true
+    },
+    {
+      "id": "volcano",
+      "label": "Volcano",
+      "neighbors": [
+        "desert",
+        "delta"
+      ],
+      "evidence": "basaltM=g(x,z,-34,58,19). Touches de (desert) at x=16 and delta (ocean) at the outer rim.",
+      "passed": false,
+      "covered": true,
+      "state": "fail",
+      "score": 1,
+      "reason": "incorrectly connected to delta",
+      "cx": 662,
+      "cy": 128,
+      "w": 168,
+      "h": 46,
+      "isolated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "delta",
+      "to": "desert"
+    },
+    {
+      "from": "delta",
+      "to": "forest"
+    },
+    {
+      "from": "delta",
+      "to": "grassland"
+    },
+    {
+      "from": "delta",
+      "to": "grove"
+    },
+    {
+      "from": "delta",
+      "to": "highlands"
+    },
+    {
+      "from": "delta",
+      "to": "jungle"
+    },
+    {
+      "from": "delta",
+      "to": "mountains"
+    },
+    {
+      "from": "delta",
+      "to": "swamp"
+    },
+    {
+      "from": "delta",
+      "to": "volcano"
+    },
+    {
+      "from": "desert",
+      "to": "grassland"
+    },
+    {
+      "from": "desert",
+      "to": "volcano"
+    },
+    {
+      "from": "forest",
+      "to": "jungle"
+    },
+    {
+      "from": "forest",
+      "to": "mountains"
+    },
+    {
+      "from": "grassland",
+      "to": "grove"
+    },
+    {
+      "from": "grassland",
+      "to": "jungle"
+    },
+    {
+      "from": "grove",
+      "to": "highlands"
+    },
+    {
+      "from": "jungle",
+      "to": "swamp"
+    }
+  ]
+}

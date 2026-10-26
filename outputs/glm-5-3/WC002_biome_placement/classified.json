@@ -1,0 +1,88 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "SNOW",
+        "ROCK"
+      ],
+      "placement_code": "const mEdge=rect(x,z,-38,24,-74,-38,10);",
+      "elevation_code": "const ridge=26*g(x,z,-20,-56,13)+30*g(x,z,-2,-62,12)+24*g(x,z,16,-54,12);\nh  +=ridge*mEdge*(0.55+0.45*m);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "CONIF"
+      ],
+      "placement_code": "const shelf=rect(x,z,-38,28,-40,-23,8);",
+      "elevation_code": "h+=7*shelf+fbm(x+50,z)*2.5*shelf;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "HIGHL"
+      ],
+      "placement_code": "const hl=rect(x,z,26,58,-36,6,8);",
+      "elevation_code": "h=lerp(h,14+fbm(x-40,z)*2.5,0.8*hl);"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "JUNGLE"
+      ],
+      "placement_code": "const jg=rect(x,z,-58,-8,-18,32,8);",
+      "elevation_code": "h=lerp(h,9+fbm(x+90,z)*3.2,0.8*jg);"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "SWAMP"
+      ],
+      "placement_code": "const sw=rect(x,z,-74,-46,4,36,7);",
+      "elevation_code": "h=lerp(h,4+fbm(x,z+30)*1.6,0.85*sw);"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "GROVE"
+      ],
+      "placement_code": "const gr=rect(x,z,26,58,6,32,7);",
+      "elevation_code": "h=lerp(h,6.5+fbm(x,z+60)*1.6,0.8*gr);"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "GRASS"
+      ],
+      "placement_code": "const ga=rect(x,z,-16,24,6,50,7);",
+      "elevation_code": "h=lerp(h,6+fbm(x+20,z+20)*0.9,0.75*ga);"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "OCEAN",
+        "BEACH"
+      ],
+      "placement_code": "if(d>R-13){BIOME[ij]=OCEAN;H[ij]=2;continue;}",
+      "elevation_code": "H[ij]=2;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "DESERT",
+        "SANDST"
+      ],
+      "placement_code": "const de=rect(x,z,16,68,32,78,8);",
+      "elevation_code": "h=lerp(h,6+fbm(x-60,z-60)*0.7+specks,0.85*de);"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "BASALT",
+        "LAVA"
+      ],
+      "placement_code": "const basaltM=g(x,z,-34,58,19);",
+      "elevation_code": "const cone=25*g(x,z,-34,58,14)-9*g(x,z,-34,58,4);\nh=lerp(h,7,0.6*clamp(basaltM*1.6,0,1))+cone;"
+    }
+  }
+}

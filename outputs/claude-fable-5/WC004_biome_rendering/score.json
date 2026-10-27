@@ -1,12 +1,12 @@
 {
-  "score": 65.75,
+  "score": 67.5,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 65.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 67.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
-      "score": 5.75,
+      "score": 6.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -153,10 +153,10 @@
           "label": "Meltwater stream descending from the massif",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -166,7 +166,7 @@
           "llm_axis": "flowing",
           "look_evidence": "var RIVERS=[",
           "motion_evidence": "if(p.y<SEA-92)p.y=SEA-1;}",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "cold_water_tint",
@@ -417,7 +417,7 @@
       "biome_visible": true
     },
     "highlands": {
-      "score": 7.0,
+      "score": 7.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -477,6 +477,25 @@
           "llm_axis": "n/a",
           "look_evidence": "if(r1<0.09)pb(decorB,x,y+0.6,z,1.7,1.2,1.7,jit(0x7d8f5e,f1));",
           "motion_evidence": ""
+        },
+        {
+          "id": "highland_mist_hang",
+          "label": "Highland mist \u2014 large soft particles hanging near ground",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "mist layer remains stable with minimal motion",
+          "motion_axis_seen": "still",
+          "seen": "Semi-transparent mist layer hanging over the highland area.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "still",
+          "look_evidence": "var mistH=makeMist(spots.highland,5,0xdfe8ea,9);",
+          "motion_evidence": "mistH.mat.opacity=0.24*wRH+0.05;"
         },
         {
           "id": "highland_fauna_idle",
@@ -560,26 +579,6 @@
           "why": "duplicate_evidence"
         },
         {
-          "id": "highland_mist_hang",
-          "label": "Highland mist \u2014 large soft particles hanging near ground",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "mist layer remains stable with minimal motion",
-          "motion_axis_seen": "still",
-          "seen": "Semi-transparent mist layer hanging over the highland area.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "still",
-          "look_evidence": "var mistH=makeMist(spots.highland,5,0xdfe8ea,9);",
-          "motion_evidence": "mistH.mat.opacity=0.24*wRH+0.05;",
-          "why": "no_time_update"
-        },
-        {
           "id": "light_drizzle_rain",
           "label": "Light drizzle rain over highlands \u2014 thin falling drops",
           "kind": "entity",
@@ -624,7 +623,7 @@
       "biome_visible": true
     },
     "jungle": {
-      "score": 5.25,
+      "score": 5.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -790,10 +789,10 @@
           "label": "Rising mist after rain over wet canopy",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -803,7 +802,7 @@
           "llm_axis": "rising",
           "look_evidence": "var mistJ=makeMist(spots.jungle,6,0xdfe8ea,14);",
           "motion_evidence": "mistJ.mat.opacity=0.3*wMI*dayF+0.06;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "canopy_bird_motion",
@@ -830,7 +829,7 @@
       "biome_visible": true
     },
     "swamp": {
-      "score": 5.0,
+      "score": 5.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -998,10 +997,10 @@
           "label": "Low dense fog/mist hugging swamp water \u2014 swamp atmosphere",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1011,7 +1010,7 @@
           "llm_axis": "still",
           "look_evidence": "var mistS=makeMist(spots.swamp,3.5,0xcfd8ce,10);",
           "motion_evidence": "mistS.mat.opacity=0.2+0.08*Math.sin(T*0.5);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "marsh_fauna_idle",
@@ -1447,7 +1446,7 @@
       "biome_visible": true
     },
     "delta": {
-      "score": 4.5,
+      "score": 5.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1635,10 +1634,10 @@
           "label": "Coastal life \u2014 fish swimming in water or birds/turtles on shore",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1648,7 +1647,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawn('fish',c10[0],c10[1]);",
           "motion_evidence": "an.g.position.set(an.hx+Math.cos(an.ph)*an.rad*0.5,an.wy,an.hz+Math.sin(an.ph)*an.rad*0.5);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1859,7 +1858,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 6.75,
+      "score": 7.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1881,6 +1880,25 @@
           "llm_axis": "n/a",
           "look_evidence": "if(dV<52&&dV>=9.5)h=Math.max(h,23+72*Math.pow(1-dV/52,1.4));",
           "motion_evidence": ""
+        },
+        {
+          "id": "glowing_crater_mouth",
+          "label": "Glowing orange/red emissive crater at summit",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Pulsing orange glow at crater.",
+          "motion_axis_seen": "pulsing",
+          "seen": "Bright orange/red voxels visible at the volcano summit opening.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "var craterLight=new THREE.PointLight(0xff5a1f,1.4,220,2);craterLight.position.set(215,70,-95);scene.add(craterLight);",
+          "motion_evidence": "craterLight.intensity=1.1+volc*2.6+Math.sin(T*7.3)*0.25;"
         },
         {
           "id": "basalt_over_ash",
@@ -1942,26 +1960,6 @@
       ],
       "lost": [
         {
-          "id": "glowing_crater_mouth",
-          "label": "Glowing orange/red emissive crater at summit",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Pulsing orange glow at crater.",
-          "motion_axis_seen": "pulsing",
-          "seen": "Bright orange/red voxels visible at the volcano summit opening.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "var craterLight=new THREE.PointLight(0xff5a1f,1.4,220,2);craterLight.position.set(215,70,-95);scene.add(craterLight);",
-          "motion_evidence": "craterLight.intensity=1.1+volc*2.6+Math.sin(T*7.3)*0.25;",
-          "why": "no_time_update"
-        },
-        {
           "id": "lava_flow_stream",
           "label": "Orange molten lava channel flowing on volcanic ground",
           "kind": "entity",
@@ -1999,7 +1997,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "if(s.lava)pb(lavaB,x,s.h+0.6,z,CELL,1.2,CELL,jit((hsh<0.5)?0xff5a1f:0xff7a22,0.95+hsh*0.15));",
           "motion_evidence": "craterLight.intensity=1.1+volc*2.6+Math.sin(T*7.3)*0.25;",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "lava_orange_tint",

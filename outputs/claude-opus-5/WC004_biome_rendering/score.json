@@ -1,9 +1,9 @@
 {
-  "score": 74.5,
+  "score": 75.25,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 74.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 75.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 7.5,
@@ -618,7 +618,7 @@
       "biome_visible": true
     },
     "jungle": {
-      "score": 5.25,
+      "score": 5.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -807,10 +807,10 @@
           "label": "Canopy birds with subtle hover or perch motion",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -820,7 +820,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "{t:'bird',n:10,x:8,z:8,r:72,sp:9,fly:true}",
           "motion_evidence": "y=Math.max(g+16,34+Math.sin(an.ph*0.3)*5);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1854,7 +1854,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 9.5,
+      "score": 9.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1935,6 +1935,25 @@
           "motion_evidence": "riverMesh.position.y=Math.sin(time*1.6)*0.05;"
         },
         {
+          "id": "lava_pool_glow",
+          "label": "Glowing lava pool in crater or flank",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Central pool glows and shifts intensity inside the crater.",
+          "motion_axis_seen": "pulsing",
+          "seen": "Orange glowing pool of lava visible inside the crater opening.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "{x:VX,z:VZ,r:6,kind:4}",
+          "motion_evidence": "lavaMesh.material.color.setRGB(1*pulse,0.34*pulse,0.06*pulse);"
+        },
+        {
           "id": "lava_orange_tint",
           "label": "Orange/red lava tint \u2014 not cyan river or swamp olive",
           "kind": "entity",
@@ -2012,26 +2031,6 @@
         }
       ],
       "lost": [
-        {
-          "id": "lava_pool_glow",
-          "label": "Glowing lava pool in crater or flank",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Central pool glows and shifts intensity inside the crater.",
-          "motion_axis_seen": "pulsing",
-          "seen": "Orange glowing pool of lava visible inside the crater opening.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "{x:VX,z:VZ,r:6,kind:4}",
-          "motion_evidence": "lavaMesh.material.color.setRGB(1*pulse,0.34*pulse,0.06*pulse);",
-          "why": "no_time_update"
-        },
         {
           "id": "volcanic_dust_fog",
           "label": "Grey volcanic dust/fog atmosphere around the cone",

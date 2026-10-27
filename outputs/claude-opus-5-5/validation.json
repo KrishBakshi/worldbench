@@ -1647,14 +1647,14 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 74.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
           "mountains": "failed items: packed_ice_or_powder, meltwater_descent, alpine_fauna_grounded",
           "forest": "failed items: understory_fern_clump, foothill_shelf_elevation, snowfall_particles, forest_fauna_idle, podzol_or_coarse_dirt",
           "highlands": "failed items: light_drizzle_rain, headwater_rill_flow",
-          "jungle": "failed items: hanging_vines_on_trunks, cocoa_melon_or_bamboo, pond_still_surface, waterfall_cascade, rain_shaft_fall, rising_mist_after_rain, jungle_fauna_ground, canopy_bird_motion",
+          "jungle": "failed items: hanging_vines_on_trunks, cocoa_melon_or_bamboo, pond_still_surface, rising_mist_after_rain, jungle_fauna_ground, canopy_bird_motion",
           "swamp": "failed items: hanging_moss_drape, lily_pad_float, sugar_cane_shore, olive_water_tint, swamp_mist_low, marsh_fauna_idle",
           "grove": "failed items: feeder_stream_flow, petal_drift_particles, soft_warm_mist, grove_fauna_graze, bee_pollinator_buzz",
           "grassland": "failed items: open_meadow_green, tall_grass_blade, tributary_river_flow",
@@ -1691,7 +1691,9 @@
           ],
           "jungle": [
             "dense_canopy_tower",
-            "lush_foliage_tint"
+            "lush_foliage_tint",
+            "waterfall_cascade",
+            "rain_shaft_fall"
           ],
           "swamp": [
             "mangrove_prop_root",
@@ -1759,8 +1761,6 @@
             "hanging_vines_on_trunks",
             "cocoa_melon_or_bamboo",
             "pond_still_surface",
-            "waterfall_cascade",
-            "rain_shaft_fall",
             "rising_mist_after_rain",
             "jungle_fauna_ground",
             "canopy_bird_motion"
@@ -1809,23 +1809,23 @@
         "biome_scores": {
           "mountains": 9.0,
           "forest": 7.5,
-          "highlands": 8.75,
-          "jungle": 6.0,
+          "highlands": 9.0,
+          "jungle": 7.0,
           "swamp": 6.75,
-          "grove": 6.0,
+          "grove": 6.5,
           "grassland": 8.75,
           "delta": 6.5,
           "desert": 9.5,
-          "volcano": 6.0
+          "volcano": 6.25
         },
-        "score": 74.75,
+        "score": 76.75,
         "max_score": 100,
         "scorecard": {
-          "score": 74.75,
+          "score": 76.75,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 74.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 9.0,
@@ -2238,7 +2238,7 @@
               "biome_visible": true
             },
             "highlands": {
-              "score": 8.75,
+              "score": 9.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2401,10 +2401,10 @@
                   "label": "Light drizzle rain over highlands \u2014 thin falling drops",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.5,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "Not visible.",
                   "motion_axis_seen": "still",
@@ -2414,7 +2414,7 @@
                   "llm_axis": "falling",
                   "look_evidence": "WX.high   = makePrecip({name:'Light rain \u00b7 highlands',sw:'#8a9a72',cx:20,cz:-27,rx:11,rz:9,y:34,count:380,color:'#b5d2f5',cloud:'#b8c0ca',cloudOp:.8,period:58,offset:.62,season:'rain',hold:.35});",
                   "motion_evidence": "s.arr[o+1]-=d; s.arr[o+4]-=d; s.arr[o]-=d*.05; s.arr[o+3]-=d*.05; if(s.arr[o+1]<s.gnd[i])respawn(s,i,false);",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "headwater_rill_flow",
@@ -2441,7 +2441,7 @@
               "biome_visible": true
             },
             "jungle": {
-              "score": 6.0,
+              "score": 7.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2482,6 +2482,44 @@
                   "llm_axis": "n/a",
                   "look_evidence": "3:['#2f7d3a','#2a6f33','#357f3d'],",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "waterfall_cascade",
+                  "label": "Waterfall \u2014 vertical cascade of water voxels",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Cyan water drops vertically in cascade.",
+                  "motion_axis_seen": "falling",
+                  "seen": "Vertical column of water dropping down near the jungle edge.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "falling",
+                  "look_evidence": "W.add(cx(ii),WL[kk],cx(jj),1,WL[k]-WL[kk],1,col('#b9f1fa',.03));",
+                  "motion_evidence": "SPRAY.arr[o+1]=p.y; SPRAY.arr[o+2]=p.s.z+p.oz*(1+spread);}"
+                },
+                {
+                  "id": "rain_shaft_fall",
+                  "label": "Persistent jungle rain shafts falling downward",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Blue rain particles fall downward continuously.",
+                  "motion_axis_seen": "falling",
+                  "seen": "Blue vertical rain lines falling heavily over the jungle.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "falling",
+                  "look_evidence": "WX.jungle = makePrecip({name:'Rain \u00b7 jungle',sw:'#1f8a4c',cx:-36,cz:6,rx:20,rz:20,y:34,count:1700,color:'#9cc8ff',cloud:'#8f98a4',cloudOp:.88,period:44,offset:.3,season:'rain',hold:.62});",
+                  "motion_evidence": "s.arr[o+1]-=d; s.arr[o+4]-=d; s.arr[o]-=d*.05; s.arr[o+3]-=d*.05;"
                 }
               ],
               "lost": [
@@ -2546,46 +2584,6 @@
                   "why": "not_visible"
                 },
                 {
-                  "id": "waterfall_cascade",
-                  "label": "Waterfall \u2014 vertical cascade of water voxels",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Cyan water drops vertically in cascade.",
-                  "motion_axis_seen": "falling",
-                  "seen": "Vertical column of water dropping down near the jungle edge.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "falling",
-                  "look_evidence": "W.add(cx(ii),WL[kk],cx(jj),1,WL[k]-WL[kk],1,col('#b9f1fa',.03));",
-                  "motion_evidence": "SPRAY.arr[o+1]=p.y; SPRAY.arr[o+2]=p.s.z+p.oz*(1+spread);}",
-                  "why": "no_time_update"
-                },
-                {
-                  "id": "rain_shaft_fall",
-                  "label": "Persistent jungle rain shafts falling downward",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Blue rain particles fall downward continuously.",
-                  "motion_axis_seen": "falling",
-                  "seen": "Blue vertical rain lines falling heavily over the jungle.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "falling",
-                  "look_evidence": "WX.jungle = makePrecip({name:'Rain \u00b7 jungle',sw:'#1f8a4c',cx:-36,cz:6,rx:20,rz:20,y:34,count:1700,color:'#9cc8ff',cloud:'#8f98a4',cloudOp:.88,period:44,offset:.3,season:'rain',hold:.62});",
-                  "motion_evidence": "s.arr[o+1]-=d; s.arr[o+4]-=d; s.arr[o]-=d*.05; s.arr[o+3]-=d*.05;",
-                  "why": "no_time_update"
-                },
-                {
                   "id": "rising_mist_after_rain",
                   "label": "Rising mist after rain over wet canopy",
                   "kind": "entity",
@@ -2630,10 +2628,10 @@
                   "label": "Canopy birds with subtle hover or perch motion",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -2643,7 +2641,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "for(let i=0;i<5;i++) bird('#2b2b2b',0,14,R(10,22),R(20,28),R(.2,.35));",
                   "motion_evidence": "b.g.position.set(b.cx+Math.cos(b.a)*b.r,b.y+Math.sin(t*.7+b.ph)*1.5,b.cz+Math.sin(b.a)*b.r);",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 }
               ],
               "shows_biome": true,
@@ -2857,7 +2855,7 @@
               "biome_visible": true
             },
             "grove": {
-              "score": 6.0,
+              "score": 6.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3023,10 +3021,10 @@
                   "label": "Grove grazers (deer/sheep) idle on terrain",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -3036,7 +3034,7 @@
                   "llm_axis": "grounded",
                   "look_evidence": "spawn('deer',[BI.GROVE],3);",
                   "motion_evidence": "this.g.position.set(this.x,this.y+hop,this.z);",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "bee_pollinator_buzz",
@@ -3676,7 +3674,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 6.0,
+              "score": 6.25,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3744,10 +3742,10 @@
                   "label": "Glowing orange/red emissive crater at summit",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.5,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": true,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -3757,7 +3755,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "const craterLight=new THREE.PointLight(0xff5a1a,40,110,1); craterLight.position.set(VX,52,VZ); scene.add(craterLight);",
                   "motion_evidence": "craterLight.intensity=(28+160*e)*(0.85+.15*Math.sin(t*9))*(.6+.4*(1-env.dayF));",
-                  "why": "no_time_update"
+                  "why": "motion_not_seen"
                 },
                 {
                   "id": "lava_flow_stream",
@@ -3890,26 +3888,35 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 74.75,
+      "score": 76.75,
       "max_score": 100,
-      "probe_score": 74.75,
-      "probe_reason": "Scored 74.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 76.75,
+      "probe_reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 11.0/20; failed items: light_follows_sun, dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+      "reason": "Scored 14.0/20; failed items: light_follows_sun, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
       "details": {
-        "score": 11.0,
+        "score": 14.0,
         "max_score": 20,
         "scorecard": {
-          "score": 11.0,
+          "score": 14.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 11.0/20; failed items: light_follows_sun, dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+          "reason": "Scored 14.0/20; failed items: light_follows_sun, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
           "earned": [
             {
               "id": "sun_orbit",
@@ -3936,6 +3943,21 @@
               "llm_axis": "cyclic",
               "look_evidence": "sun.intensity=2.7*env.dayF*(1-.35*storm);",
               "motion_evidence": "hemi.intensity=.2+.85*env.dayF; hemi.color.copy(nightSky).lerp(daySky,env.dayF);",
+              "earned": 2.0,
+              "code": true,
+              "visual": true,
+              "seen": ""
+            },
+            {
+              "id": "dusk_dawn_tint",
+              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "sun.color.copy(tint).lerp(dusk,1-sstep(.05,.4,sy)); sun.color.lerp(new THREE.Color('#c9d6e8'),storm*.4);",
+              "motion_evidence": "sunMesh.material.color.set('#ffe98a').lerp(dusk,1-sstep(.05,.35,sy));",
               "earned": 2.0,
               "code": true,
               "visual": true,
@@ -3990,22 +4012,6 @@
               "seen": ""
             },
             {
-              "id": "dusk_dawn_tint",
-              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "sun.color.copy(tint).lerp(dusk,1-sstep(.05,.4,sy)); sun.color.lerp(new THREE.Color('#c9d6e8'),storm*.4);",
-              "motion_evidence": "sunMesh.material.color.set('#ffe98a').lerp(dusk,1-sstep(.05,.35,sy));",
-              "why": "no_time_update",
-              "earned": 1.0,
-              "code": false,
-              "visual": true,
-              "seen": ""
-            },
-            {
               "id": "season_cycle",
               "label": "Four-season (or year) loop advancing on a clock",
               "kind": "entity",
@@ -4015,9 +4021,9 @@
               "llm_axis": "cyclic",
               "look_evidence": "const DAY=42, SEASON=84, YEAR=SEASON*4;",
               "motion_evidence": "const yp=(env.t/YEAR)%1, si2=Math.floor(yp*4);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": "HUD text updates, but the voxel biome graphics remain identical across seasons."
             },
@@ -4031,9 +4037,9 @@
               "llm_axis": "cyclic",
               "look_evidence": "const TINT=['#fff6e8','#fff0cc','#ffcf98','#d9e6ff'].map(c=>new THREE.Color(c));",
               "motion_evidence": "const tint=tmpC.copy(TINT[Math.floor(((t/YEAR)%1)*4)]);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": ""
             },
@@ -4089,12 +4095,12 @@
         "item_hits": [
           "sun_orbit",
           "night_dimming",
+          "dusk_dawn_tint",
           "cloud_drift_wrap",
           "moon"
         ],
         "item_misses": [
           "light_follows_sun",
-          "dusk_dawn_tint",
           "season_cycle",
           "season_world_tint",
           "season_modulates_weather",
@@ -4104,9 +4110,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 11.0,
+      "score": 14.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -4854,8 +4869,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 221.64,
+  "total_score": 226.64,
   "total_max_score": 280.0,
-  "pct": 0.7915714285714285,
+  "pct": 0.8094285714285714,
   "island_gate": false
 }

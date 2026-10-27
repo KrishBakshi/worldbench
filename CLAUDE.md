@@ -56,7 +56,7 @@ property of the world.
     "look" and "motion": WC005 accepts that when the line is an update
     (`sunLight.intensity=.04+daylight*3.1`) and rejects it as spawn-only
     only when it constructs the object (`new …(`) — and only if the line
-    provably runs every frame (`_runs_every_frame`: inside the
+    provably runs every frame (`eval/frame_loop.py`: inside the
     `requestAnimationFrame`/`setAnimationLoop` callback or a function it
     calls, 4 deep; unknown → the strict rule). Rejecting every same-line
     quote failed 9 real per-frame lines; the frame-loop condition keeps a
@@ -566,6 +566,20 @@ property of the world.
       elevation code) as a location hint when that run left one: worlds
       number or position biomes (`BIO[b]`, `case 1:`), and mapping an id
       was exactly where the looping hunt got stuck.
+  - `frame_loop.py` — `runs_every_frame(quote, js)`: does a quoted line sit
+    inside the frame loop (the `requestAnimationFrame`/`setAnimationLoop`
+    callback or a function it calls, 4 deep)? WC004 and WC005 count a motion
+    quote as an update if it does **or** it matches their time-name list
+    (`_TIME_UPDATE`); before, the name list alone decided, so
+    `burst(time,…)` passed while the same per-frame call written
+    `envelope(t,…)` or `burstEnvelope(elapsedTotal,…)` failed — up to 12
+    points per world, on how a variable was named. It reads the **raw**
+    script (`strip_html`), not `normalize()`'s whitespace-free text: with
+    whitespace gone a `//` comment glues onto the next line
+    (`//startlatemorningfunctionframe(){`), the loop was never found, and
+    every per-frame line of that world failed. Comments are stripped first
+    (string/regex-literal aware); whitespace between word characters is kept
+    as one space. A one-time setup line still fails.
   - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
     quote must really be in the source (whitespace-insensitive, per line,
     tolerant of a garbled line *tail* — ≥85% prefix — not of invented

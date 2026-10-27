@@ -1,9 +1,9 @@
 {
-  "score": 69.25,
+  "score": 70.75,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 70.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 9.0,
@@ -210,7 +210,7 @@
       "biome_visible": true
     },
     "forest": {
-      "score": 8.25,
+      "score": 8.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -310,6 +310,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "snowfall_particles",
+          "label": "Gentle snowfall \u2014 small white particles falling downward",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Small white particles fall downward through the air.",
+          "motion_axis_seen": "falling",
+          "seen": "Small white cubic particles falling over the forest coordinates.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "falling",
+          "look_evidence": "snow: {o:makePS(650,0.34,0xf4f8ff,0.95),period:40,active:24,off:5, kind:'snow',box:[-52,-36,40,-14],top:26,season:'snow'}",
+          "motion_evidence": "o.vy[i]=-(2+Math.random()*1.5);"
+        },
+        {
           "id": "podzol_or_coarse_dirt",
           "label": "Podzol or coarse-dirt patches among snow under pines",
           "kind": "entity",
@@ -369,26 +388,6 @@
           "look_evidence": "{g:makeCloud(-14,30,-26,40,0xe8eef2,0.9), sys:'snow'}",
           "motion_evidence": "c.g.position.x+=dt*1.1;",
           "why": "motion_not_seen"
-        },
-        {
-          "id": "snowfall_particles",
-          "label": "Gentle snowfall \u2014 small white particles falling downward",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Small white particles fall downward through the air.",
-          "motion_axis_seen": "falling",
-          "seen": "Small white cubic particles falling over the forest coordinates.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "falling",
-          "look_evidence": "snow: {o:makePS(650,0.34,0xf4f8ff,0.95),period:40,active:24,off:5, kind:'snow',box:[-52,-36,40,-14],top:26,season:'snow'}",
-          "motion_evidence": "o.vy[i]=-(2+Math.random()*1.5);",
-          "why": "no_time_update"
         },
         {
           "id": "forest_fauna_idle",
@@ -624,7 +623,7 @@
       "biome_visible": true
     },
     "jungle": {
-      "score": 5.0,
+      "score": 5.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -812,10 +811,10 @@
           "label": "Canopy birds with subtle hover or perch motion",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -825,7 +824,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "birds.push({g, cx:i<3?10:16, cz:i<3?56:2, cy:i<3?12:20, r:8+i*2.5, sp:0.35+hash2(i,1)*0.3, ph:i*1.1});",
           "motion_evidence": "b.g.position.set(b.cx+Math.cos(b.ph)*b.r, b.cy+Math.sin(T*0.8+b.ph)*2, b.cz+Math.sin(b.ph)*b.r);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1449,7 +1448,7 @@
       "biome_visible": true
     },
     "delta": {
-      "score": 7.0,
+      "score": 7.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1616,10 +1615,10 @@
           "label": "Cliff waterfall \u2014 water falling off edge into void/ocean",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "Water column at cliff edge remains static.",
           "motion_axis_seen": "still",
@@ -1629,7 +1628,7 @@
           "llm_axis": "falling",
           "look_evidence": "waterBlocks.push({x:p.nx,y,z:p.nz,c:jcol(0x6fd8f0,p.nx+y,p.nz,0.05)});",
           "motion_evidence": "o.vy[i]=-(20+Math.random()*6);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "coastal_fauna_motion",
@@ -1861,7 +1860,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 7.0,
+      "score": 7.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1902,6 +1901,25 @@
           "llm_axis": "n/a",
           "look_evidence": "if(d<8) return jcol(0x4b4b50,x,z,0.07); return jcol(hash2(x,z)<0.5?0x2c2c31:0x34343a,x,z,0.07);",
           "motion_evidence": ""
+        },
+        {
+          "id": "lava_flow_stream",
+          "label": "Orange molten lava channel flowing on volcanic ground",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "orange voxels flow down streams",
+          "motion_axis_seen": "flowing",
+          "seen": "Bright orange lava flows down side.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "flowing",
+          "look_evidence": "carve([[53,-33],[50,-29],[47,-25]], 20, 7, 1.0, 1.4, {lava:true});",
+          "motion_evidence": "lavaMesh.material.color.setScalar(1).offsetHSL(0,0,Math.sin(T*2)*0.03);"
         },
         {
           "id": "lava_orange_tint",
@@ -1948,10 +1966,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "no motion detected at crater",
           "motion_axis_seen": "still",
@@ -1961,27 +1979,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "if(d<3.2) h=25.0;                                      // crater bowl\nif(Math.hypot(dx,dz)<=2.6 && H[gi(x,z)]>-900){ H[gi(x,z)]=25; lava.set(key(x,z), 26); water.delete(key(x,z)); }",
           "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-          "why": "no_time_update"
-        },
-        {
-          "id": "lava_flow_stream",
-          "label": "Orange molten lava channel flowing on volcanic ground",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "orange voxels flow down streams",
-          "motion_axis_seen": "flowing",
-          "seen": "Bright orange lava flows down side.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "flowing",
-          "look_evidence": "carve([[53,-33],[50,-29],[47,-25]], 20, 7, 1.0, 1.4, {lava:true});",
-          "motion_evidence": "lavaMesh.material.color.setScalar(1).offsetHSL(0,0,Math.sin(T*2)*0.03);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "lava_pool_glow",
@@ -2001,7 +1999,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "setPond(47, -22, 2.4, 7, true);",
           "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "eruption_burst",

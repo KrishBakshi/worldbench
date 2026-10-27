@@ -27,7 +27,7 @@ flowchart TD
 2. One visual call per biome checks each entity against its `looks_like` on the blind-confirmed biome frame and the overview, and judges motion from the bursts in the same call.
 3. Motion bursts: after the navigator frames a biome on the daytime preview, capture takes a "near" burst (its framing) and a "far" burst (zoomed out once). Each is a few frames about 2 s apart with the camera still, plus an overlay marking changed pixels in red. Daytime on purpose: at night most moving things can't be seen at all. Kept small on purpose too: no pivots, and no waiting for weather cycles.
 4. A still entity's points are split: half for the code's look, half for being seen. A moving entity's points are half look (same split) and half motion. The motion half is split again:
-   - Code: a time update on a compatible axis, not spawn-only, not evidence reused from another entity.
+   - Code: a time update on a compatible axis, not spawn-only, not evidence reused from another entity. A time update is a line that runs every frame (inside the `requestAnimationFrame` / `setAnimationLoop` callback or a function it calls, `eval/frame_loop.py`) or that matches the time-name list; what the clock variable is called doesn't decide it.
    - Burst: the VLM says it moves on a compatible axis in the burst frames, and the burst's pixels really changed (at least 0.1%). For `still` entities (hanging mist), being visible on a compatible axis is enough.
    - Fauna and other small movers are scored on code motion alone. They were "not visible" in most bursts, and the VLM also invented motion for them. Only weather, water and terrain (lava, glow) get a motion verdict from frames.
 5. Forbidden entities found by either the code or the frames subtract. A biome absent from both scores 0. An entity may carry a `weight`; the default is 1.
@@ -62,7 +62,7 @@ $$
 C_M(x) = \text{moves\_ok} \wedge q_M \ne \varnothing \wedge q_M \ne q_L \wedge \neg\text{hint}(q_M) \wedge V(q_M) \wedge \text{timeUpdate}(q_M) \wedge \text{ax}(e_x, \text{axis}) \wedge \text{unused}(q_M)
 $$
 
-$\text{timeUpdate}$ is a regex hit for a time or frame driver (`dt`, `delta`, `clock.getDelta`, `time`, `now`, `requestAnimationFrame`, `animate`, `forEach(`, `position.x|y|z +=`, `attributes.position`, `pos[...] +=`, `velocit…`, `instanceMatrix.needsUpdate`, …). $C_M$ applies only to entities with `requires_motion`.
+$\text{timeUpdate}(q_M) = \text{perFrame}(q_M) \vee \text{timeName}(q_M)$. $\text{perFrame}$: the line sits in the frame-loop callback (`requestAnimationFrame` / `setAnimationLoop`) or a function it calls, up to 4 calls deep (`eval/frame_loop.py`, on the raw script with comments stripped). $\text{timeName}$ is a regex hit for a time or frame driver (`dt`, `delta`, `clock.getDelta`, `time`, `now`, `requestAnimationFrame`, `animate`, `forEach(`, `position.x|y|z +=`, `attributes.position`, `pos[...] +=`, `velocit…`, `instanceMatrix.needsUpdate`, …). $C_M$ applies only to entities with `requires_motion`.
 
 ### Motion from the bursts
 

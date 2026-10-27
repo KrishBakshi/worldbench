@@ -1764,16 +1764,16 @@
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 10.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle, moon",
+      "reason": "Scored 11.0/20; failed items: season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle, moon",
       "details": {
-        "score": 10.0,
+        "score": 11.0,
         "max_score": 20,
         "scorecard": {
-          "score": 10.0,
+          "score": 11.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 10.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle, moon",
+          "reason": "Scored 11.0/20; failed items: season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle, moon",
           "earned": [
             {
               "id": "sun_orbit",
@@ -1821,6 +1821,21 @@
               "seen": ""
             },
             {
+              "id": "dusk_dawn_tint",
+              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool",
+              "motion_evidence": "sunLight.color.setHex(0xffeebb); // Summer warm",
+              "earned": 2.0,
+              "code": true,
+              "visual": true,
+              "seen": ""
+            },
+            {
               "id": "season_cycle",
               "label": "Four-season (or year) loop advancing on a clock",
               "kind": "entity",
@@ -1838,22 +1853,6 @@
           ],
           "lost": [
             {
-              "id": "dusk_dawn_tint",
-              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool",
-              "motion_evidence": "sunLight.color.setHex(0xffeebb); // Summer warm",
-              "why": "no_time_update",
-              "earned": 1.0,
-              "code": false,
-              "visual": true,
-              "seen": ""
-            },
-            {
               "id": "season_world_tint",
               "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
               "kind": "entity",
@@ -1863,7 +1862,7 @@
               "llm_axis": "cyclic",
               "look_evidence": "else if (currentSeason === 3) sunLight.color.setHex(0xddddff); // Winter cool",
               "motion_evidence": "sunLight.color.setHex(0xffeebb); // Summer warm",
-              "why": "no_time_update",
+              "why": "duplicate_evidence",
               "earned": 1.0,
               "code": false,
               "visual": true,
@@ -1954,10 +1953,10 @@
           "sun_orbit",
           "light_follows_sun",
           "night_dimming",
+          "dusk_dawn_tint",
           "season_cycle"
         ],
         "item_misses": [
-          "dusk_dawn_tint",
           "season_world_tint",
           "season_modulates_weather",
           "cloud_drift_wrap",
@@ -1968,9 +1967,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 10.0,
+      "score": 11.0,
       "max_score": 20
     },
     "WC004_biome_rendering::check_biome_rendering": {
@@ -4233,7 +4241,16 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
       "score": 44.75,
       "max_score": 100,
@@ -4951,8 +4968,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 149.0,
+  "total_score": 150.0,
   "total_max_score": 280.0,
-  "pct": 0.5321428571428571,
+  "pct": 0.5357142857142857,
   "island_gate": false
 }

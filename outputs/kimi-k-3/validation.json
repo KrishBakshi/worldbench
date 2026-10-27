@@ -1664,12 +1664,12 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 62.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 63.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
           "mountains": "failed items: snow_over_stone, meltwater_descent, alpine_fauna_grounded",
-          "forest": "failed items: understory_fern_clump, cloud_deck_layer, snowfall_particles, forest_fauna_idle",
+          "forest": "failed items: understory_fern_clump, cloud_deck_layer, forest_fauna_idle",
           "highlands": "failed items: exposed_granite_render, sparse_scrub_cube, tussock_grass_clump, cool_grass_tint, highland_mist_hang, light_drizzle_rain, headwater_rill_flow, highland_fauna_idle",
           "jungle": "failed items: hanging_vines_on_trunks, cocoa_melon_or_bamboo, pond_still_surface, waterfall_cascade, rising_mist_after_rain, jungle_fauna_ground, canopy_bird_motion",
           "swamp": "failed items: hanging_moss_drape, lily_pad_float, sugar_cane_shore, olive_water_tint, mud_bank_render, mud_floor_recipe, marsh_fauna_idle",
@@ -1677,7 +1677,7 @@
           "grassland": "failed items: open_meadow_green, tall_grass_blade",
           "delta": "failed items: sand_seafloor_recipe, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
           "desert": "failed items: sand_over_sandstone, dead_bush_twig, dry_wash_channel, dry_grass_clump",
-          "volcano": "failed items: glowing_crater_mouth, lava_flow_stream, lava_pool_glow, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
+          "volcano": "failed items: glowing_crater_mouth, lava_pool_glow, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
         },
         "item_hits": {
           "mountains": [
@@ -1695,6 +1695,7 @@
             "snow_over_ground",
             "foothill_shelf_elevation",
             "cold_foliage_tint",
+            "snowfall_particles",
             "podzol_or_coarse_dirt"
           ],
           "highlands": [
@@ -1745,6 +1746,7 @@
           "volcano": [
             "volcano_cone_silhouette",
             "basalt_over_ash",
+            "lava_flow_stream",
             "lava_orange_tint",
             "ash_plume_rise"
           ]
@@ -1758,7 +1760,6 @@
           "forest": [
             "understory_fern_clump",
             "cloud_deck_layer",
-            "snowfall_particles",
             "forest_fauna_idle"
           ],
           "highlands": [
@@ -1816,7 +1817,6 @@
           ],
           "volcano": [
             "glowing_crater_mouth",
-            "lava_flow_stream",
             "lava_pool_glow",
             "eruption_burst",
             "volcanic_dust_fog",
@@ -1825,24 +1825,24 @@
         },
         "biome_scores": {
           "mountains": 9.0,
-          "forest": 8.25,
+          "forest": 8.5,
           "highlands": 5.5,
-          "jungle": 5.0,
+          "jungle": 5.5,
           "swamp": 4.5,
           "grove": 6.5,
           "grassland": 9.0,
-          "delta": 7.0,
+          "delta": 7.25,
           "desert": 7.5,
-          "volcano": 7.0
+          "volcano": 7.5
         },
-        "score": 62.25,
+        "score": 63.5,
         "max_score": 100,
         "scorecard": {
-          "score": 69.25,
+          "score": 70.75,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 70.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 9.0,
@@ -2049,7 +2049,7 @@
               "biome_visible": true
             },
             "forest": {
-              "score": 8.25,
+              "score": 8.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2149,6 +2149,25 @@
                   "motion_evidence": ""
                 },
                 {
+                  "id": "snowfall_particles",
+                  "label": "Gentle snowfall \u2014 small white particles falling downward",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Small white particles fall downward through the air.",
+                  "motion_axis_seen": "falling",
+                  "seen": "Small white cubic particles falling over the forest coordinates.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "falling",
+                  "look_evidence": "snow: {o:makePS(650,0.34,0xf4f8ff,0.95),period:40,active:24,off:5, kind:'snow',box:[-52,-36,40,-14],top:26,season:'snow'}",
+                  "motion_evidence": "o.vy[i]=-(2+Math.random()*1.5);"
+                },
+                {
                   "id": "podzol_or_coarse_dirt",
                   "label": "Podzol or coarse-dirt patches among snow under pines",
                   "kind": "entity",
@@ -2208,26 +2227,6 @@
                   "look_evidence": "{g:makeCloud(-14,30,-26,40,0xe8eef2,0.9), sys:'snow'}",
                   "motion_evidence": "c.g.position.x+=dt*1.1;",
                   "why": "motion_not_seen"
-                },
-                {
-                  "id": "snowfall_particles",
-                  "label": "Gentle snowfall \u2014 small white particles falling downward",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Small white particles fall downward through the air.",
-                  "motion_axis_seen": "falling",
-                  "seen": "Small white cubic particles falling over the forest coordinates.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "falling",
-                  "look_evidence": "snow: {o:makePS(650,0.34,0xf4f8ff,0.95),period:40,active:24,off:5, kind:'snow',box:[-52,-36,40,-14],top:26,season:'snow'}",
-                  "motion_evidence": "o.vy[i]=-(2+Math.random()*1.5);",
-                  "why": "no_time_update"
                 },
                 {
                   "id": "forest_fauna_idle",
@@ -2463,7 +2462,7 @@
               "biome_visible": true
             },
             "jungle": {
-              "score": 5.0,
+              "score": 5.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2651,10 +2650,10 @@
                   "label": "Canopy birds with subtle hover or perch motion",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -2664,7 +2663,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "birds.push({g, cx:i<3?10:16, cz:i<3?56:2, cy:i<3?12:20, r:8+i*2.5, sp:0.35+hash2(i,1)*0.3, ph:i*1.1});",
                   "motion_evidence": "b.g.position.set(b.cx+Math.cos(b.ph)*b.r, b.cy+Math.sin(T*0.8+b.ph)*2, b.cz+Math.sin(b.ph)*b.r);",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 }
               ],
               "shows_biome": true,
@@ -3288,7 +3287,7 @@
               "biome_visible": true
             },
             "delta": {
-              "score": 7.0,
+              "score": 7.25,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3455,10 +3454,10 @@
                   "label": "Cliff waterfall \u2014 water falling off edge into void/ocean",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.5,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": true,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "Water column at cliff edge remains static.",
                   "motion_axis_seen": "still",
@@ -3468,7 +3467,7 @@
                   "llm_axis": "falling",
                   "look_evidence": "waterBlocks.push({x:p.nx,y,z:p.nz,c:jcol(0x6fd8f0,p.nx+y,p.nz,0.05)});",
                   "motion_evidence": "o.vy[i]=-(20+Math.random()*6);",
-                  "why": "no_time_update"
+                  "why": "motion_not_seen"
                 },
                 {
                   "id": "coastal_fauna_motion",
@@ -3700,7 +3699,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 7.0,
+              "score": 7.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3741,6 +3740,25 @@
                   "llm_axis": "n/a",
                   "look_evidence": "if(d<8) return jcol(0x4b4b50,x,z,0.07); return jcol(hash2(x,z)<0.5?0x2c2c31:0x34343a,x,z,0.07);",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "lava_flow_stream",
+                  "label": "Orange molten lava channel flowing on volcanic ground",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "orange voxels flow down streams",
+                  "motion_axis_seen": "flowing",
+                  "seen": "Bright orange lava flows down side.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "flowing",
+                  "look_evidence": "carve([[53,-33],[50,-29],[47,-25]], 20, 7, 1.0, 1.4, {lava:true});",
+                  "motion_evidence": "lavaMesh.material.color.setScalar(1).offsetHSL(0,0,Math.sin(T*2)*0.03);"
                 },
                 {
                   "id": "lava_orange_tint",
@@ -3787,10 +3805,10 @@
                   "label": "Glowing orange/red emissive crater at summit",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.5,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": true,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "no motion detected at crater",
                   "motion_axis_seen": "still",
@@ -3800,27 +3818,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "if(d<3.2) h=25.0;                                      // crater bowl\nif(Math.hypot(dx,dz)<=2.6 && H[gi(x,z)]>-900){ H[gi(x,z)]=25; lava.set(key(x,z), 26); water.delete(key(x,z)); }",
                   "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-                  "why": "no_time_update"
-                },
-                {
-                  "id": "lava_flow_stream",
-                  "label": "Orange molten lava channel flowing on volcanic ground",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "orange voxels flow down streams",
-                  "motion_axis_seen": "flowing",
-                  "seen": "Bright orange lava flows down side.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "flowing",
-                  "look_evidence": "carve([[53,-33],[50,-29],[47,-25]], 20, 7, 1.0, 1.4, {lava:true});",
-                  "motion_evidence": "lavaMesh.material.color.setScalar(1).offsetHSL(0,0,Math.sin(T*2)*0.03);",
-                  "why": "no_time_update"
+                  "why": "motion_not_seen"
                 },
                 {
                   "id": "lava_pool_glow",
@@ -3840,7 +3838,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "setPond(47, -22, 2.4, 7, true);",
                   "motion_evidence": "ember.intensity=1.1+Math.sin(T*3)*0.5+ints.ash*1.4;",
-                  "why": "no_time_update"
+                  "why": "duplicate_evidence"
                 },
                 {
                   "id": "eruption_burst",
@@ -3921,29 +3919,36 @@
               "quote repair on ['grassland', 'delta', 'volcano'] (4 flagged; role repair=gemma-4-26b-a4b-it)"
             ],
             "backup": ".repair_backups/20261002T070839Z"
+          },
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
           }
         ]
       },
-      "score": 62.25,
+      "score": 63.5,
       "max_score": 100,
-      "probe_score": 69.25,
-      "probe_reason": "Scored 69.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 70.75,
+      "probe_reason": "Scored 70.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false,
       "gated": true,
-      "sea_deduction": 7.0
+      "sea_deduction": 7.25
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+      "reason": "Scored 17.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
       "details": {
-        "score": 14.0,
+        "score": 17.0,
         "max_score": 20,
         "scorecard": {
-          "score": 14.0,
+          "score": 17.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+          "reason": "Scored 17.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4006,6 +4011,21 @@
               "seen": "The top-right HUD text correctly updates through Spring, Summer, Autumn, and Winter."
             },
             {
+              "id": "season_modulates_weather",
+              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "const mult=s.season==='rain'?season.rain : s.season==='snow'?season.snow : 1;",
+              "motion_evidence": "return clamp(I*mult,0,1);",
+              "earned": 2.0,
+              "code": true,
+              "visual": null,
+              "seen": ""
+            },
+            {
               "id": "cloud_drift_wrap",
               "label": "Clouds drift and wrap \u2014 cyclic sky motion",
               "kind": "entity",
@@ -4047,9 +4067,9 @@
               "llm_axis": "cyclic",
               "look_evidence": "sun.color.copy(tint);",
               "motion_evidence": "ambient.color.copy(C(0xbfd4e6).lerp(tint,0.35));",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": ""
             },
@@ -4063,26 +4083,10 @@
               "llm_axis": "cyclic",
               "look_evidence": "const tint=season.tint.clone().lerp(sNext.tint,sBlend);",
               "motion_evidence": "sun.color.copy(tint);",
-              "why": "no_time_update",
+              "why": "duplicate_evidence",
               "earned": 1.0,
               "code": false,
               "visual": true,
-              "seen": ""
-            },
-            {
-              "id": "season_modulates_weather",
-              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "const mult=s.season==='rain'?season.rain : s.season==='snow'?season.snow : 1;",
-              "motion_evidence": "return clamp(I*mult,0,1);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
-              "visual": null,
               "seen": ""
             },
             {
@@ -4123,13 +4127,13 @@
           "light_follows_sun",
           "night_dimming",
           "season_cycle",
+          "season_modulates_weather",
           "cloud_drift_wrap",
           "moon"
         ],
         "item_misses": [
           "dusk_dawn_tint",
           "season_world_tint",
-          "season_modulates_weather",
           "sky_or_fog_day_cycle"
         ],
         "artifacts": {
@@ -4137,9 +4141,17 @@
           "score": "score.json",
           "visual": "visual.json"
         },
-        "regraded": "same-line rule: counts when the line runs in the frame loop"
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
+          }
+        ]
       },
-      "score": 14.0,
+      "score": 17.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -4883,8 +4895,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 191.36,
+  "total_score": 195.61,
   "total_max_score": 280.0,
-  "pct": 0.6834285714285715,
+  "pct": 0.6986071428571429,
   "island_gate": true
 }

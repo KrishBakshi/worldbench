@@ -1,9 +1,9 @@
 {
-  "score": 11.0,
+  "score": 15.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 11.0/20; failed items: dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+  "reason": "Scored 15.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
   "earned": [
     {
       "id": "sun_orbit",
@@ -51,6 +51,36 @@
       "seen": ""
     },
     {
+      "id": "season_cycle",
+      "label": "Four-season (or year) loop advancing on a clock",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "const seasons=['Spring','Summer','Autumn','Winter'];",
+      "motion_evidence": "const seasonIdx=Math.floor(t/30)%4,season=seasons[seasonIdx];",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": "The season HUD text changes between Spring, Summer, Autumn, and Winter."
+    },
+    {
+      "id": "season_modulates_weather",
+      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "const rainMul=seasonIdx===3?.6:seasonIdx===1?1.3:1.0;",
+      "motion_evidence": "const bRain=burst(t,26,0,.55)*rainMul,bSnow=burst(t,30,6,.55)*snowMul,",
+      "earned": 2.0,
+      "code": true,
+      "visual": null,
+      "seen": ""
+    },
+    {
       "id": "cloud_drift_wrap",
       "label": "Clouds drift and wrap \u2014 cyclic sky motion",
       "kind": "entity",
@@ -92,27 +122,11 @@
       "llm_axis": "cyclic",
       "look_evidence": "sunLight.color.setHSL(.11+warmth*.3,.5+dusk*.4,.6+day*.25-dusk*.1);",
       "motion_evidence": "sunLight.color.setHSL(.11+warmth*.3,.5+dusk*.4,.6+day*.25-dusk*.1);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": ""
-    },
-    {
-      "id": "season_cycle",
-      "label": "Four-season (or year) loop advancing on a clock",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "const seasons=['Spring','Summer','Autumn','Winter'];",
-      "motion_evidence": "const seasonIdx=Math.floor(t/30)%4,season=seasons[seasonIdx];",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": "The season HUD text changes between Spring, Summer, Autumn, and Winter."
     },
     {
       "id": "season_world_tint",
@@ -124,26 +138,10 @@
       "llm_axis": "cyclic",
       "look_evidence": "let warmth=seasonIdx===1?.12:seasonIdx===3?-.1:0;",
       "motion_evidence": "sunLight.color.setHSL(.11+warmth*.3,.5+dusk*.4,.6+day*.25-dusk*.1);",
-      "why": "no_time_update",
+      "why": "duplicate_evidence",
       "earned": 0.0,
       "code": false,
       "visual": false,
-      "seen": ""
-    },
-    {
-      "id": "season_modulates_weather",
-      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "const rainMul=seasonIdx===3?.6:seasonIdx===1?1.3:1.0;",
-      "motion_evidence": "const bRain=burst(t,26,0,.55)*rainMul,bSnow=burst(t,30,6,.55)*snowMul,",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
-      "visual": null,
       "seen": ""
     },
     {

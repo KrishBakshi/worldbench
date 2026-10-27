@@ -1,9 +1,9 @@
 {
-  "score": 42.25,
+  "score": 42.75,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 42.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 42.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 6.5,
@@ -1880,7 +1880,7 @@
       "biome_visible": false
     },
     "volcano": {
-      "score": 4.5,
+      "score": 5.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1948,10 +1948,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "orange crater glow is stationary",
           "motion_axis_seen": "still",
@@ -1961,7 +1961,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const craterLight = new THREE.PointLight(0xff4400, 80, 30, 1.5);",
           "motion_evidence": "craterLight.intensity = 60 + volcanoPulse * 25;",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "lava_flow_stream",
@@ -1988,10 +1988,10 @@
           "label": "Glowing lava pool in crater or flank",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -2001,7 +2001,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const lavaBlock = new THREE.Mesh(lavaGeo, Math.random() < 0.5 ? lavaMat : lavaGlowMat);",
           "motion_evidence": "const volcanoPulse = 1 + Math.sin(timestamp * 0.003) * 0.4 + Math.sin(timestamp * 0.007) * 0.3;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "ash_plume_rise",

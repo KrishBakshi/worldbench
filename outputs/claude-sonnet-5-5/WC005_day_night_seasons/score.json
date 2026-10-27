@@ -1,9 +1,9 @@
 {
-  "score": 14.0,
+  "score": 17.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 14.0/20; failed items: night_dimming, season_world_tint, season_modulates_weather, moon",
+  "reason": "Scored 17.0/20; failed items: sky_or_fog_day_cycle, moon",
   "earned": [
     {
       "id": "sun_orbit",
@@ -30,6 +30,21 @@
       "llm_axis": "cyclic",
       "look_evidence": "sun.position.copy(sp);sun.target.position.set(0,0,0);",
       "motion_evidence": "sun.position.copy(sp);sun.target.position.set(0,0,0);sunMesh.position.copy(sp).multiplyScalar(1.1);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
+      "id": "night_dimming",
+      "label": "Night darkens the world \u2014 ambient/dir lights drop when the sun is down",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "hemi.intensity=lerp(.16,.6,day)*(1-storm*.15);",
+      "motion_evidence": "const day=ss(-.08,.3,se),warm=(1-ss(.05,.55,se))*(se>-.1?1:0);",
       "earned": 2.0,
       "code": true,
       "visual": true,
@@ -66,54 +81,6 @@
       "seen": "The top right HUD text clearly changes between Spring, Summer, Autumn, and Winter."
     },
     {
-      "id": "cloud_drift_wrap",
-      "label": "Clouds drift and wrap \u2014 cyclic sky motion",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "const t=simT*.03;for(const k in DK){const d=DK[k];d.mesh.position.x=Math.sin(t+d.ph)*5;d.mesh.position.z=Math.cos(t*.7+d.ph)*2.5}",
-      "motion_evidence": "const t=simT*.03;for(const k in DK){const d=DK[k];d.mesh.position.x=Math.sin(t+d.ph)*5;d.mesh.position.z=Math.cos(t*.7+d.ph)*2.5}",
-      "earned": 2.0,
-      "code": true,
-      "visual": null,
-      "seen": ""
-    },
-    {
-      "id": "sky_or_fog_day_cycle",
-      "label": "Sky, fog, or background color follows the day clock",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "hemi.color.set(0xbfd8ff).lerp(cB.set(0x1c2c66),1-day);hemi.groundColor.set(0x6a5a4a).lerp(cB.set(0x0a0a16),1-day);",
-      "motion_evidence": "hemi.intensity=lerp(.16,.6,day)*(1-storm*.15);",
-      "earned": 2.0,
-      "code": true,
-      "visual": true,
-      "seen": "The island lighting and shadows shift significantly between midnight, sunrise, noon, and sunset frames."
-    }
-  ],
-  "lost": [
-    {
-      "id": "night_dimming",
-      "label": "Night darkens the world \u2014 ambient/dir lights drop when the sun is down",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "hemi.intensity=lerp(.16,.6,day)*(1-storm*.15);",
-      "motion_evidence": "const day=ss(-.08,.3,se),warm=(1-ss(.05,.55,se))*(se>-.1?1:0);",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
-    },
-    {
       "id": "season_world_tint",
       "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
       "kind": "entity",
@@ -123,9 +90,8 @@
       "llm_axis": "cyclic",
       "look_evidence": "tmpC.setRGB(it.base.r*lerp(a[0],b[0],st.bl),it.base.g*lerp(a[1],b[1],st.bl),it.base.b*lerp(a[2],b[2],st.bl));inst.mesh.setColorAt(it.i,tmpC)",
       "motion_evidence": "if((fr&3)===0)updateSeasonColors(false);",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
+      "earned": 2.0,
+      "code": true,
       "visual": true,
       "seen": ""
     },
@@ -139,11 +105,43 @@
       "llm_axis": "cyclic",
       "look_evidence": "const rainF=sMix([1,.75,1.1,.4]),snowF=sMix([.35,.08,.6,1.5]),windF=sMix([1,.8,1.1,1.2]);",
       "motion_evidence": "W.jRain=burst(37,.05,.4)*rainF;W.gRain=burst(71,.55)*rainF;W.vRain=burst(61,.8)*rainF;W.hRain=burst(53,.3)*rainF*.7;",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "earned": 2.0,
+      "code": true,
       "visual": null,
       "seen": ""
+    },
+    {
+      "id": "cloud_drift_wrap",
+      "label": "Clouds drift and wrap \u2014 cyclic sky motion",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "const t=simT*.03;for(const k in DK){const d=DK[k];d.mesh.position.x=Math.sin(t+d.ph)*5;d.mesh.position.z=Math.cos(t*.7+d.ph)*2.5}",
+      "motion_evidence": "const t=simT*.03;for(const k in DK){const d=DK[k];d.mesh.position.x=Math.sin(t+d.ph)*5;d.mesh.position.z=Math.cos(t*.7+d.ph)*2.5}",
+      "earned": 2.0,
+      "code": true,
+      "visual": null,
+      "seen": ""
+    }
+  ],
+  "lost": [
+    {
+      "id": "sky_or_fog_day_cycle",
+      "label": "Sky, fog, or background color follows the day clock",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "hemi.color.set(0xbfd8ff).lerp(cB.set(0x1c2c66),1-day);hemi.groundColor.set(0x6a5a4a).lerp(cB.set(0x0a0a16),1-day);",
+      "motion_evidence": "hemi.intensity=lerp(.16,.6,day)*(1-storm*.15);",
+      "why": "duplicate_evidence",
+      "earned": 1.0,
+      "code": false,
+      "visual": true,
+      "seen": "The island lighting and shadows shift significantly between midnight, sunrise, noon, and sunset frames."
     },
     {
       "id": "moon",

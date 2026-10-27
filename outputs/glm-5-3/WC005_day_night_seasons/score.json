@@ -1,9 +1,9 @@
 {
-  "score": 12.0,
+  "score": 14.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 12.0/20; failed items: dusk_dawn_tint, season_cycle, season_world_tint, sky_or_fog_day_cycle, moon",
+  "reason": "Scored 14.0/20; failed items: season_cycle, sky_or_fog_day_cycle, moon",
   "earned": [
     {
       "id": "sun_orbit",
@@ -51,6 +51,36 @@
       "seen": ""
     },
     {
+      "id": "dusk_dawn_tint",
+      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "tmpC.copy(sunWarm).lerp(sunWin,coolM*0.8).lerp(new THREE.Color(0xffb070),duskTint*0.6*(1-coolM));",
+      "motion_evidence": "sunLight.color.copy(tmpC);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
+      "id": "season_world_tint",
+      "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "ambient.color.copy(ambBase).lerp(cool,coolM*0.6).lerp(warm,duskTint*0.3*dayI);",
+      "motion_evidence": "ambient.color.copy(ambBase).lerp(cool,coolM*0.6).lerp(warm,duskTint*0.3*dayI);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
       "id": "season_modulates_weather",
       "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
       "kind": "entity",
@@ -83,22 +113,6 @@
   ],
   "lost": [
     {
-      "id": "dusk_dawn_tint",
-      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "tmpC.copy(sunWarm).lerp(sunWin,coolM*0.8).lerp(new THREE.Color(0xffb070),duskTint*0.6*(1-coolM));",
-      "motion_evidence": "sunLight.color.copy(tmpC);",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
-    },
-    {
       "id": "season_cycle",
       "label": "Four-season (or year) loop advancing on a clock",
       "kind": "entity",
@@ -113,22 +127,6 @@
       "code": false,
       "visual": false,
       "seen": "Only the HUD text changes; the island colors and terrain remain identical."
-    },
-    {
-      "id": "season_world_tint",
-      "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "ambient.color.copy(ambBase).lerp(cool,coolM*0.6).lerp(warm,duskTint*0.3*dayI);",
-      "motion_evidence": "ambient.color.copy(ambBase).lerp(cool,coolM*0.6).lerp(warm,duskTint*0.3*dayI);",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
     },
     {
       "id": "sky_or_fog_day_cycle",

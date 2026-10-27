@@ -1,12 +1,12 @@
 {
-  "score": 68.5,
+  "score": 72.5,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 68.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 72.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
-      "score": 7.5,
+      "score": 7.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -87,6 +87,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "summit_blizzard_windsheet",
+          "label": "High-altitude blizzard \u2014 elongated whitish wind-sheet particles on peaks",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "White windsheets shift horizontally across the mountain face.",
+          "motion_axis_seen": "blowing",
+          "seen": "Elongated white particle streaks blowing across mountain peaks.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "blowing",
+          "look_evidence": "bliz:windSys(300,{x0:-46,x1:46,z0:-59,z1:-42,speed:26,sx:9,sy:.22,sz:.8,ymin:1,ymax:16,color:0xf4f8ff,op:.75}),",
+          "motion_evidence": "for(let i=0;i<cnt;i++){const p=pts[i],x=o.x0+((p.ph*W+simT*p.sp)%W),gy=groundY(x,p.z),y=Math.max(gy,o.floor||0)+o.ymin+p.h*(o.ymax-o.ymin);"
+        },
+        {
           "id": "cold_water_tint",
           "label": "Icy/pale alpine water tint \u2014 not tropical turquoise or swamp olive",
           "kind": "entity",
@@ -126,26 +145,6 @@
           "look_evidence": "not in mountains scope",
           "motion_evidence": "",
           "why": "not_in_scope_evidence"
-        },
-        {
-          "id": "summit_blizzard_windsheet",
-          "label": "High-altitude blizzard \u2014 elongated whitish wind-sheet particles on peaks",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "White windsheets shift horizontally across the mountain face.",
-          "motion_axis_seen": "blowing",
-          "seen": "Elongated white particle streaks blowing across mountain peaks.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "blowing",
-          "look_evidence": "bliz:windSys(300,{x0:-46,x1:46,z0:-59,z1:-42,speed:26,sx:9,sy:.22,sz:.8,ymin:1,ymax:16,color:0xf4f8ff,op:.75}),",
-          "motion_evidence": "for(let i=0;i<cnt;i++){const p=pts[i],x=o.x0+((p.ph*W+simT*p.sp)%W),gy=groundY(x,p.z),y=Math.max(gy,o.floor||0)+o.ymin+p.h*(o.ymax-o.ymin);",
-          "why": "no_time_update"
         },
         {
           "id": "meltwater_descent",
@@ -417,7 +416,7 @@
       "biome_visible": true
     },
     "highlands": {
-      "score": 6.5,
+      "score": 7.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -477,6 +476,44 @@
           "llm_axis": "n/a",
           "look_evidence": "case B.HL:if(r<.09)scrub(x,top,z,3);else if(r<.115)boulder(x,top,z,0x8d9092);break;",
           "motion_evidence": ""
+        },
+        {
+          "id": "highland_mist_hang",
+          "label": "Highland mist \u2014 large soft particles hanging near ground",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Mist particles remain stationary between frames.",
+          "motion_axis_seen": "still",
+          "seen": "Large pale semi-transparent mist particles hanging over terrain.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "still",
+          "look_evidence": "hMist:riseSys(hlCells,220,{base:1,lift:3,speed:.04,sx:2.8,color:0xe6eeee,op:.3,drift:3}),",
+          "motion_evidence": "WX.hMist.update(W.hMist);"
+        },
+        {
+          "id": "highland_fauna_idle",
+          "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Quadruped animal voxels on highland cells.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "spawn(land(B.HL),7,mkGoat,1,1.5);",
+          "motion_evidence": "this.g.position.set(this.x,this.y+(this.o.hop?Math.abs(Math.sin(this.ph*.7))*.4:0),this.z);"
         }
       ],
       "lost": [
@@ -541,34 +578,14 @@
           "why": "duplicate_evidence"
         },
         {
-          "id": "highland_mist_hang",
-          "label": "Highland mist \u2014 large soft particles hanging near ground",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Mist particles remain stationary between frames.",
-          "motion_axis_seen": "still",
-          "seen": "Large pale semi-transparent mist particles hanging over terrain.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "still",
-          "look_evidence": "hMist:riseSys(hlCells,220,{base:1,lift:3,speed:.04,sx:2.8,color:0xe6eeee,op:.3,drift:3}),",
-          "motion_evidence": "WX.hMist.update(W.hMist);",
-          "why": "no_time_update"
-        },
-        {
           "id": "light_drizzle_rain",
           "label": "Light drizzle rain over highlands \u2014 thin falling drops",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -578,7 +595,7 @@
           "llm_axis": "falling",
           "look_evidence": "hRain:fallSys(hlCells,500,{top:23,speed:22,sx:.06,sy:.8,color:0x8db4ff,op:.6}),",
           "motion_evidence": "WX.hRain.update(W.hRain);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "headwater_rill_flow",
@@ -599,26 +616,6 @@
           "look_evidence": "not in highlands scope",
           "motion_evidence": "",
           "why": "not_in_scope_evidence"
-        },
-        {
-          "id": "highland_fauna_idle",
-          "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Quadruped animal voxels on highland cells.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "spawn(land(B.HL),7,mkGoat,1,1.5);",
-          "motion_evidence": "this.g.position.set(this.x,this.y+(this.o.hop?Math.abs(Math.sin(this.ph*.7))*.4:0),this.z);",
-          "why": "no_time_update"
         }
       ],
       "shows_biome": true,
@@ -833,7 +830,7 @@
       "biome_visible": true
     },
     "swamp": {
-      "score": 5.0,
+      "score": 5.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -893,6 +890,25 @@
           "llm_axis": "n/a",
           "look_evidence": "else if(wk[c]===3)wc=col(0x5a6b30,.04);else wc=col(0x5ad6f5,.03);",
           "motion_evidence": ""
+        },
+        {
+          "id": "swamp_mist_low",
+          "label": "Low dense fog/mist hugging swamp water \u2014 swamp atmosphere",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Mist patches remain completely stationary across burst frames.",
+          "motion_axis_seen": "still",
+          "seen": "Pale low altitude mist patches resting over swamp pools.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "still",
+          "look_evidence": "sMist:riseSys(swampCells,300,{base:.6,lift:2.2,speed:.04,sx:2.8,color:0xcfd8c0,op:.38,drift:2}),",
+          "motion_evidence": "WX.sMist.update(W.sMist);"
         }
       ],
       "lost": [
@@ -997,34 +1013,14 @@
           "why": "not_visible"
         },
         {
-          "id": "swamp_mist_low",
-          "label": "Low dense fog/mist hugging swamp water \u2014 swamp atmosphere",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Mist patches remain completely stationary across burst frames.",
-          "motion_axis_seen": "still",
-          "seen": "Pale low altitude mist patches resting over swamp pools.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "still",
-          "look_evidence": "sMist:riseSys(swampCells,300,{base:.6,lift:2.2,speed:.04,sx:2.8,color:0xcfd8c0,op:.38,drift:2}),",
-          "motion_evidence": "WX.sMist.update(W.sMist);",
-          "why": "no_time_update"
-        },
-        {
           "id": "marsh_fauna_idle",
           "label": "Marsh animals (frog/fox) at waterline grounded on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1034,7 +1030,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawn(c=>biome[c]===B.SW,4,mkCroc,.6,1.6);",
           "motion_evidence": "this.g.position.set(this.x,this.y+(this.o.hop?Math.abs(Math.sin(this.ph*.7))*.4:0),this.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1657,7 +1653,7 @@
       "biome_visible": true
     },
     "desert": {
-      "score": 6.5,
+      "score": 7.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1738,6 +1734,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "sandstorm_dust_sheet",
+          "label": "Sandstorm \u2014 tan ochre particles blowing horizontally over desert",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Tan dust particles blowing horizontally across desert.",
+          "motion_axis_seen": "blowing",
+          "seen": "Tan horizontal particle sheets blowing over desert.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "blowing",
+          "look_evidence": "sand:windSys(320,{x0:14,x1:50,z0:12,z1:44,speed:20,sx:6,sy:.2,sz:.7,ymin:.8,ymax:7,color:0xd9a95b,op:.65})",
+          "motion_evidence": "W.sand=clamp(burst(47,.7,.14)*windF,0,1);"
+        },
+        {
           "id": "sand_ground_tint",
           "label": "Arid sand/olive-tan ground tint \u2014 not lush green grass colormap",
           "kind": "entity",
@@ -1799,34 +1814,14 @@
           "why": "not_visible"
         },
         {
-          "id": "sandstorm_dust_sheet",
-          "label": "Sandstorm \u2014 tan ochre particles blowing horizontally over desert",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Tan dust particles blowing horizontally across desert.",
-          "motion_axis_seen": "blowing",
-          "seen": "Tan horizontal particle sheets blowing over desert.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "blowing",
-          "look_evidence": "sand:windSys(320,{x0:14,x1:50,z0:12,z1:44,speed:20,sx:6,sy:.2,sz:.7,ymin:.8,ymax:7,color:0xd9a95b,op:.65})",
-          "motion_evidence": "W.sand=clamp(burst(47,.7,.14)*windF,0,1);",
-          "why": "no_time_update"
-        },
-        {
           "id": "arid_fauna_idle",
           "label": "Arid animals (fox/rabbit) grounded on sand",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1836,7 +1831,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawn(c=>biome[c]===B.DS&&Ls[c]===-999&&H[c]<7,9,mkFox,1.5,1.6);",
           "motion_evidence": "this.g.position.set(this.x,this.y+(this.o.hop?Math.abs(Math.sin(this.ph*.7))*.4:0),this.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "dry_grass_clump",
@@ -1863,7 +1858,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 5.75,
+      "score": 7.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1931,10 +1926,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "Emissive crater blocks remain static in position.",
           "motion_axis_seen": "still",
@@ -1944,7 +1939,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const lavaLight=new THREE.PointLight(0xff5a1a,2,50,1.4);scene.add(lavaLight);",
           "motion_evidence": "lavaLight.intensity=1.4+3*W.er+.4*Math.sin(simT*3);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "lava_flow_stream",
@@ -1971,10 +1966,10 @@
           "label": "Glowing lava pool in crater or flank",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1984,17 +1979,17 @@
           "llm_axis": "pulsing",
           "look_evidence": "if(k<2){const e=pts[n-1];lavaPools.push(e);const i0=cellOf(e[0]),j0=cellOf(e[1]);",
           "motion_evidence": "tmpC.setRGB(1*s,(.25+.3*it.v+.12*Math.sin(simT*1.7+it.ph))*s,.03);lavaI.mesh.setColorAt(it.i,tmpC)",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "ash_plume_rise",
           "label": "Ash particles rising from volcano",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "Smoke plume geometry remains static.",
           "motion_axis_seen": "still",
@@ -2004,17 +1999,17 @@
           "llm_axis": "rising",
           "look_evidence": "const plume=dyn(BOX,0x3b3b40,.75,300);const plumeP=[];for(let i=0;i<300;i++)plumeP.push({ph:rand(),ox:(rand()-.5)*2,oz:(rand()-.5)*2});",
           "motion_evidence": "_m.set(s,0,0,VX+p.ox*(1+f*4)+f*f*24,0,s,0,27+f*(30+er*14),0,0,s,VZ+p.oz*(1+f*4),0,0,0,1);plume.setMatrixAt(i,_m)",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "eruption_burst",
           "label": "Periodic eruption \u2014 bombs/sparks with ballistic motion",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -2024,17 +2019,17 @@
           "llm_axis": "rising",
           "look_evidence": "const bombs=new THREE.InstancedMesh(BOX,new THREE.MeshBasicMaterial({color:0xff7a1a}),50);bombs.frustumCulled=false;bombs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(bombs);",
           "motion_evidence": "y=27+b.vy*tau-4.9*tau*tau;if(y>groundY(x,z)+.3)s=b.s}",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "volcanic_dust_fog",
           "label": "Grey volcanic dust/fog atmosphere around the cone",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -2044,7 +2039,7 @@
           "llm_axis": "still",
           "look_evidence": "ashfall:fallSys(vcCells,500,{top:44,speed:2.2,sx:.16,sy:.16,color:0x6a6a70,op:.7,sway:.4}),",
           "motion_evidence": "WX.ashfall.update(.3+W.er*.7);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "obsidian_quench_edge",

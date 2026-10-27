@@ -1817,7 +1817,7 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 57.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 57.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1830,7 +1830,7 @@
           "grassland": "failed items: wildflower_yellow_white, tall_grass_blade, tributary_river_flow",
           "delta": "failed items: deep_offshore_blue, sand_seafloor_recipe, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
           "desert": "failed items: dead_bush_twig, dry_wash_channel, arid_fauna_idle, dry_grass_clump, perennial_river_desert",
-          "volcano": "failed items: lava_pool_glow, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
+          "volcano": "failed items: eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
         },
         "item_hits": {
           "mountains": [
@@ -1894,6 +1894,7 @@
             "glowing_crater_mouth",
             "basalt_over_ash",
             "lava_flow_stream",
+            "lava_pool_glow",
             "lava_orange_tint",
             "ash_plume_rise"
           ]
@@ -1971,7 +1972,6 @@
             "perennial_river_desert"
           ],
           "volcano": [
-            "lava_pool_glow",
             "eruption_burst",
             "volcanic_dust_fog",
             "obsidian_quench_edge"
@@ -1987,16 +1987,16 @@
           "grassland": 7.5,
           "delta": 5.0,
           "desert": 6.25,
-          "volcano": 7.75
+          "volcano": 8.0
         },
-        "score": 57.25,
+        "score": 57.5,
         "max_score": 100,
         "scorecard": {
-          "score": 57.25,
+          "score": 57.5,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 57.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 57.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 5.75,
@@ -3871,7 +3871,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 7.75,
+              "score": 8.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3952,6 +3952,25 @@
                   "motion_evidence": "lavaGroup.children.forEach((l, i) => {"
                 },
                 {
+                  "id": "lava_pool_glow",
+                  "label": "Glowing lava pool in crater or flank",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Pulsing intensity on lava pool.",
+                  "motion_axis_seen": "pulsing",
+                  "seen": "Orange glowing pool area near the base.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "pulsing",
+                  "look_evidence": "const lava = new THREE.Mesh(lavaGeo, lavaMat);",
+                  "motion_evidence": "l.material.color.setRGB(pulse, pulse * 0.3, 0);"
+                },
+                {
                   "id": "lava_orange_tint",
                   "label": "Orange/red lava tint \u2014 not cyan river or swamp olive",
                   "kind": "entity",
@@ -3991,26 +4010,6 @@
                 }
               ],
               "lost": [
-                {
-                  "id": "lava_pool_glow",
-                  "label": "Glowing lava pool in crater or flank",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Pulsing intensity on lava pool.",
-                  "motion_axis_seen": "pulsing",
-                  "seen": "Orange glowing pool area near the base.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "pulsing",
-                  "look_evidence": "const lava = new THREE.Mesh(lavaGeo, lavaMat);",
-                  "motion_evidence": "l.material.color.setRGB(pulse, pulse * 0.3, 0);",
-                  "why": "no_time_update"
-                },
                 {
                   "id": "eruption_burst",
                   "label": "Periodic eruption \u2014 bombs/sparks with ballistic motion",
@@ -4082,26 +4081,35 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
+          }
+        ]
       },
-      "score": 57.25,
+      "score": 57.5,
       "max_score": 100,
-      "probe_score": 57.25,
-      "probe_reason": "Scored 57.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 57.5,
+      "probe_reason": "Scored 57.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 12.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+      "reason": "Scored 15.0/20; failed items: season_world_tint, sky_or_fog_day_cycle, moon",
       "details": {
-        "score": 12.0,
+        "score": 15.0,
         "max_score": 20,
         "scorecard": {
-          "score": 12.0,
+          "score": 15.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 12.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+          "reason": "Scored 15.0/20; failed items: season_world_tint, sky_or_fog_day_cycle, moon",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4149,6 +4157,21 @@
               "seen": ""
             },
             {
+              "id": "dusk_dawn_tint",
+              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "sunLight.color.setHex(tint.sun);",
+              "motion_evidence": "ambientLight.color.setHex(tint.amb);",
+              "earned": 2.0,
+              "code": true,
+              "visual": true,
+              "seen": ""
+            },
+            {
               "id": "season_cycle",
               "label": "Four-season (or year) loop advancing on a clock",
               "kind": "entity",
@@ -4162,6 +4185,21 @@
               "code": true,
               "visual": true,
               "seen": "The season HUD text changes between Spring, Summer, Autumn, and Winter."
+            },
+            {
+              "id": "season_modulates_weather",
+              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "if (season === 'Winter') {",
+              "motion_evidence": "snowFall.opacity = Math.min(1, snowFall.opacity * 1.5);",
+              "earned": 2.0,
+              "code": true,
+              "visual": null,
+              "seen": ""
             },
             {
               "id": "cloud_drift_wrap",
@@ -4181,22 +4219,6 @@
           ],
           "lost": [
             {
-              "id": "dusk_dawn_tint",
-              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "sunLight.color.setHex(tint.sun);",
-              "motion_evidence": "ambientLight.color.setHex(tint.amb);",
-              "why": "no_time_update",
-              "earned": 1.0,
-              "code": false,
-              "visual": true,
-              "seen": ""
-            },
-            {
               "id": "season_world_tint",
               "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
               "kind": "entity",
@@ -4206,26 +4228,10 @@
               "llm_axis": "cyclic",
               "look_evidence": "sunLight.color.setHex(tint.sun);",
               "motion_evidence": "ambientLight.color.setHex(tint.amb);",
-              "why": "no_time_update",
+              "why": "duplicate_evidence",
               "earned": 1.0,
               "code": false,
               "visual": true,
-              "seen": ""
-            },
-            {
-              "id": "season_modulates_weather",
-              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "if (season === 'Winter') {",
-              "motion_evidence": "snowFall.opacity = Math.min(1, snowFall.opacity * 1.5);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
-              "visual": null,
               "seen": ""
             },
             {
@@ -4281,13 +4287,13 @@
           "sun_orbit",
           "light_follows_sun",
           "night_dimming",
+          "dusk_dawn_tint",
           "season_cycle",
+          "season_modulates_weather",
           "cloud_drift_wrap"
         ],
         "item_misses": [
-          "dusk_dawn_tint",
           "season_world_tint",
-          "season_modulates_weather",
           "sky_or_fog_day_cycle",
           "moon"
         ],
@@ -4295,9 +4301,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
+          }
+        ]
       },
-      "score": 12.0,
+      "score": 15.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -5038,8 +5053,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 157.29,
+  "total_score": 160.54,
   "total_max_score": 280.0,
-  "pct": 0.56175,
+  "pct": 0.5733571428571428,
   "island_gate": false
 }

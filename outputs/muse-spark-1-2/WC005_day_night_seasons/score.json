@@ -1,9 +1,9 @@
 {
-  "score": 14.0,
+  "score": 17.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+  "reason": "Scored 17.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
   "earned": [
     {
       "id": "sun_orbit",
@@ -66,6 +66,21 @@
       "seen": "The top HUD indicator clearly cycles through Spring, Summer, Autumn, and Winter."
     },
     {
+      "id": "season_modulates_weather",
+      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "rainMat.opacity = THREE.MathUtils.clamp((jungleRain-0.35)*1.2,0,0.9)* s.rain * (isDay?1:0.6);",
+      "motion_evidence": "snowMat.opacity = THREE.MathUtils.clamp((snowBurst-0.4)*1.4,0,0.95)*(seasonIdx===3?1:0.65);",
+      "earned": 2.0,
+      "code": true,
+      "visual": null,
+      "seen": ""
+    },
+    {
       "id": "cloud_drift_wrap",
       "label": "Clouds drift and wrap \u2014 cyclic sky motion",
       "kind": "entity",
@@ -107,9 +122,9 @@
       "llm_axis": "cyclic",
       "look_evidence": "sunLight.color.setHex(s.tint);",
       "motion_evidence": "sunLight.color.setHex(s.tint);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": ""
     },
@@ -123,26 +138,10 @@
       "llm_axis": "cyclic",
       "look_evidence": "sunLight.color.setHex(s.tint);",
       "motion_evidence": "sunLight.color.setHex(s.tint);",
-      "why": "no_time_update",
+      "why": "duplicate_evidence",
       "earned": 1.0,
       "code": false,
       "visual": true,
-      "seen": ""
-    },
-    {
-      "id": "season_modulates_weather",
-      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "rainMat.opacity = THREE.MathUtils.clamp((jungleRain-0.35)*1.2,0,0.9)* s.rain * (isDay?1:0.6);",
-      "motion_evidence": "snowMat.opacity = THREE.MathUtils.clamp((snowBurst-0.4)*1.4,0,0.95)*(seasonIdx===3?1:0.65);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
-      "visual": null,
       "seen": ""
     },
     {

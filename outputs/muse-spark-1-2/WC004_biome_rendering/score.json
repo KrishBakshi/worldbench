@@ -1,9 +1,9 @@
 {
-  "score": 55.25,
+  "score": 56.0,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 55.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 56.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 6.0,
@@ -1882,7 +1882,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 7.75,
+      "score": 8.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1906,6 +1906,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "glowing_crater_mouth",
+          "label": "Glowing orange/red emissive crater at summit",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Crater intensity changes between frames.",
+          "motion_axis_seen": "pulsing",
+          "seen": "Bright orange emissive crater opening at the summit.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "const crater=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.2,6), new THREE.MeshLambertMaterial({color:0xff3a0a,emissive:0xff2a00,emissiveIntensity:0.8}));",
+          "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2; crater.scale.set(1+erup*0.15,1,1+erup*0.15);"
+        },
+        {
           "id": "basalt_over_ash",
           "label": "Black basalt/ash surface recipe \u2014 not grass or sand",
           "kind": "entity",
@@ -1923,6 +1942,25 @@
           "llm_axis": "n/a",
           "look_evidence": "if(biome==='volcano'){ if(Math.hypot(x+38,z-30)<3.5) col='#ff4a0a'; else if(Math.hypot(x+38,z-30)<7) col='#2b2b2b'; else col='#3a2a2a'; }",
           "motion_evidence": ""
+        },
+        {
+          "id": "lava_pool_glow",
+          "label": "Glowing lava pool in crater or flank",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Pool glow flickers across frames.",
+          "motion_axis_seen": "pulsing",
+          "seen": "Orange glowing pool geometry visible at the crater.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "[[-30,35],[-42,37],[-36,26]].forEach(([x,z])=>{\n  const m=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.3,3.5), new THREE.MeshLambertMaterial({color:0xff4d12,emissive:0xff2200,emissiveIntensity:0.6}));",
+          "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2;"
         },
         {
           "id": "lava_orange_tint",
@@ -1984,26 +2022,6 @@
       ],
       "lost": [
         {
-          "id": "glowing_crater_mouth",
-          "label": "Glowing orange/red emissive crater at summit",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Crater intensity changes between frames.",
-          "motion_axis_seen": "pulsing",
-          "seen": "Bright orange emissive crater opening at the summit.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "const crater=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.2,6), new THREE.MeshLambertMaterial({color:0xff3a0a,emissive:0xff2a00,emissiveIntensity:0.8}));",
-          "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2; crater.scale.set(1+erup*0.15,1,1+erup*0.15);",
-          "why": "no_time_update"
-        },
-        {
           "id": "lava_flow_stream",
           "label": "Orange molten lava channel flowing on volcanic ground",
           "kind": "entity",
@@ -2024,34 +2042,14 @@
           "why": "no_time_update"
         },
         {
-          "id": "lava_pool_glow",
-          "label": "Glowing lava pool in crater or flank",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Pool glow flickers across frames.",
-          "motion_axis_seen": "pulsing",
-          "seen": "Orange glowing pool geometry visible at the crater.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "[[-30,35],[-42,37],[-36,26]].forEach(([x,z])=>{\n  const m=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.3,3.5), new THREE.MeshLambertMaterial({color:0xff4d12,emissive:0xff2200,emissiveIntensity:0.6}));",
-          "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2;",
-          "why": "no_time_update"
-        },
-        {
           "id": "eruption_burst",
           "label": "Periodic eruption \u2014 bombs/sparks with ballistic motion",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -2061,7 +2059,7 @@
           "llm_axis": "rising",
           "look_evidence": "const erup=Math.max(0, Math.sin(time*0.7))*0.6 + (Math.random()<0.008?1:0);",
           "motion_evidence": "crater.scale.set(1+erup*0.15,1,1+erup*0.15);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "obsidian_quench_edge",

@@ -1,9 +1,9 @@
 {
-  "score": 11.0,
+  "score": 14.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 11.0/20; failed items: light_follows_sun, dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+  "reason": "Scored 14.0/20; failed items: light_follows_sun, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
   "earned": [
     {
       "id": "sun_orbit",
@@ -30,6 +30,21 @@
       "llm_axis": "cyclic",
       "look_evidence": "sun.intensity=2.7*env.dayF*(1-.35*storm);",
       "motion_evidence": "hemi.intensity=.2+.85*env.dayF; hemi.color.copy(nightSky).lerp(daySky,env.dayF);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
+      "id": "dusk_dawn_tint",
+      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "sun.color.copy(tint).lerp(dusk,1-sstep(.05,.4,sy)); sun.color.lerp(new THREE.Color('#c9d6e8'),storm*.4);",
+      "motion_evidence": "sunMesh.material.color.set('#ffe98a').lerp(dusk,1-sstep(.05,.35,sy));",
       "earned": 2.0,
       "code": true,
       "visual": true,
@@ -84,22 +99,6 @@
       "seen": ""
     },
     {
-      "id": "dusk_dawn_tint",
-      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "sun.color.copy(tint).lerp(dusk,1-sstep(.05,.4,sy)); sun.color.lerp(new THREE.Color('#c9d6e8'),storm*.4);",
-      "motion_evidence": "sunMesh.material.color.set('#ffe98a').lerp(dusk,1-sstep(.05,.35,sy));",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
-    },
-    {
       "id": "season_cycle",
       "label": "Four-season (or year) loop advancing on a clock",
       "kind": "entity",
@@ -109,9 +108,9 @@
       "llm_axis": "cyclic",
       "look_evidence": "const DAY=42, SEASON=84, YEAR=SEASON*4;",
       "motion_evidence": "const yp=(env.t/YEAR)%1, si2=Math.floor(yp*4);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": "HUD text updates, but the voxel biome graphics remain identical across seasons."
     },
@@ -125,9 +124,9 @@
       "llm_axis": "cyclic",
       "look_evidence": "const TINT=['#fff6e8','#fff0cc','#ffcf98','#d9e6ff'].map(c=>new THREE.Color(c));",
       "motion_evidence": "const tint=tmpC.copy(TINT[Math.floor(((t/YEAR)%1)*4)]);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": ""
     },

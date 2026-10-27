@@ -1,9 +1,9 @@
 {
-  "score": 48.75,
+  "score": 49.25,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 48.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 49.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 6.5,
@@ -1874,7 +1874,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 4.0,
+      "score": 4.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1923,10 +1923,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1936,7 +1936,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "var craterMesh = new THREE.Mesh(new THREE.BoxGeometry(10,4,10), new THREE.MeshBasicMaterial({color:0xff5522}));",
           "motion_evidence": "craterGlow.intensity = 2 + pulse*10;\ncraterMesh.material.color.setHex(pulse>0.3? 0xffaa33 : 0xff5522);\ncraterMesh.scale.setScalar(1+pulse*1.5);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "lava_flow_stream",
@@ -1963,10 +1963,10 @@
           "label": "Glowing lava pool in crater or flank",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1976,7 +1976,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "var craterGlow = new THREE.PointLight(0xff5522, 2, 140);",
           "motion_evidence": "craterGlow.intensity = 2 + pulse*10;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "lava_orange_tint",

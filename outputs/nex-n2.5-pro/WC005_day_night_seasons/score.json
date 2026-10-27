@@ -1,9 +1,9 @@
 {
-  "score": 13.0,
+  "score": 16.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 13.0/20; failed items: dusk_dawn_tint, season_world_tint, cloud_drift_wrap, sky_or_fog_day_cycle",
+  "reason": "Scored 16.0/20; failed items: season_world_tint, cloud_drift_wrap, sky_or_fog_day_cycle",
   "earned": [
     {
       "id": "sun_orbit",
@@ -45,6 +45,21 @@
       "llm_axis": "cyclic",
       "look_evidence": "hemi.intensity=(0.22+df*0.5)*(1-stormAmt*0.35);",
       "motion_evidence": "dir.intensity=sunI;dir.color.copy(sunC);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
+      "id": "dusk_dawn_tint",
+      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "const sunC=seasonTint.clone().lerp(new THREE.Color(0xff9448),(1-sstep(0.1,0.4,Math.abs(elev)))*0.7);",
+      "motion_evidence": "dir.color.copy(sunC);",
       "earned": 2.0,
       "code": true,
       "visual": true,
@@ -98,22 +113,6 @@
   ],
   "lost": [
     {
-      "id": "dusk_dawn_tint",
-      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "const sunC=seasonTint.clone().lerp(new THREE.Color(0xff9448),(1-sstep(0.1,0.4,Math.abs(elev)))*0.7);",
-      "motion_evidence": "dir.color.copy(sunC);",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
-    },
-    {
       "id": "season_world_tint",
       "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
       "kind": "entity",
@@ -123,9 +122,9 @@
       "llm_axis": "cyclic",
       "look_evidence": "terrainMesh.setColorAt(topIdx[id],topColor(id,i-HALF,j-HALF));",
       "motion_evidence": "terrainMesh.setColorAt(topIdx[id],topColor(id,i-HALF,j-HALF));",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": ""
     },
@@ -155,9 +154,9 @@
       "llm_axis": "cyclic",
       "look_evidence": "else if(rainAmt>0.4){scene.fog.color.set(0x5a6a78);scene.fog.density=0.006*rainAmt;}",
       "motion_evidence": "scene.fog.density=0.0075*sandI;",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
+      "why": "not_visible",
+      "earned": 1.0,
+      "code": true,
       "visual": false,
       "seen": "Lighting intensity on the island changes, but fog or haze remains absent."
     }

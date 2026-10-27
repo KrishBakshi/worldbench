@@ -1814,7 +1814,7 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 50.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 51.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1827,7 +1827,7 @@
           "grassland": "failed items: scattered_oak_copse, wildflower_yellow_white, tall_grass_blade, olive_grass_tint, tributary_river_flow",
           "delta": "failed items: sand_seafloor_recipe, palm_frond_silhouette, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
           "desert": "failed items: dead_bush_twig, dry_wash_channel, sandstorm_dust_sheet, sand_ground_tint, dry_grass_clump, perennial_river_desert",
-          "volcano": "failed items: glowing_crater_mouth, lava_flow_stream, lava_pool_glow, eruption_burst, obsidian_quench_edge"
+          "volcano": "failed items: lava_flow_stream, eruption_burst, obsidian_quench_edge"
         },
         "item_hits": {
           "mountains": [
@@ -1884,7 +1884,9 @@
           ],
           "volcano": [
             "volcano_cone_silhouette",
+            "glowing_crater_mouth",
             "basalt_over_ash",
+            "lava_pool_glow",
             "lava_orange_tint",
             "ash_plume_rise",
             "volcanic_dust_fog"
@@ -1967,9 +1969,7 @@
             "perennial_river_desert"
           ],
           "volcano": [
-            "glowing_crater_mouth",
             "lava_flow_stream",
-            "lava_pool_glow",
             "eruption_burst",
             "obsidian_quench_edge"
           ]
@@ -1984,16 +1984,16 @@
           "grassland": 6.25,
           "delta": 4.75,
           "desert": 5.0,
-          "volcano": 7.75
+          "volcano": 8.5
         },
-        "score": 50.5,
+        "score": 51.25,
         "max_score": 100,
         "scorecard": {
-          "score": 55.25,
+          "score": 56.0,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 55.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 56.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 6.0,
@@ -3872,7 +3872,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 7.75,
+              "score": 8.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3896,6 +3896,25 @@
                   "motion_evidence": ""
                 },
                 {
+                  "id": "glowing_crater_mouth",
+                  "label": "Glowing orange/red emissive crater at summit",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Crater intensity changes between frames.",
+                  "motion_axis_seen": "pulsing",
+                  "seen": "Bright orange emissive crater opening at the summit.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "pulsing",
+                  "look_evidence": "const crater=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.2,6), new THREE.MeshLambertMaterial({color:0xff3a0a,emissive:0xff2a00,emissiveIntensity:0.8}));",
+                  "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2; crater.scale.set(1+erup*0.15,1,1+erup*0.15);"
+                },
+                {
                   "id": "basalt_over_ash",
                   "label": "Black basalt/ash surface recipe \u2014 not grass or sand",
                   "kind": "entity",
@@ -3913,6 +3932,25 @@
                   "llm_axis": "n/a",
                   "look_evidence": "if(biome==='volcano'){ if(Math.hypot(x+38,z-30)<3.5) col='#ff4a0a'; else if(Math.hypot(x+38,z-30)<7) col='#2b2b2b'; else col='#3a2a2a'; }",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "lava_pool_glow",
+                  "label": "Glowing lava pool in crater or flank",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Pool glow flickers across frames.",
+                  "motion_axis_seen": "pulsing",
+                  "seen": "Orange glowing pool geometry visible at the crater.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "pulsing",
+                  "look_evidence": "[[-30,35],[-42,37],[-36,26]].forEach(([x,z])=>{\n  const m=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.3,3.5), new THREE.MeshLambertMaterial({color:0xff4d12,emissive:0xff2200,emissiveIntensity:0.6}));",
+                  "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2;"
                 },
                 {
                   "id": "lava_orange_tint",
@@ -3974,26 +4012,6 @@
               ],
               "lost": [
                 {
-                  "id": "glowing_crater_mouth",
-                  "label": "Glowing orange/red emissive crater at summit",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Crater intensity changes between frames.",
-                  "motion_axis_seen": "pulsing",
-                  "seen": "Bright orange emissive crater opening at the summit.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "pulsing",
-                  "look_evidence": "const crater=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.2,6), new THREE.MeshLambertMaterial({color:0xff3a0a,emissive:0xff2a00,emissiveIntensity:0.8}));",
-                  "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2; crater.scale.set(1+erup*0.15,1,1+erup*0.15);",
-                  "why": "no_time_update"
-                },
-                {
                   "id": "lava_flow_stream",
                   "label": "Orange molten lava channel flowing on volcanic ground",
                   "kind": "entity",
@@ -4014,34 +4032,14 @@
                   "why": "no_time_update"
                 },
                 {
-                  "id": "lava_pool_glow",
-                  "label": "Glowing lava pool in crater or flank",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": true,
-                  "motion_seen": "Pool glow flickers across frames.",
-                  "motion_axis_seen": "pulsing",
-                  "seen": "Orange glowing pool geometry visible at the crater.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "pulsing",
-                  "look_evidence": "[[-30,35],[-42,37],[-36,26]].forEach(([x,z])=>{\n  const m=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.3,3.5), new THREE.MeshLambertMaterial({color:0xff4d12,emissive:0xff2200,emissiveIntensity:0.6}));",
-                  "motion_evidence": "crater.material.emissiveIntensity=0.7+erup*1.2;",
-                  "why": "no_time_update"
-                },
-                {
                   "id": "eruption_burst",
                   "label": "Periodic eruption \u2014 bombs/sparks with ballistic motion",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.5,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "not visible",
                   "motion_axis_seen": "still",
@@ -4051,7 +4049,7 @@
                   "llm_axis": "rising",
                   "look_evidence": "const erup=Math.max(0, Math.sin(time*0.7))*0.6 + (Math.random()<0.008?1:0);",
                   "motion_evidence": "crater.scale.set(1+erup*0.15,1,1+erup*0.15);",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "obsidian_quench_edge",
@@ -4084,28 +4082,37 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
+          }
+        ]
       },
-      "score": 50.5,
+      "score": 51.25,
       "max_score": 100,
-      "probe_score": 55.25,
-      "probe_reason": "Scored 55.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 56.0,
+      "probe_reason": "Scored 56.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false,
       "gated": true,
       "sea_deduction": 4.75
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+      "reason": "Scored 17.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
       "details": {
-        "score": 14.0,
+        "score": 17.0,
         "max_score": 20,
         "scorecard": {
-          "score": 14.0,
+          "score": 17.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle",
+          "reason": "Scored 17.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4168,6 +4175,21 @@
               "seen": "The top HUD indicator clearly cycles through Spring, Summer, Autumn, and Winter."
             },
             {
+              "id": "season_modulates_weather",
+              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "rainMat.opacity = THREE.MathUtils.clamp((jungleRain-0.35)*1.2,0,0.9)* s.rain * (isDay?1:0.6);",
+              "motion_evidence": "snowMat.opacity = THREE.MathUtils.clamp((snowBurst-0.4)*1.4,0,0.95)*(seasonIdx===3?1:0.65);",
+              "earned": 2.0,
+              "code": true,
+              "visual": null,
+              "seen": ""
+            },
+            {
               "id": "cloud_drift_wrap",
               "label": "Clouds drift and wrap \u2014 cyclic sky motion",
               "kind": "entity",
@@ -4209,9 +4231,9 @@
               "llm_axis": "cyclic",
               "look_evidence": "sunLight.color.setHex(s.tint);",
               "motion_evidence": "sunLight.color.setHex(s.tint);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": ""
             },
@@ -4225,26 +4247,10 @@
               "llm_axis": "cyclic",
               "look_evidence": "sunLight.color.setHex(s.tint);",
               "motion_evidence": "sunLight.color.setHex(s.tint);",
-              "why": "no_time_update",
+              "why": "duplicate_evidence",
               "earned": 1.0,
               "code": false,
               "visual": true,
-              "seen": ""
-            },
-            {
-              "id": "season_modulates_weather",
-              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "rainMat.opacity = THREE.MathUtils.clamp((jungleRain-0.35)*1.2,0,0.9)* s.rain * (isDay?1:0.6);",
-              "motion_evidence": "snowMat.opacity = THREE.MathUtils.clamp((snowBurst-0.4)*1.4,0,0.95)*(seasonIdx===3?1:0.65);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
-              "visual": null,
               "seen": ""
             },
             {
@@ -4285,22 +4291,31 @@
           "light_follows_sun",
           "night_dimming",
           "season_cycle",
+          "season_modulates_weather",
           "cloud_drift_wrap",
           "moon"
         ],
         "item_misses": [
           "dusk_dawn_tint",
           "season_world_tint",
-          "season_modulates_weather",
           "sky_or_fog_day_cycle"
         ],
         "artifacts": {
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:12Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102512Z"
+          }
+        ]
       },
-      "score": 14.0,
+      "score": 17.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -5054,8 +5069,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 160.17,
+  "total_score": 163.92,
   "total_max_score": 280.0,
-  "pct": 0.5720357142857142,
+  "pct": 0.5854285714285714,
   "island_gate": true
 }

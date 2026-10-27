@@ -1,9 +1,9 @@
 {
-  "score": 57.25,
+  "score": 57.5,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 57.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 57.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 5.75,
@@ -1878,7 +1878,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 7.75,
+      "score": 8.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1959,6 +1959,25 @@
           "motion_evidence": "lavaGroup.children.forEach((l, i) => {"
         },
         {
+          "id": "lava_pool_glow",
+          "label": "Glowing lava pool in crater or flank",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Pulsing intensity on lava pool.",
+          "motion_axis_seen": "pulsing",
+          "seen": "Orange glowing pool area near the base.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "const lava = new THREE.Mesh(lavaGeo, lavaMat);",
+          "motion_evidence": "l.material.color.setRGB(pulse, pulse * 0.3, 0);"
+        },
+        {
           "id": "lava_orange_tint",
           "label": "Orange/red lava tint \u2014 not cyan river or swamp olive",
           "kind": "entity",
@@ -1998,26 +2017,6 @@
         }
       ],
       "lost": [
-        {
-          "id": "lava_pool_glow",
-          "label": "Glowing lava pool in crater or flank",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Pulsing intensity on lava pool.",
-          "motion_axis_seen": "pulsing",
-          "seen": "Orange glowing pool area near the base.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "const lava = new THREE.Mesh(lavaGeo, lavaMat);",
-          "motion_evidence": "l.material.color.setRGB(pulse, pulse * 0.3, 0);",
-          "why": "no_time_update"
-        },
         {
           "id": "eruption_burst",
           "label": "Periodic eruption \u2014 bombs/sparks with ballistic motion",

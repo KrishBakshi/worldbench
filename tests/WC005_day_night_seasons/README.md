@@ -66,7 +66,7 @@ $$
 
 - $V$ is the shared quote check (`eval/evidence.py`; full form in the WC001 README).
 - $\text{hint}$ rejects a comment-only quote, a bare token, a lone waypoint, or a legend/HUD row.
-- $\text{timeUpdate}$ is a regex hit for a clock driver (`dt`, `delta`, `time`, `now`, `requestAnimationFrame`, `DAY_LEN`, `SEASON_LEN`, `seasonProgress`, `% 4`, `.intensity =`, `.position.set(`, `.visible =`, …).
+- $\text{timeUpdate}(q_M) = \text{perFrame}(q_M) \vee \text{timeName}(q_M)$, so a per-frame line counts however its clock variable is named (`t`, `elapsedTotal`, …). $\text{timeName}$ is a regex hit for a clock driver (`dt`, `delta`, `time`, `now`, `requestAnimationFrame`, `DAY_LEN`, `SEASON_LEN`, `seasonProgress`, `% 4`, `.intensity =`, `.position.set(`, `.visible =`, …).
 - $\text{ax}$ is axis compatibility, as in WC004.
 - $\text{constructs}$ is a `new X(` constructor. One line may be both the look and the motion quote when it is an update in the frame loop (`sunLight.intensity=.04+daylight*3.1`); it is spawn-only only when that line creates the object. It also needs $\text{perFrame}(q_M)$: the line sits in the frame-loop callback (`requestAnimationFrame` / `setAnimationLoop`) or a function it calls, up to 4 calls deep; a line that runs once at start-up does not count, and anything that can't be established falls back to the strict rule.
 - $\text{unused}$ means neither quote's hash (a same-line quote is hashed once; sha256 of the comment-stripped, whitespace-collapsed code) was already used by an earlier item.

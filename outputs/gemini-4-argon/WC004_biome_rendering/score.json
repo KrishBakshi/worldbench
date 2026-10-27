@@ -1,9 +1,9 @@
 {
-  "score": 66.0,
+  "score": 68.0,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 66.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 5.5,
@@ -212,7 +212,7 @@
       "biome_visible": true
     },
     "forest": {
-      "score": 5.5,
+      "score": 6.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -339,10 +339,10 @@
           "label": "Grey cloud deck boxes above the conifer band",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -352,7 +352,7 @@
           "llm_axis": "still",
           "look_evidence": "buildCloudDeck(-10, 34, -25, 16, 10, '#eef6ff', 'conifers');",
           "motion_evidence": "const driftX = Math.sin(elapsedTotal * 0.35 + i * 0.01) * 2.4;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "snowfall_particles",
@@ -379,10 +379,10 @@
           "label": "Forest animals (deer/fox/wolf/rabbit) grounded on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -392,7 +392,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawnAnimals(5, 'deer', B_CONIFER, [-28, 10, -31, -16], '#7a5843', '#dce8f2');",
           "motion_evidence": "a.x = nx; a.z = nz;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "podzol_or_coarse_dirt",
@@ -419,7 +419,7 @@
       "biome_visible": true
     },
     "highlands": {
-      "score": 7.5,
+      "score": 8.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -498,6 +498,25 @@
           "llm_axis": "n/a",
           "look_evidence": "if (r > 0.87) { addSolid(x, y + 1, z, r > 0.94 ? '#6e7875' : '#4a6b46'); }",
           "motion_evidence": ""
+        },
+        {
+          "id": "highland_fauna_idle",
+          "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Small quadruped voxel creatures standing on highland cells.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "spawnAnimals(4, 'deer', B_HIGHLAND, [-50, -24, -20, 4], '#8c6239', '#d9c5b2');",
+          "motion_evidence": "let baseY = (cellWaterY[ci] > -100 ? cellWaterY[ci] : cellTopY[ci]) + 0.5;"
         }
       ],
       "lost": [
@@ -600,33 +619,13 @@
           "look_evidence": "if ((biome === B_HIGHLAND || biome === B_GROVE || biome === B_BEACH || biome === B_OCEAN) && dGroveStream < 1.3) {",
           "motion_evidence": "",
           "why": "no_motion"
-        },
-        {
-          "id": "highland_fauna_idle",
-          "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Small quadruped voxel creatures standing on highland cells.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "spawnAnimals(4, 'deer', B_HIGHLAND, [-50, -24, -20, 4], '#8c6239', '#d9c5b2');",
-          "motion_evidence": "let baseY = (cellWaterY[ci] > -100 ? cellWaterY[ci] : cellTopY[ci]) + 0.5;",
-          "why": "no_time_update"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "jungle": {
-      "score": 4.75,
+      "score": 5.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -795,10 +794,10 @@
           "label": "Edge grazers (deer class) grounded in jungle",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -808,7 +807,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawnAnimals(4, 'deer', B_JUNGLE, [9, 24, -6, 11], '#8f5b34', '#ebd5b3');",
           "motion_evidence": "a.x = nx; a.z = nz;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "canopy_bird_motion",
@@ -1864,7 +1863,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 6.25,
+      "score": 6.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1932,10 +1931,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "no motion detected in crater mouth",
           "motion_axis_seen": "still",
@@ -1945,7 +1944,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "if (coneDist < 3.4) { h = 35.0; cellIsLava[i] = 1; col = coneDist < 1.8 ? '#ffcc00' : '#ff4d00'; }",
           "motion_evidence": "volcanoLight.intensity = lerp(3.4, 2.0, dayFactor) + Math.sin(elapsedTotal * 7.0) * 0.35;",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "lava_flow_stream",
@@ -1985,7 +1984,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const inLavaPoolS = Math.hypot(x - 49, z - 55.5) < 3.2;",
           "motion_evidence": "volcanoLight.intensity = lerp(3.4, 2.0, dayFactor) + Math.sin(elapsedTotal * 7.0) * 0.35;",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "ash_plume_rise",

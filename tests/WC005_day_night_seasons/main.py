@@ -51,7 +51,8 @@ def check_day_night_seasons(
 ) -> CheckResult:
     report = probe_cycle(html_path, model)
     visual = judge_cycle(html_path, model)
-    result = grade_report(report, visual, normalize(strip_html(html_path)))
+    js = strip_html(html_path)
+    result = grade_report(report, visual, normalize(js), js)
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     result.details["artifacts"] = write_artifacts(dest, report, result, visual)
     return result
@@ -63,8 +64,8 @@ def regrade_cycle(cycle_path: Path, out_dir: Path | None = None) -> CheckResult:
     visual_path = cycle_path.parent / "visual.json"
     visual = json.loads(visual_path.read_text(encoding="utf-8")) if visual_path.is_file() else None
     world = cycle_path.parent.parent / "world.html"
-    source = normalize(strip_html(str(world))) if world.is_file() else None
-    result = grade_report(report, visual, source)
+    js = strip_html(str(world)) if world.is_file() else None
+    result = grade_report(report, visual, normalize(js) if js is not None else None, js)
     dest = out_dir if out_dir is not None else cycle_path.parent
     result.details["artifacts"] = write_artifacts(dest, report, result, visual)
     return result

@@ -1,9 +1,9 @@
 {
-  "score": 13.0,
+  "score": 16.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 13.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+  "reason": "Scored 16.0/20; failed items: season_world_tint, sky_or_fog_day_cycle, moon",
   "earned": [
     {
       "id": "sun_orbit",
@@ -51,6 +51,21 @@
       "seen": ""
     },
     {
+      "id": "dusk_dawn_tint",
+      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "dl.color.setRGB(lerp(tint[0],1.0,duskW*0.4),lerp(tint[1],0.62,duskW),lerp(tint[2],0.38,duskW));",
+      "motion_evidence": "sun.material.color.setRGB(1,lerp(0.91,0.62,duskW),lerp(0.63,0.35,duskW));",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
       "id": "season_cycle",
       "label": "Four-season (or year) loop advancing on a clock",
       "kind": "entity",
@@ -64,6 +79,21 @@
       "code": true,
       "visual": true,
       "seen": "The top-right HUD text changes between Spring, Summer, Autumn, and Winter."
+    },
+    {
+      "id": "season_modulates_weather",
+      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "var rainMul=lerp(S0.rain,S1.rain,sBlend),snowMul=lerp(S0.snow,S1.snow,sBlend),sandMul=lerp(S0.sand,S1.sand,sBlend);",
+      "motion_evidence": "var wRJ=burst(T,34,0)*rainMul;",
+      "earned": 2.0,
+      "code": true,
+      "visual": null,
+      "seen": ""
     },
     {
       "id": "cloud_drift_wrap",
@@ -83,22 +113,6 @@
   ],
   "lost": [
     {
-      "id": "dusk_dawn_tint",
-      "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "dl.color.setRGB(lerp(tint[0],1.0,duskW*0.4),lerp(tint[1],0.62,duskW),lerp(tint[2],0.38,duskW));",
-      "motion_evidence": "sun.material.color.setRGB(1,lerp(0.91,0.62,duskW),lerp(0.63,0.35,duskW));",
-      "why": "no_time_update",
-      "earned": 1.0,
-      "code": false,
-      "visual": true,
-      "seen": ""
-    },
-    {
       "id": "season_world_tint",
       "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
       "kind": "entity",
@@ -108,26 +122,10 @@
       "llm_axis": "cyclic",
       "look_evidence": "var tint=[lerp(S0.tint[0],S1.tint[0],sBlend),lerp(S0.tint[1],S1.tint[1],sBlend),lerp(S0.tint[2],S1.tint[2],sBlend)];",
       "motion_evidence": "dl.color.setRGB(lerp(tint[0],1.0,duskW*0.4),lerp(tint[1],0.62,duskW),lerp(tint[2],0.38,duskW));",
-      "why": "no_time_update",
+      "why": "duplicate_evidence",
       "earned": 1.0,
       "code": false,
       "visual": true,
-      "seen": ""
-    },
-    {
-      "id": "season_modulates_weather",
-      "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "var rainMul=lerp(S0.rain,S1.rain,sBlend),snowMul=lerp(S0.snow,S1.snow,sBlend),sandMul=lerp(S0.sand,S1.sand,sBlend);",
-      "motion_evidence": "var wRJ=burst(T,34,0)*rainMul;",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
-      "visual": null,
       "seen": ""
     },
     {

@@ -1,121 +1,69 @@
-"""Re-score WC003/WC004 from saved probe JSON (no new LLM calls) and patch validation.json.
+"""Re-score saved probe/judge outputs with the current graders (no model calls) and patch validation.json.
+
+For a grader change: every scored world must be regraded together, or totals
+stop being comparable. Uses each test's own regrade_* function and
+eval.gaps' validation update (island gate re-applied, `repairs` / `rechecks`
+kept, a note appended to `details.repairs`); the files it rewrites are copied
+to outputs/<model>/.repair_backups/<UTC time>/ first.
 
 Usage:
-    uv run python scripts/regrade_probes.py fable
-    uv run python scripts/regrade_probes.py --all
+    uv run python scripts/regrade_probes.py --tests WC004 WC005 --all --note "frame-loop motion check"
+    uv run python scripts/regrade_probes.py --tests WC004 claude-opus-5
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from eval.score import score_records  # noqa: E402
+from eval.gaps import OUTPUTS, WC003, WC004, WC005, _backup, _main_module, _update_validation, _worlds  # noqa: E402
 from harness.status import log  # noqa: E402
 
-OUTPUTS_DIR = REPO_ROOT / "outputs"
-WC003 = REPO_ROOT / "tests" / "WC003_biome_micro_contents" / "main.py"
-WC004 = REPO_ROOT / "tests" / "WC004_biome_rendering" / "main.py"
+# test -> (saved probe file, regrade function, files the regrade rewrites)
+TESTS = {
+    "WC003": (WC003, "micro_contents.json", "regrade_micro", ["score.json"]),
+    "WC004": (WC004, "rendering.json", "regrade_rendering", ["score.json"]),
+    "WC005": (WC005, "cycle.json", "regrade_cycle", ["score.json"]),
+}
 
 
-def _patch_check(validation: dict, dir_name: str, function: str, scorecard: dict, extra: dict) -> None:
-    key = f"{dir_name}::{function}"
-    details = {
-        "score": scorecard["score"],
-        "max_score": scorecard["max_score"],
-        "scorecard": scorecard,
-        **extra,
-    }
-    validation.setdefault("checks", {})[key] = {
-        "passed": scorecard["passed"],
-        "reason": scorecard["reason"],
-        "details": details,
-        "score": scorecard["score"],
-        "max_score": scorecard["max_score"],
-    }
-
-
-def _regrade_cli(script: Path, json_path: Path) -> dict:
-    subprocess.run(
-        [sys.executable, str(script), "--regrade", str(json_path)],
-        check=True,
-        cwd=str(REPO_ROOT),
-    )
-    return json.loads((json_path.parent / "score.json").read_text(encoding="utf-8"))
-
-
-def regrade_slug(slug: str) -> Path:
-    out = OUTPUTS_DIR / slug
-    val_path = out / "validation.json"
-    if not val_path.is_file():
-        raise FileNotFoundError(f"No validation.json at {val_path}")
-    validation = json.loads(val_path.read_text(encoding="utf-8"))
-
-    micro = out / "WC003_biome_micro_contents" / "micro_contents.json"
-    if micro.is_file():
-        log(f"regrade WC003  {slug}")
-        card = _regrade_cli(WC003, micro)
-        _patch_check(
-            validation,
-            "WC003_biome_micro_contents",
-            "check_biome_micro_contents",
-            card,
-            extra={
-                "found": card.get("found", {}),
-                "missing": card.get("missing", {}),
-            },
-        )
-
-    rendering = out / "WC004_biome_rendering" / "rendering.json"
-    if rendering.is_file():
-        log(f"regrade WC004  {slug}")
-        card = _regrade_cli(WC004, rendering)
-        _patch_check(
-            validation,
-            "WC004_biome_rendering",
-            "check_biome_rendering",
-            card,
-            extra={
-                "found": card.get("found", {}),
-                "missing": card.get("missing", {}),
-            },
-        )
-
-    checks = validation.get("checks") or {}
-    validation["passed"] = all(bool(row.get("passed")) for row in checks.values())
-    validation.update(score_records(checks))
-    val_path.write_text(json.dumps(validation, indent=2, default=str) + "\n", encoding="utf-8")
-    return val_path
-
-
-def discover_slugs() -> list[str]:
-    if not OUTPUTS_DIR.is_dir():
-        return []
-    slugs = []
-    for path in sorted(OUTPUTS_DIR.iterdir()):
-        if path.is_dir() and (path / "validation.json").is_file() and "__" not in path.name:
-            slugs.append(path.name)
-    return slugs
+def regrade(model: str, tests: list[str], note_text: str) -> list[str]:
+    O = OUTPUTS / model
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    lines = []
+    for t in tests:
+        test, probe_file, fn, rewrites = TESTS[t]
+        D = O / test
+        if not (D / probe_file).is_file():
+            lines.append(f"{model} {t}: no {probe_file}, skipped")
+            continue
+        backup = _backup(model, [D / f for f in rewrites] + [O / "validation.json"])
+        result = getattr(_main_module(test), fn)(D / probe_file)
+        note = {"at": stamp, "did": [f"regrade: {note_text}"], "backup": str(backup.relative_to(O))}
+        b, a, tb, ta = _update_validation(model, test, result, note)
+        lines.append(f"{model} {t}: {b} -> {a} | total {tb} -> {ta}")
+        log(f"      regrade   {lines[-1]}")
+    return lines
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Re-score WC003/WC004 probe JSON into validation.json")
-    parser.add_argument("slug", nargs="?", help='model folder under outputs/ (e.g. "fable")')
-    parser.add_argument("--all", action="store_true")
+    parser = argparse.ArgumentParser(description="Re-score saved probe outputs into validation.json")
+    parser.add_argument("models", nargs="*", help="model folders under outputs/")
+    parser.add_argument("--all", action="store_true", help="every world with a validation.json")
+    parser.add_argument("--tests", nargs="+", required=True, choices=sorted(TESTS))
+    parser.add_argument("--note", default="grader change", help="recorded in details.repairs")
     args = parser.parse_args(argv)
-    slugs = discover_slugs() if args.all else ([args.slug] if args.slug else [])
-    if not slugs:
-        parser.error("pass a slug or --all")
-    for slug in slugs:
-        dest = regrade_slug(slug)
-        log(f"wrote   {dest}")
-        print(dest, flush=True)
+    if not args.all and not args.models:
+        parser.error("pass model names or --all")
+    for m in _worlds([] if args.all else args.models):
+        for line in regrade(m, args.tests, args.note):
+            print(line, flush=True)
 
 
 if __name__ == "__main__":

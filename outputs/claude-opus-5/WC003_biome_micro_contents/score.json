@@ -1,9 +1,9 @@
 {
-  "score": 70.69,
+  "score": 71.52,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 70.69/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
+  "reason": "Scored 71.52/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 7.51,
@@ -880,7 +880,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 6.68,
+      "score": 7.51,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -946,12 +946,12 @@
           "label": "Water + lava contact becomes obsidian",
           "kind": "must_present",
           "points": 1.67,
-          "earned": 0.0,
-          "code": false,
+          "earned": 0.83,
+          "code": true,
           "visual": false,
           "seen": "No water contact visible on the volcano.",
-          "evidence": "/* obsidian where lava quenches against water */",
-          "why": "comment_only"
+          "evidence": "const obs=[];\nfor(let iz=1;iz<N-1;iz++)for(let ix=1;ix<N-1;ix++){\n  const i=iz*N+ix; if(WK[i]!==4)continue;\n  let near=false;\n  for(let dz=-3;dz<=3&&!near;dz++)for(let dx=-3;dx<=3;dx++){\n    const j=(iz+dz)*N+(ix+dx);\n    if(j<0||j>=N*N)continue;\n    const k=WK[j]; if(k===1||k===2||k===3){near=true;break;}\n  }\n  if(near)obs.push(i);\n}\nfor(const i of obs){WK[i]=5;WAT[i]=0;}",
+          "why": "not_visible"
         },
         {
           "id": "snow_or_pine",

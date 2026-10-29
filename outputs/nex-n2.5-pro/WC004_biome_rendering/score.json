@@ -1,12 +1,12 @@
 {
-  "score": 63.75,
+  "score": 69.75,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 63.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 69.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
-      "score": 6.25,
+      "score": 6.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -171,10 +171,10 @@
           "label": "Meltwater stream descending from the massif",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -184,7 +184,7 @@
           "llm_axis": "flowing",
           "look_evidence": "for(let k=0;k<n;k++)fallCubes.push({fi,k,x:f.x+(rand()-0.5)*0.2,z:f.z+(rand()-0.5)*0.2,from:f.from,drop,rate:f.rate});",
           "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "alpine_fauna_grounded",
@@ -211,7 +211,7 @@
       "biome_visible": true
     },
     "forest": {
-      "score": 8.0,
+      "score": 8.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -311,6 +311,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "cloud_deck_layer",
+          "label": "Grey cloud deck boxes above the conifer band",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Cloud boxes remain stationary between frames.",
+          "motion_axis_seen": "still",
+          "seen": "Grey and white cloud boxes floating above forest.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "still",
+          "look_evidence": "makeDeck(0,17,-26,16,10,46,0xffffff,0.90);",
+          "motion_evidence": "const dx=((o.seed+drift)%R+R)%R-R/2;"
+        },
+        {
           "id": "snowfall_particles",
           "label": "Gentle snowfall \u2014 small white particles falling downward",
           "kind": "entity",
@@ -371,34 +390,14 @@
           "why": "not_in_scope_evidence"
         },
         {
-          "id": "cloud_deck_layer",
-          "label": "Grey cloud deck boxes above the conifer band",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Cloud boxes remain stationary between frames.",
-          "motion_axis_seen": "still",
-          "seen": "Grey and white cloud boxes floating above forest.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "still",
-          "look_evidence": "makeDeck(0,17,-26,16,10,46,0xffffff,0.90);",
-          "motion_evidence": "const dx=((o.seed+drift)%R+R)%R-R/2;",
-          "why": "no_time_update"
-        },
-        {
           "id": "forest_fauna_idle",
           "label": "Forest animals (deer/fox/wolf/rabbit) grounded on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -408,14 +407,14 @@
           "llm_axis": "grounded",
           "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
           "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "highlands": {
-      "score": 8.0,
+      "score": 8.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -532,6 +531,25 @@
           "llm_axis": "falling",
           "look_evidence": "rainH=makeParticles(220,0.09,0x6fb7e8,{opacity:0.7});",
           "motion_evidence": "rainH.intensity=pulse(t+9,32,0.45,0)*rMul*0.8;\nupdateFall(rainH,dt,B_RH,1.4,3.2);"
+        },
+        {
+          "id": "headwater_rill_flow",
+          "label": "Headwater spring/rill flowing from highland",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Water voxels flowing down channel.",
+          "motion_axis_seen": "flowing",
+          "seen": "Small cyan water voxels descending from highland.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "flowing",
+          "look_evidence": "stampPath([[10,4],[5,7],[1,10]],4.5,2.6,{});",
+          "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);"
         }
       ],
       "lost": [
@@ -576,34 +594,14 @@
           "why": "not_in_scope_evidence"
         },
         {
-          "id": "headwater_rill_flow",
-          "label": "Headwater spring/rill flowing from highland",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Water voxels flowing down channel.",
-          "motion_axis_seen": "flowing",
-          "seen": "Small cyan water voxels descending from highland.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "flowing",
-          "look_evidence": "stampPath([[10,4],[5,7],[1,10]],4.5,2.6,{});",
-          "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);",
-          "why": "no_time_update"
-        },
-        {
           "id": "highland_fauna_idle",
           "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -613,14 +611,14 @@
           "llm_axis": "grounded",
           "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
           "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "jungle": {
-      "score": 5.25,
+      "score": 6.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -661,6 +659,25 @@
           "llm_axis": "n/a",
           "look_evidence": "case 4:return cTmp.set(C.jungle).lerp(cTmp2.set(C.jungleDark),n1).lerp(cTmp2.set(C.jungleLight),LUSH[id]?0.5:0);",
           "motion_evidence": ""
+        },
+        {
+          "id": "jungle_fauna_ground",
+          "label": "Edge grazers (deer class) grounded in jungle",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Quadruped animal resting on the ground near tree trunks.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
+          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);"
         }
       ],
       "lost": [
@@ -729,10 +746,10 @@
           "label": "Waterfall \u2014 vertical cascade of water voxels",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -742,7 +759,7 @@
           "llm_axis": "falling",
           "look_evidence": "{x:-33.5,z:3,from:4.2,to:-9,rate:7},",
           "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "rain_shaft_fall",
@@ -785,26 +802,6 @@
           "why": "not_visible"
         },
         {
-          "id": "jungle_fauna_ground",
-          "label": "Edge grazers (deer class) grounded in jungle",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Quadruped animal resting on the ground near tree trunks.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
-          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
-        },
-        {
           "id": "canopy_bird_motion",
           "label": "Canopy birds with subtle hover or perch motion",
           "kind": "entity",
@@ -829,7 +826,7 @@
       "biome_visible": true
     },
     "swamp": {
-      "score": 5.75,
+      "score": 6.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1015,10 +1012,10 @@
           "label": "Marsh animals (frog/fox) at waterline grounded on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1028,14 +1025,14 @@
           "llm_axis": "grounded",
           "look_evidence": "addWanderer(makeFox,[...sampleCells([8],5,2.6,4.6,true),...sampleCells([5],3,1.2,2.6,false)]);",
           "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "grove": {
-      "score": 5.75,
+      "score": 6.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1142,10 +1139,10 @@
           "label": "Small feeder stream/brook through the grove",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": false,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": true,
           "motion_seen": "Water voxels flowing continuously through the stream channel.",
           "motion_axis_seen": "flowing",
@@ -1202,10 +1199,10 @@
           "label": "Grove grazers (deer/sheep) idle on terrain",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1215,7 +1212,7 @@
           "llm_axis": "grounded",
           "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
           "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "bee_pollinator_buzz",
@@ -1242,7 +1239,7 @@
       "biome_visible": true
     },
     "grassland": {
-      "score": 8.0,
+      "score": 8.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1359,6 +1356,25 @@
           "llm_axis": "n/a",
           "look_evidence": "const col=WTYPE[id]===1?0x55603a:(WTYPE[id]===2?0x57c4d4:0x39c2d7);",
           "motion_evidence": ""
+        },
+        {
+          "id": "grassland_fauna_herd",
+          "label": "Grazers (deer/horse/sheep) grounded on the plain",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Brown quadruped herd animals wandering on grass",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
+          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);"
         }
       ],
       "lost": [
@@ -1421,33 +1437,13 @@
           "look_evidence": "not in grassland scope",
           "motion_evidence": "",
           "why": "not_in_scope_evidence"
-        },
-        {
-          "id": "grassland_fauna_herd",
-          "label": "Grazers (deer/horse/sheep) grounded on the plain",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Brown quadruped herd animals wandering on grass",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "addWanderer(makeDeer,[...sampleCells([6],6,2.8,4.2,true),...sampleCells([7],3,3.4,5.6,true),...sampleCells([2],3,6.4,9,true),...sampleCells([4],2,3.4,6,true)]);",
-          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
         }
       ],
       "shows_biome": true,
       "biome_visible": true
     },
     "delta": {
-      "score": 3.0,
+      "score": 3.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1596,10 +1592,10 @@
           "label": "Braided river mouths merging into ocean",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1609,7 +1605,7 @@
           "llm_axis": "flowing",
           "look_evidence": "stampPath([[4,22],[2,24],[0,26],[-1,27.5]],1.3,1.05,{delta:true,wide:true});",
           "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "cliff_waterfall_fall",
@@ -1629,17 +1625,17 @@
           "llm_axis": "falling",
           "look_evidence": "{x:-33.5,z:3,from:4.2,to:-9,rate:7},",
           "motion_evidence": "const y=fc.from-((t*fc.rate+fc.k*0.85)%fc.drop);",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "coastal_fauna_motion",
           "label": "Coastal life \u2014 fish swimming in water or birds/turtles on shore",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1649,7 +1645,7 @@
           "llm_axis": "grounded",
           "look_evidence": "addWanderer(makeTurtle,sampleCells([10,11],4,1.2,2.6,false));",
           "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "cactus_coast",
@@ -1667,7 +1663,7 @@
       "biome_visible": true
     },
     "desert": {
-      "score": 7.0,
+      "score": 7.5,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1765,6 +1761,25 @@
           "llm_axis": "n/a",
           "look_evidence": "sampleCells([8],26,2.6,4.6,true).forEach(p=>{addCan(p.x,p.h+0.25,p.z,0.8,0.4,0.8,0xb39055);});",
           "motion_evidence": ""
+        },
+        {
+          "id": "arid_fauna_idle",
+          "label": "Arid animals (fox/rabbit) grounded on sand",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": null,
+          "motion_seen": "",
+          "motion_axis_seen": "",
+          "seen": "Small quadruped animal voxels on desert ground.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "grounded",
+          "look_evidence": "addWanderer(makeFox,[...sampleCells([8],5,2.6,4.6,true),...sampleCells([5],3,1.2,2.6,false)]);",
+          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);"
         }
       ],
       "lost": [
@@ -1807,26 +1822,6 @@
           "look_evidence": "const sand=makeParticles(380,0.17,0xd8b478,{opacity:0.55});",
           "motion_evidence": "p.x+=p.vy*dt*2.2;p.y+=Math.sin(t*3+i)*dt*0.4;",
           "why": "not_visible"
-        },
-        {
-          "id": "arid_fauna_idle",
-          "label": "Arid animals (fox/rabbit) grounded on sand",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.5,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": null,
-          "motion_seen": "",
-          "motion_axis_seen": "",
-          "seen": "Small quadruped animal voxels on desert ground.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "grounded",
-          "look_evidence": "addWanderer(makeFox,[...sampleCells([8],5,2.6,4.6,true),...sampleCells([5],3,1.2,2.6,false)]);",
-          "motion_evidence": "a.g.position.set(a.x,g+Math.abs(Math.sin(t*1.6+a.ph))*0.07,a.z);",
-          "why": "no_time_update"
         },
         {
           "id": "sand_ground_tint",
@@ -1873,7 +1868,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 6.75,
+      "score": 7.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1897,6 +1892,25 @@
           "motion_evidence": ""
         },
         {
+          "id": "glowing_crater_mouth",
+          "label": "Glowing orange/red emissive crater at summit",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Red speckles on crater opening indicating intensity shift",
+          "motion_axis_seen": "pulsing",
+          "seen": "Bright orange/yellow blocks at the top opening",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "pulsing",
+          "look_evidence": "const craterLight=new THREE.PointLight(0xff5a13,1.0,60,2);craterLight.position.set(-24,16,22);scene.add(craterLight);",
+          "motion_evidence": "craterLight.intensity=0.8+Math.sin(t*13)*0.2+eruptI*2.6;"
+        },
+        {
           "id": "basalt_over_ash",
           "label": "Black basalt/ash surface recipe \u2014 not grass or sand",
           "kind": "entity",
@@ -1914,6 +1928,25 @@
           "llm_axis": "n/a",
           "look_evidence": "case 9:if(OBS[id])return cTmp.set(C.obsidian).lerp(cTmp2.set(0x3a2a4a),n2*0.4);",
           "motion_evidence": ""
+        },
+        {
+          "id": "lava_flow_stream",
+          "label": "Orange molten lava channel flowing on volcanic ground",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Red speckles along lava stream path indicating flow",
+          "motion_axis_seen": "flowing",
+          "seen": "Orange/yellow lava stream running down the side slope",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "flowing",
+          "look_evidence": "lavaMesh.instanceMatrix.needsUpdate=true;",
+          "motion_evidence": "lavaMesh.material.emissiveIntensity=1.1+Math.sin(t*5)*0.25+eruptI*0.8;"
         },
         {
           "id": "ash_plume_rise",
@@ -1937,46 +1970,6 @@
       ],
       "lost": [
         {
-          "id": "glowing_crater_mouth",
-          "label": "Glowing orange/red emissive crater at summit",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Red speckles on crater opening indicating intensity shift",
-          "motion_axis_seen": "pulsing",
-          "seen": "Bright orange/yellow blocks at the top opening",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "pulsing",
-          "look_evidence": "const craterLight=new THREE.PointLight(0xff5a13,1.0,60,2);craterLight.position.set(-24,16,22);scene.add(craterLight);",
-          "motion_evidence": "craterLight.intensity=0.8+Math.sin(t*13)*0.2+eruptI*2.6;",
-          "why": "no_time_update"
-        },
-        {
-          "id": "lava_flow_stream",
-          "label": "Orange molten lava channel flowing on volcanic ground",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Red speckles along lava stream path indicating flow",
-          "motion_axis_seen": "flowing",
-          "seen": "Orange/yellow lava stream running down the side slope",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "flowing",
-          "look_evidence": "lavaMesh.instanceMatrix.needsUpdate=true;",
-          "motion_evidence": "lavaMesh.material.emissiveIntensity=1.1+Math.sin(t*5)*0.25+eruptI*0.8;",
-          "why": "no_time_update"
-        },
-        {
           "id": "lava_pool_glow",
           "label": "Glowing lava pool in crater or flank",
           "kind": "entity",
@@ -1994,7 +1987,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const lavaMesh=new THREE.InstancedMesh(unitGeo,new THREE.MeshLambertMaterial({color:0xff6a13,emissive:0xff3c00,emissiveIntensity:1.2}),LAVA.length+30);",
           "motion_evidence": "lavaMesh.material.emissiveIntensity=1.1+Math.sin(t*5)*0.25+eruptI*0.8;",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "lava_orange_tint",

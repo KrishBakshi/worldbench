@@ -169,20 +169,17 @@
       "max_score": 20
     },
     "WC001_voxel_world::check_visual_bughunt": {
-      "passed": false,
-      "reason": "Scored 17.14/20: defects in direction_bottom (floating_blocks), direction_right (floating_blocks)",
+      "passed": true,
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
-        "score": 17.14,
+        "score": 20.0,
         "max_score": 20,
-        "missing": [
-          "direction_bottom",
-          "direction_right"
-        ],
+        "missing": [],
         "ocean_void": false,
         "ocean_void_views": [
           "direction_right"
         ],
-        "views_judged": 14,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -500,8 +497,8 @@
             "confirmed": true
           },
           "desert": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -558,7 +555,13 @@
                   "steps": -3
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "9_30",
+            "view": "biome_desert",
+            "identified_as": "grove",
+            "confirmed": false
           },
           "volcano": {
             "status": "found",
@@ -589,9 +592,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:09:12Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_right', 'direction_bottom', 'biome_desert'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070912Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070912Z"
+          }
+        ]
       },
-      "score": 17.14,
+      "score": 20.0,
       "max_score": 20
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
@@ -4078,7 +4097,16 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
       "score": 56.75,
       "max_score": 100,
@@ -4088,16 +4116,16 @@
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 11.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle",
+      "reason": "Scored 12.0/20; failed items: season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle",
       "details": {
-        "score": 11.0,
+        "score": 12.0,
         "max_score": 20,
         "scorecard": {
-          "score": 11.0,
+          "score": 12.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 11.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle",
+          "reason": "Scored 12.0/20; failed items: season_world_tint, season_modulates_weather, cloud_drift_wrap, sky_or_fog_day_cycle",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4145,6 +4173,21 @@
               "seen": ""
             },
             {
+              "id": "dusk_dawn_tint",
+              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "sunLight.color.setHex(0xff7733);",
+              "motion_evidence": "sunLight.color.setHex(curSeason.sunTint);",
+              "earned": 2.0,
+              "code": true,
+              "visual": true,
+              "seen": ""
+            },
+            {
               "id": "season_cycle",
               "label": "Four-season (or year) loop advancing on a clock",
               "kind": "entity",
@@ -4177,22 +4220,6 @@
           ],
           "lost": [
             {
-              "id": "dusk_dawn_tint",
-              "label": "Dusk/dawn color shift on sun or light (warm evening, cool night)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "sunLight.color.setHex(0xff7733);",
-              "motion_evidence": "sunLight.color.setHex(curSeason.sunTint);",
-              "why": "no_time_update",
-              "earned": 1.0,
-              "code": false,
-              "visual": true,
-              "seen": ""
-            },
-            {
               "id": "season_world_tint",
               "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
               "kind": "entity",
@@ -4202,7 +4229,7 @@
               "llm_axis": "cyclic",
               "look_evidence": "sunLight.color.setHex(curSeason.sunTint);",
               "motion_evidence": "sunLight.color.setHex(curSeason.sunTint);",
-              "why": "no_time_update",
+              "why": "duplicate_evidence",
               "earned": 0.0,
               "code": false,
               "visual": false,
@@ -4277,11 +4304,11 @@
           "sun_orbit",
           "light_follows_sun",
           "night_dimming",
+          "dusk_dawn_tint",
           "season_cycle",
           "moon"
         ],
         "item_misses": [
-          "dusk_dawn_tint",
           "season_world_tint",
           "season_modulates_weather",
           "cloud_drift_wrap",
@@ -4291,9 +4318,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 11.0,
+      "score": 12.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -5085,8 +5121,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 171.09,
+  "total_score": 174.95,
   "total_max_score": 280.0,
-  "pct": 0.6110357142857143,
+  "pct": 0.6248214285714285,
   "island_gate": false
 }

@@ -1,9 +1,9 @@
 {
-  "score": 72.5,
+  "score": 74.0,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 72.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 74.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 8.5,
@@ -211,7 +211,7 @@
       "biome_visible": true
     },
     "forest": {
-      "score": 7.0,
+      "score": 7.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -309,6 +309,25 @@
           "llm_axis": "still",
           "look_evidence": "cloudDeck(2,7,ENV.snow,0xf2f5fa);",
           "motion_evidence": "c.g.position.x+=c.speed*dt; if(c.g.position.x>Bd.x1+8) c.g.position.x=Bd.x0-8;"
+        },
+        {
+          "id": "snowfall_particles",
+          "label": "Gentle snowfall \u2014 small white particles falling downward",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Snowfall particles fall downward over the forest.",
+          "motion_axis_seen": "falling",
+          "seen": "White cubic snowfall particles above forest area.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "falling",
+          "look_evidence": "systems.push(new PSys({count:3200,color:0xffffff,size:0.9,opacity:0.9,box:rainBox(2,1,26),vel:[1.5,-5,0.8],sway:1.2,env:ENV.snow}));",
+          "motion_evidence": "p[j+1]+=vy;"
         }
       ],
       "lost": [
@@ -351,26 +370,6 @@
           "look_evidence": "not in forest scope",
           "motion_evidence": "",
           "why": "not_in_scope_evidence"
-        },
-        {
-          "id": "snowfall_particles",
-          "label": "Gentle snowfall \u2014 small white particles falling downward",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Snowfall particles fall downward over the forest.",
-          "motion_axis_seen": "falling",
-          "seen": "White cubic snowfall particles above forest area.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "falling",
-          "look_evidence": "systems.push(new PSys({count:3200,color:0xffffff,size:0.9,opacity:0.9,box:rainBox(2,1,26),vel:[1.5,-5,0.8],sway:1.2,env:ENV.snow}));",
-          "motion_evidence": "p[j+1]+=vy;",
-          "why": "no_time_update"
         },
         {
           "id": "forest_fauna_idle",
@@ -417,7 +416,7 @@
       "biome_visible": true
     },
     "highlands": {
-      "score": 5.5,
+      "score": 5.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -565,10 +564,10 @@
           "label": "Light drizzle rain over highlands \u2014 thin falling drops",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -578,7 +577,7 @@
           "llm_axis": "falling",
           "look_evidence": "systems.push(new PSys({count:1600,color:0xa8c8ff,size:0.7,opacity:0.5,box:rainBox(3),vel:[1.5,-36,0.5],env:ENV.high}));",
           "motion_evidence": "p[j+1]+=vy;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "headwater_rill_flow",
@@ -625,7 +624,7 @@
       "biome_visible": true
     },
     "jungle": {
-      "score": 4.75,
+      "score": 5.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -666,6 +665,25 @@
           "llm_axis": "n/a",
           "look_evidence": "case T.JUNGLE: return vary(0x2e7d32,r*0.07);",
           "motion_evidence": ""
+        },
+        {
+          "id": "rain_shaft_fall",
+          "label": "Persistent jungle rain shafts falling downward",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "blue rain particles fall downward across frames",
+          "motion_axis_seen": "falling",
+          "seen": "blue and white rain particle shafts falling over jungle",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "falling",
+          "look_evidence": "systems.push(new PSys({count:5200,color:0x9cc4ff,size:0.7,opacity:0.75,box:rainBox(4),vel:[0.6,-38,0],env:ENV.jungle}));",
+          "motion_evidence": "p[j+1]+=vy;"
         }
       ],
       "lost": [
@@ -750,26 +768,6 @@
           "why": "not_visible"
         },
         {
-          "id": "rain_shaft_fall",
-          "label": "Persistent jungle rain shafts falling downward",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "blue rain particles fall downward across frames",
-          "motion_axis_seen": "falling",
-          "seen": "blue and white rain particle shafts falling over jungle",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "falling",
-          "look_evidence": "systems.push(new PSys({count:5200,color:0x9cc4ff,size:0.7,opacity:0.75,box:rainBox(4),vel:[0.6,-38,0],env:ENV.jungle}));",
-          "motion_evidence": "p[j+1]+=vy;",
-          "why": "no_time_update"
-        },
-        {
           "id": "rising_mist_after_rain",
           "label": "Rising mist after rain over wet canopy",
           "kind": "entity",
@@ -787,7 +785,7 @@
           "llm_axis": "rising",
           "look_evidence": "systems.push(new PSys({count:900,color:0xcfd8dc,size:3.2,opacity:0.3,box:rainBox(4,-1,9),vel:[0.4,2.2,0.3],sway:0.6,env:t=>0.15+0.85*cyc(t,70,-42,0.15,0.3,0.3)}));",
           "motion_evidence": "p[j+1]+=vy;",
-          "why": "no_time_update"
+          "why": "duplicate_evidence"
         },
         {
           "id": "jungle_fauna_ground",
@@ -1449,7 +1447,7 @@
       "biome_visible": true
     },
     "delta": {
-      "score": 7.75,
+      "score": 8.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1633,10 +1631,10 @@
           "label": "Coastal life \u2014 fish swimming in water or birds/turtles on shore",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -1646,7 +1644,7 @@
           "llm_axis": "grounded",
           "look_evidence": "spawn('crab',beachCells,8); spawn('fish',shallowCells,14);",
           "motion_evidence": "a.x+=dx/d*s; a.z+=dz/d*s; const want=Math.atan2(-dz,dx);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1858,7 +1856,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 9.0,
+      "score": 9.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1937,6 +1935,25 @@
           "llm_axis": "pulsing",
           "look_evidence": "push(lavas,x,g,w,z,vary(0xff6a00,(hash2(x,z)-0.5)*0.12));",
           "motion_evidence": "lavaMat.color.setScalar(0.85+0.15*Math.sin(time*2.3)+0.25*er);"
+        },
+        {
+          "id": "ash_plume_rise",
+          "label": "Ash particles rising from volcano",
+          "kind": "entity",
+          "points": 1.0,
+          "earned": 1.0,
+          "code_look": true,
+          "visual_look": true,
+          "code_motion": true,
+          "visual_motion": true,
+          "motion_seen": "Grey smoke drifts upward.",
+          "motion_axis_seen": "rising",
+          "seen": "Grey smoke and ash rising from crater.",
+          "llm_looks_ok": true,
+          "llm_moves_ok": true,
+          "llm_axis": "rising",
+          "look_evidence": "systems.push(new PSys({count:1400,color:0x6b6b70,size:2.6,opacity:0.6,box:{x0:VOL.x-60,x1:VOL.x+60,z0:VOL.z-60,z1:VOL.z+60,y0:craterTop-5,y1:craterTop+60},vel:[3,7,1.5],sway:1.5,vyMul:t=>1+1.6*ENV.erupt(t),",
+          "motion_evidence": "p[j+1]+=vy;"
         },
         {
           "id": "eruption_burst",
@@ -2036,26 +2053,6 @@
           "look_evidence": "push(lavas,x,g,w,z,vary(0xff6a00,(hash2(x,z)-0.5)*0.12));",
           "motion_evidence": "",
           "why": "duplicate_evidence"
-        },
-        {
-          "id": "ash_plume_rise",
-          "label": "Ash particles rising from volcano",
-          "kind": "entity",
-          "points": 1.0,
-          "earned": 0.75,
-          "code_look": true,
-          "visual_look": true,
-          "code_motion": false,
-          "visual_motion": true,
-          "motion_seen": "Grey smoke drifts upward.",
-          "motion_axis_seen": "rising",
-          "seen": "Grey smoke and ash rising from crater.",
-          "llm_looks_ok": true,
-          "llm_moves_ok": true,
-          "llm_axis": "rising",
-          "look_evidence": "systems.push(new PSys({count:1400,color:0x6b6b70,size:2.6,opacity:0.6,box:{x0:VOL.x-60,x1:VOL.x+60,z0:VOL.z-60,z1:VOL.z+60,y0:craterTop-5,y1:craterTop+60},vel:[3,7,1.5],sway:1.5,vyMul:t=>1+1.6*ENV.erupt(t),",
-          "motion_evidence": "p[j+1]+=vy;",
-          "why": "no_time_update"
         }
       ],
       "shows_biome": true,

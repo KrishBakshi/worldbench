@@ -177,19 +177,15 @@
       "max_score": 20
     },
     "WC001_voxel_world::check_visual_bughunt": {
-      "passed": false,
-      "reason": "Scored 15.38/20: defects in biome_mountains (floating_blocks), direction_bottom (floating_blocks), direction_top (floating_blocks)",
+      "passed": true,
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
-        "score": 15.38,
+        "score": 20.0,
         "max_score": 20,
-        "missing": [
-          "biome_mountains",
-          "direction_bottom",
-          "direction_top"
-        ],
+        "missing": [],
         "ocean_void": false,
         "ocean_void_views": [],
-        "views_judged": 13,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -419,8 +415,8 @@
             "confirmed": true
           },
           "desert": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -476,11 +472,17 @@
                   "steps": -2
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "9_17",
+            "view": "biome_desert",
+            "identified_as": "desert",
+            "confirmed": true
           },
           "volcano": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -537,14 +539,36 @@
                   "dy": 0
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "10_19",
+            "view": "biome_volcano",
+            "identified_as": "volcano",
+            "confirmed": true
           }
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:05:18Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_top', 'direction_bottom', 'biome_mountains', 'biome_desert', 'biome_volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070538Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070538Z"
+          }
+        ]
       },
-      "score": 15.38,
+      "score": 20.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -1255,7 +1279,7 @@
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
       "passed": false,
-      "reason": "Scored 54.52/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 50.82/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1267,7 +1291,7 @@
           "grove": "failed items: pink_ground_or_petals, moist_basin_below_highland, feeder_streams, grove_fauna_spawn, pollinators",
           "grassland": "failed items: yellow_white_flowers, tall_grass",
           "delta": "failed items: depth_banded_water, palm_silhouettes, rocky_headlands, coral_or_reef_life, small_islands, braided_river_mouths, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn",
-          "desert": "failed items: fading_washes, arid_fauna_spawn, dead_bush",
+          "desert": "failed items: cacti_on_flats, fading_washes, sandstorm_particles, arid_fauna_spawn, dead_bush, lush_or_snow",
           "volcano": "failed items: lava_flows_on_volcanic_ground, ash_or_eruption_particles, obsidian_quench"
         },
         "item_hits": {
@@ -1306,9 +1330,7 @@
           ],
           "desert": [
             "flat_arid_basin",
-            "sandstone_peaks",
-            "cacti_on_flats",
-            "sandstorm_particles"
+            "sandstone_peaks"
           ],
           "volcano": [
             "tall_cone",
@@ -1375,9 +1397,12 @@
             "shore_fauna_spawn"
           ],
           "desert": [
+            "cacti_on_flats",
             "fading_washes",
+            "sandstorm_particles",
             "arid_fauna_spawn",
-            "dead_bush"
+            "dead_bush",
+            "lush_or_snow"
           ],
           "volcano": [
             "lava_flows_on_volcanic_ground",
@@ -1394,17 +1419,17 @@
           "grove": 4.99,
           "grassland": 7.51,
           "delta": 4.13,
-          "desert": 6.43,
-          "volcano": 6.67
+          "desert": 3.56,
+          "volcano": 5.84
         },
-        "score": 54.52,
+        "score": 50.82,
         "max_score": 100,
         "scorecard": {
-          "score": 54.52,
+          "score": 50.82,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 54.52/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 50.82/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 7.51,
@@ -2195,7 +2220,7 @@
               "biome_visible": true
             },
             "desert": {
-              "score": 6.43,
+              "score": 3.56,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2207,7 +2232,7 @@
                   "earned": 1.43,
                   "code": true,
                   "visual": true,
-                  "seen": "Flat yellow desert basin area.",
+                  "seen": "Flat sandy ground.",
                   "evidence": "h = 6 + fbm(x*0.02,z*0.02,3)*10 + spike;"
                 },
                 {
@@ -2218,33 +2243,23 @@
                   "earned": 1.43,
                   "code": true,
                   "visual": true,
-                  "seen": "Sandstone peaks rise on the flats.",
+                  "seen": "Sandstone hill structure.",
                   "evidence": "var spike = dm>0.62 ? (dm-0.62)*140 : 0;"
-                },
+                }
+              ],
+              "lost": [
                 {
                   "id": "cacti_on_flats",
                   "label": "Cactus voxel plants spread across the desert flats",
                   "kind": "must_present",
                   "points": 1.43,
-                  "earned": 1.43,
+                  "earned": 0.71,
                   "code": true,
-                  "visual": true,
-                  "seen": "Cacti spread across the desert flats.",
-                  "evidence": "treeGroup.add(bodyMesh); treeGroup.add(armMesh);"
+                  "visual": false,
+                  "seen": "No visible cacti in the desert.",
+                  "evidence": "treeGroup.add(bodyMesh); treeGroup.add(armMesh);",
+                  "why": "not_visible"
                 },
-                {
-                  "id": "sandstorm_particles",
-                  "label": "Sandstorm/dust particles over desert coordinates (not a legend string)",
-                  "kind": "must_present",
-                  "points": 1.43,
-                  "earned": 1.43,
-                  "code": true,
-                  "visual": true,
-                  "seen": "Particles over desert coordinates.",
-                  "evidence": "addWeather('desert',   {count:600, color:0xd8bf82, size:1.8, opacity:0.5, vel:new THREE.Vector3(30,0,4), yMin:8, yMax:34, cycle:22, hold:9, padU:1.1, padV:1.1});"
-                }
-              ],
-              "lost": [
                 {
                   "id": "fading_washes",
                   "label": "Dry washes that fade out (no perennial through-river)",
@@ -2253,9 +2268,21 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "No washes visible.",
+                  "seen": "No fading washes seen.",
                   "evidence": "not in desert scope",
                   "why": "not_in_scope_evidence"
+                },
+                {
+                  "id": "sandstorm_particles",
+                  "label": "Sandstorm/dust particles over desert coordinates (not a legend string)",
+                  "kind": "must_present",
+                  "points": 1.43,
+                  "earned": 0.71,
+                  "code": true,
+                  "visual": false,
+                  "seen": "No sandstorm particles visible.",
+                  "evidence": "addWeather('desert',   {count:600, color:0xd8bf82, size:1.8, opacity:0.5, vel:new THREE.Vector3(30,0,4), yMin:8, yMax:34, cycle:22, hold:9, padU:1.1, padV:1.1});",
+                  "why": "not_visible"
                 },
                 {
                   "id": "arid_fauna_spawn",
@@ -2265,7 +2292,7 @@
                   "earned": 0.71,
                   "code": true,
                   "visual": false,
-                  "seen": "No fauna visible.",
+                  "seen": "No animals seen.",
                   "evidence": "scatterFauna(treeSpots.desert, 4, 0xd97a3a, 0.7, 1.3); // fox",
                   "why": "not_visible"
                 },
@@ -2277,16 +2304,27 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "No dead bushes visible.",
+                  "seen": "No dead bushes present.",
                   "evidence": "not in desert scope",
                   "why": "not_in_scope_evidence"
+                },
+                {
+                  "id": "lush_or_snow",
+                  "label": "Jungle, snowy pines, or lush grassland as the desert",
+                  "kind": "must_not_present",
+                  "points": 1.43,
+                  "why": "forbidden_present",
+                  "code": false,
+                  "visual": true,
+                  "seen": "Lush trees and foliage overlap the desert area.",
+                  "evidence": "not in desert scope"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             },
             "volcano": {
-              "score": 6.67,
+              "score": 5.84,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2298,7 +2336,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "tall dark volcanic cone structure on the left",
+                  "seen": "tall dark volcanic cone structure",
                   "evidence": "var cone = Math.max(0, b.baseH - dist*2.1);"
                 },
                 {
@@ -2309,7 +2347,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "bright orange glowing crater at the top of the cone",
+                  "seen": "glowing orange top of volcano",
                   "evidence": "var craterGlow = new THREE.PointLight(0xff5522, 2, 140);"
                 },
                 {
@@ -2320,7 +2358,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "dark volcanic rock and ash blocks forming the mountain",
+                  "seen": "dark brown/black volcanic blocks",
                   "evidence": "volcano:    {u:-0.50,v:0.64,  sigma:0.17, baseH:130, top:0x241f1d, side:0x342a24, name:\"Volcanic Wasteland\", weather:\"Ash / eruptions\"}"
                 }
               ],
@@ -2330,10 +2368,10 @@
                   "label": "Lava tributaries/pools on volcanic ground only",
                   "kind": "must_present",
                   "points": 1.67,
-                  "earned": 0.83,
+                  "earned": 0.0,
                   "code": false,
-                  "visual": true,
-                  "seen": "orange lava flows visible down the side of the dark cone",
+                  "visual": false,
+                  "seen": "",
                   "evidence": "not in volcano scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -2362,7 +2400,7 @@
                   "why": "not_in_scope_evidence"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             }
           }
@@ -2386,6 +2424,13 @@
               "2 recheck hunt(s), 0 verified (role judge=gemini-3.1-flash-lite)"
             ],
             "backup": ".repair_backups/20261026T061643Z"
+          },
+          {
+            "at": "2026-10-27T07:05:18Z",
+            "did": [
+              "re-judged visuals ['desert', 'volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070518Z"
           }
         ],
         "rechecks": [
@@ -2421,12 +2466,12 @@
           }
         ]
       },
-      "score": 54.52,
+      "score": 50.82,
       "max_score": 100
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 48.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 49.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -2439,7 +2484,7 @@
           "grassland": "failed items: wildflower_yellow_white, tall_grass_blade, tributary_river_flow",
           "delta": "failed items: turquoise_shallow_band, deep_offshore_blue, sand_seafloor_recipe, palm_frond_silhouette, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall, coastal_fauna_motion",
           "desert": "failed items: dead_bush_twig, dry_wash_channel, sandstorm_dust_sheet, arid_fauna_idle, sand_ground_tint, dry_grass_clump",
-          "volcano": "failed items: glowing_crater_mouth, lava_flow_stream, lava_pool_glow, lava_orange_tint, ash_plume_rise, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
+          "volcano": "failed items: lava_flow_stream, lava_pool_glow, lava_orange_tint, ash_plume_rise, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
         },
         "item_hits": {
           "mountains": [
@@ -2490,6 +2535,7 @@
           ],
           "volcano": [
             "volcano_cone_silhouette",
+            "glowing_crater_mouth",
             "basalt_over_ash"
           ]
         },
@@ -2573,7 +2619,6 @@
             "dry_grass_clump"
           ],
           "volcano": [
-            "glowing_crater_mouth",
             "lava_flow_stream",
             "lava_pool_glow",
             "lava_orange_tint",
@@ -2592,17 +2637,17 @@
           "grove": 4.75,
           "grassland": 8.0,
           "delta": 2.75,
-          "desert": 5.75,
-          "volcano": 4.0
+          "desert": 6.25,
+          "volcano": 4.5
         },
-        "score": 48.75,
+        "score": 49.75,
         "max_score": 100,
         "scorecard": {
-          "score": 48.75,
+          "score": 49.75,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 48.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 49.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 6.5,
@@ -4266,7 +4311,7 @@
               "biome_visible": true
             },
             "desert": {
-              "score": 5.75,
+              "score": 6.25,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -4282,7 +4327,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Flat tan terrain visible in desert region.",
+                  "seen": "Flat tan terrain area in center.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4301,7 +4346,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Layered tan geometry in the desert section.",
+                  "seen": "Layered tan/beige mound structure.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4320,7 +4365,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Tan sand top color over darker layers.",
+                  "seen": "Tan sand ground covering underlying bedrock.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4339,7 +4384,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Vertical green cactus blocks with arms.",
+                  "seen": "Green vertical trunk columns with short arms.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4353,14 +4398,14 @@
                   "label": "Dead bush / dry scrub twig clumps on flats",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.0,
+                  "earned": 0.5,
                   "code_look": false,
-                  "visual_look": false,
+                  "visual_look": true,
                   "code_motion": null,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not clearly visible.",
+                  "seen": "Small brown twig cubes scattered on sand.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4380,7 +4425,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4398,9 +4443,9 @@
                   "visual_look": false,
                   "code_motion": true,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No dust sheet visible.",
+                  "motion_seen": "no dust sheet visible",
+                  "motion_axis_seen": "still",
+                  "seen": "not visible",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "blowing",
@@ -4420,7 +4465,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No fauna visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "grounded",
@@ -4440,7 +4485,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Tan sand ground tint clearly visible.",
+                  "seen": "Tan colored ground surface.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4460,7 +4505,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4469,11 +4514,11 @@
                   "why": "not_in_scope_evidence"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             },
             "volcano": {
-              "score": 4.0,
+              "score": 4.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -4489,12 +4534,31 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Steep dark volcanic cone on the left.",
+                  "seen": "Tall dark conical volcano structure on the left edge.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
                   "look_evidence": "var cone = Math.max(0, b.baseH - dist*2.1);",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "glowing_crater_mouth",
+                  "label": "Glowing orange/red emissive crater at summit",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Crater brightness and size changes between frames.",
+                  "motion_axis_seen": "pulsing",
+                  "seen": "Bright orange top opening on the volcano summit.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "pulsing",
+                  "look_evidence": "var craterMesh = new THREE.Mesh(new THREE.BoxGeometry(10,4,10), new THREE.MeshBasicMaterial({color:0xff5522}));",
+                  "motion_evidence": "craterGlow.intensity = 2 + pulse*10;\ncraterMesh.material.color.setHex(pulse>0.3? 0xffaa33 : 0xff5522);\ncraterMesh.scale.setScalar(1+pulse*1.5);"
                 },
                 {
                   "id": "basalt_over_ash",
@@ -4508,7 +4572,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Dark grey and black voxels.",
+                  "seen": "Dark grey and black voxel layers covering the cone.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -4518,38 +4582,18 @@
               ],
               "lost": [
                 {
-                  "id": "glowing_crater_mouth",
-                  "label": "Glowing orange/red emissive crater at summit",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.5,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Bright orange top opening.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "pulsing",
-                  "look_evidence": "var craterMesh = new THREE.Mesh(new THREE.BoxGeometry(10,4,10), new THREE.MeshBasicMaterial({color:0xff5522}));",
-                  "motion_evidence": "craterGlow.intensity = 2 + pulse*10;\ncraterMesh.material.color.setHex(pulse>0.3? 0xffaa33 : 0xff5522);\ncraterMesh.scale.setScalar(1+pulse*1.5);",
-                  "why": "no_time_update"
-                },
-                {
                   "id": "lava_flow_stream",
                   "label": "Orange molten lava channel flowing on volcanic ground",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.0,
                   "code_look": false,
-                  "visual_look": true,
+                  "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Orange streams running down the cone.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -4562,20 +4606,20 @@
                   "label": "Glowing lava pool in crater or flank",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.5,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Not clearly visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "pulsing",
                   "look_evidence": "var craterGlow = new THREE.PointLight(0xff5522, 2, 140);",
                   "motion_evidence": "craterGlow.intensity = 2 + pulse*10;",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "lava_orange_tint",
@@ -4589,7 +4633,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Orange lava voxels present.",
+                  "seen": "Orange material present at the crater opening.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -4607,9 +4651,9 @@
                   "visual_look": false,
                   "code_motion": true,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No ash plume visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "rising",
@@ -4627,9 +4671,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No eruption particles.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -4647,9 +4691,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No dust fog visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -4669,7 +4713,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No water contact boundary.",
+                  "seen": "Not visible.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -4678,7 +4722,7 @@
                   "why": "not_in_scope_evidence"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             }
           }
@@ -4688,26 +4732,42 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          },
+          {
+            "at": "2026-10-27T07:05:18Z",
+            "did": [
+              "re-judged visuals/motion ['desert', 'volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070524Z"
+          }
+        ]
       },
-      "score": 48.75,
+      "score": 49.75,
       "max_score": 100,
-      "probe_score": 48.75,
-      "probe_reason": "Scored 48.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 49.75,
+      "probe_reason": "Scored 49.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 10.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+      "reason": "Scored 11.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
       "details": {
-        "score": 10.0,
+        "score": 11.0,
         "max_score": 20,
         "scorecard": {
-          "score": 10.0,
+          "score": 11.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 10.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+          "reason": "Scored 11.0/20; failed items: dusk_dawn_tint, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4812,9 +4872,9 @@
               "llm_axis": "cyclic",
               "look_evidence": "var tint = new THREE.Color(seasonTints[sIdx]);",
               "motion_evidence": "sunLight.color.copy(tint).lerp(new THREE.Color(0xffffff), 0.3);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": ""
             },
@@ -4901,9 +4961,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 10.0,
+      "score": 11.0,
       "max_score": 20
     }
   },
@@ -4935,8 +5004,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 155.65,
+  "total_score": 158.57,
   "total_max_score": 280.0,
-  "pct": 0.5558928571428572,
+  "pct": 0.5663214285714285,
   "island_gate": false
 }

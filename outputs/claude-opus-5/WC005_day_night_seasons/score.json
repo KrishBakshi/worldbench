@@ -1,9 +1,9 @@
 {
-  "score": 13.0,
+  "score": 15.0,
   "max_score": 20,
   "points_total": 20,
   "passed": false,
-  "reason": "Scored 13.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle, moon",
+  "reason": "Scored 15.0/20; failed items: dusk_dawn_tint, sky_or_fog_day_cycle, moon",
   "earned": [
     {
       "id": "sun_orbit",
@@ -66,6 +66,21 @@
       "seen": "HUD season text changes between Spring, Summer, Autumn, and Winter."
     },
     {
+      "id": "season_world_tint",
+      "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
+      "kind": "entity",
+      "points": 2.0,
+      "llm_looks_ok": true,
+      "llm_moves_ok": true,
+      "llm_axis": "cyclic",
+      "look_evidence": "ambient.color.setHex(s.amb);",
+      "motion_evidence": "ambient.color.setHex(s.amb);",
+      "earned": 2.0,
+      "code": true,
+      "visual": true,
+      "seen": ""
+    },
+    {
       "id": "season_modulates_weather",
       "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
       "kind": "entity",
@@ -107,26 +122,10 @@
       "llm_axis": "cyclic",
       "look_evidence": "tmpColor.lerp(tmpColor2,dusk*0.6);",
       "motion_evidence": "sunLight.color.copy(tmpColor);",
-      "why": "no_time_update",
-      "earned": 0.0,
-      "code": false,
-      "visual": false,
-      "seen": ""
-    },
-    {
-      "id": "season_world_tint",
-      "label": "Season changes world lighting or terrain tint \u2014 not HUD text alone",
-      "kind": "entity",
-      "points": 2.0,
-      "llm_looks_ok": true,
-      "llm_moves_ok": true,
-      "llm_axis": "cyclic",
-      "look_evidence": "ambient.color.setHex(s.amb);",
-      "motion_evidence": "ambient.color.setHex(s.amb);",
-      "why": "no_time_update",
+      "why": "not_visible",
       "earned": 1.0,
-      "code": false,
-      "visual": true,
+      "code": true,
+      "visual": false,
       "seen": ""
     },
     {

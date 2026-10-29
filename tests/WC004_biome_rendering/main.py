@@ -95,7 +95,8 @@ def check_biome_rendering(
     raise_if_mostly_failed(reports, "code probe")
     visual, motion = judge_all(html_path, selected, model)
     raise_if_mostly_failed(visual, "visual judge")
-    result = grade_reports(reports, selected, visual, normalize(strip_html(html_path)), motion)
+    js = strip_html(html_path)
+    result = grade_reports(reports, selected, visual, normalize(js), motion, js)
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     result.details["artifacts"] = write_artifacts(dest, reports, result, visual, motion)
     return result
@@ -118,8 +119,8 @@ def regrade_rendering(
     if motion_path.is_file():
         motion = {k: load_motion(v) for k, v in json.loads(motion_path.read_text(encoding="utf-8")).items()}
     world = rendering_path.parent.parent / "world.html"
-    source = normalize(strip_html(str(world))) if world.is_file() else None
-    result = grade_reports(reports, selected, visual, source, motion)
+    js = strip_html(str(world)) if world.is_file() else None
+    result = grade_reports(reports, selected, visual, normalize(js) if js is not None else None, motion, js)
     dest = out_dir if out_dir is not None else rendering_path.parent
     result.details["artifacts"] = write_artifacts(dest, reports, result, visual, motion)
     return result

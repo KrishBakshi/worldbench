@@ -588,7 +588,7 @@
       },
       "obsidian_quench": {
         "found": true,
-        "evidence": "/* obsidian where lava quenches against water */"
+        "evidence": "const obs=[];\nfor(let iz=1;iz<N-1;iz++)for(let ix=1;ix<N-1;ix++){\n  const i=iz*N+ix; if(WK[i]!==4)continue;\n  let near=false;\n  for(let dz=-3;dz<=3&&!near;dz++)for(let dx=-3;dx<=3;dx++){\n    const j=(iz+dz)*N+(ix+dx);\n    if(j<0||j>=N*N)continue;\n    const k=WK[j]; if(k===1||k===2||k===3){near=true;break;}\n  }\n  if(near)obs.push(i);\n}\nfor(const i of obs){WK[i]=5;WAT[i]=0;}"
       }
     },
     "must_not_present": {

@@ -1,9 +1,9 @@
 {
-  "score": 38.01,
+  "score": 41.21,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 38.01/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 41.21/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
       "score": 5.83,
@@ -662,7 +662,7 @@
       "biome_visible": true
     },
     "delta": {
-      "score": 0.0,
+      "score": 3.2,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -674,23 +674,22 @@
           "earned": 0.91,
           "code": true,
           "visual": true,
-          "seen": "Shallow turquoise and deeper blue ocean water bands surround the island base.",
+          "seen": "Shallow turquoise and deeper blue water around the island.",
           "evidence": "const waterPlane = new THREE.Mesh(waterGeo, waterMat);\nconst oceanPlane = new THREE.Mesh(oceanGeo, oceanMat);"
-        }
-      ],
-      "lost": [
+        },
         {
           "id": "sand_bays",
           "label": "Bright sand beaches / curved bays",
           "kind": "must_present",
           "points": 0.91,
-          "earned": 0.46,
+          "earned": 0.91,
           "code": true,
-          "visual": false,
-          "seen": "",
-          "evidence": "if (mv(x, z) > 0.8 && h < 3) return 'beach';",
-          "why": "not_visible"
-        },
+          "visual": true,
+          "seen": "Bright sand beaches along the shoreline.",
+          "evidence": "if (mv(x, z) > 0.8 && h < 3) return 'beach';"
+        }
+      ],
+      "lost": [
         {
           "id": "palm_silhouettes",
           "label": "Palm voxel trees on warm beaches",
@@ -699,7 +698,7 @@
           "earned": 0.46,
           "code": true,
           "visual": false,
-          "seen": "",
+          "seen": "No palm trees visible.",
           "evidence": "case 'beach':\nif (rnd < 0.2) {\nconst palm = createTree(x, topY, z, '#c4a870', '#5a9a3a', 3 + Math.random() * 3, 2.5 + Math.random() * 2,\n1.5 + Math.random() * 1.5, 'palm');",
           "why": "not_visible"
         },
@@ -711,7 +710,7 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No rocky headlands visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -723,7 +722,7 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No coral structures visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -735,7 +734,7 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No small offshore islands visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -747,7 +746,7 @@
           "earned": 0.46,
           "code": true,
           "visual": false,
-          "seen": "",
+          "seen": "No river mouths visible.",
           "evidence": "const riverPath = getRiverDepth(x, z);\nh = Math.min(h, h - riverPath);",
           "why": "not_visible"
         },
@@ -759,7 +758,7 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No mixing water visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -768,10 +767,10 @@
           "label": "Ocean or river water falling off island cliffs into the void",
           "kind": "must_present",
           "points": 0.91,
-          "earned": 0.0,
+          "earned": 0.46,
           "code": false,
-          "visual": false,
-          "seen": "",
+          "visual": true,
+          "seen": "Waterfalls falling down the side of the island.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -783,7 +782,7 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No coastal fauna visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
         },
@@ -795,21 +794,13 @@
           "earned": 0.0,
           "code": false,
           "visual": false,
-          "seen": "",
+          "seen": "No shore fauna visible.",
           "evidence": "not in delta scope",
           "why": "not_in_scope_evidence"
-        },
-        {
-          "id": "ocean_over_void",
-          "kind": "physics",
-          "why": "ocean_over_void",
-          "points": 10,
-          "evidence": "ocean sheet extends over the void with no blocks beneath"
         }
       ],
-      "shows_biome": false,
-      "biome_visible": true,
-      "ocean_over_void": true
+      "shows_biome": true,
+      "biome_visible": true
     },
     "desert": {
       "score": 2.12,

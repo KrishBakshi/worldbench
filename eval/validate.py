@@ -119,7 +119,7 @@ def _validate(output_dir: Path, model: str, selected: list[dict]) -> dict:
         with timed("capture  views for the visual judges") as info:
             try:
                 manifest = capture(output_dir)
-                framed = sum(1 for b in manifest.get("biomes", {}).values() if b.get("status") == "found")
+                framed = sum(1 for b in manifest.get("biomes", {}).values() if b.get("status") in ("found", "legend"))
                 info["detail"] = f"{len(manifest.get('views', {}))} views, {framed}/10 biomes framed"
                 result["capture"] = {
                     "views": len(manifest.get("views", {})),

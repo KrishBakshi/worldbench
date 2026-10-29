@@ -1,12 +1,12 @@
 {
-  "score": 62.25,
+  "score": 64.25,
   "max_score": 100,
   "points_per_biome": 10,
   "passed": false,
-  "reason": "Scored 62.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+  "reason": "Scored 64.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
   "biomes": {
     "mountains": {
-      "score": 6.5,
+      "score": 6.75,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -153,10 +153,10 @@
           "label": "Meltwater stream descending from the massif",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -166,7 +166,7 @@
           "llm_axis": "flowing",
           "look_evidence": "for(let yy=SL*BH;yy>-175;yy-=rand(7,12)){",
           "motion_evidence": "mats.FAL.opacity=.5*shim*(0.6+.4*day);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "cold_water_tint",
@@ -623,7 +623,7 @@
       "biome_visible": true
     },
     "jungle": {
-      "score": 5.5,
+      "score": 6.25,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -751,10 +751,10 @@
           "label": "Waterfall \u2014 vertical cascade of water voxels",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -764,7 +764,7 @@
           "llm_axis": "falling",
           "look_evidence": "badd(hashC(yy)>0.5?'FAL':'FAL2',hashC(yy*3)<.35?0x9fe8f2:0x53cfe0,",
           "motion_evidence": "mats.FAL.opacity=.5*shim*(0.6+.4*day);\nmats.FAL2.opacity=.28*(1.85-shim)*(0.6+.4*day);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "rising_mist_after_rain",
@@ -811,10 +811,10 @@
           "label": "Canopy birds with subtle hover or perch motion",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": null,
           "motion_seen": "",
           "motion_axis_seen": "",
@@ -824,7 +824,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "new Bird(-46,162,30,34,10),new Bird(-160,42,26,30,9),new Bird(120,150,34,32,11),",
           "motion_evidence": "this.g.position.set(px,this.alt+Math.sin(t*1.7+this.a)*1.6,pz);",
-          "why": "no_time_update"
+          "why": "not_visible"
         }
       ],
       "shows_biome": true,
@@ -1464,7 +1464,7 @@
       "biome_visible": true
     },
     "delta": {
-      "score": 4.75,
+      "score": 5.0,
       "max_score": 10,
       "passed": false,
       "earned": [
@@ -1633,10 +1633,10 @@
           "label": "Cliff waterfall \u2014 water falling off edge into void/ocean",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.5,
+          "earned": 0.75,
           "code_look": true,
           "visual_look": true,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "Waterfalls are static columns without visible motion.",
           "motion_axis_seen": "still",
@@ -1646,7 +1646,7 @@
           "llm_axis": "falling",
           "look_evidence": "badd(hashC(yy)>0.5?'FAL':'FAL2',hashC(yy*3)<.35?0x9fe8f2:0x53cfe0,",
           "motion_evidence": "mats.FAL.opacity=.5*shim*(0.6+.4*day);",
-          "why": "no_time_update"
+          "why": "motion_not_seen"
         },
         {
           "id": "coastal_fauna_motion",
@@ -1878,7 +1878,7 @@
       "biome_visible": true
     },
     "volcano": {
-      "score": 4.0,
+      "score": 4.75,
       "max_score": 10,
       "passed": false,
       "earned": [],
@@ -1908,10 +1908,10 @@
           "label": "Glowing orange/red emissive crater at summit",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1921,7 +1921,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "const craterL=new THREE.PointLight(0xff7a2a,0,320,1.5);scene.add(craterL);",
           "motion_evidence": "craterL.intensity=(1.1+.5*Math.sin(TT*5))*lerp(.4,1,day)+(EMBERS.act||0)*2.2;",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "basalt_over_ash",
@@ -1948,10 +1948,10 @@
           "label": "Orange molten lava channel flowing on volcanic ground",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1961,17 +1961,17 @@
           "llm_axis": "flowing",
           "look_evidence": "if(lav)badd('LAVA',0xffffff,bx,LEV[ii]*BH+.55,bz,CS,.9,CS);",
           "motion_evidence": "mats.LAVA.color.setRGB(lavaPulse,.82*lavaPulse,.6*lavaPulse);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "lava_pool_glow",
           "label": "Glowing lava pool in crater or flank",
           "kind": "entity",
           "points": 1.0,
-          "earned": 0.25,
+          "earned": 0.5,
           "code_look": true,
           "visual_look": false,
-          "code_motion": false,
+          "code_motion": true,
           "visual_motion": false,
           "motion_seen": "not visible",
           "motion_axis_seen": "still",
@@ -1981,7 +1981,7 @@
           "llm_axis": "pulsing",
           "look_evidence": "if(w[8]>.4)return q>34?P.volScorch:jitter(P.volGround);",
           "motion_evidence": "const lavaPulse=.92+.14*Math.sin(TT*3.1)+.35*(EMBERS.act||0);",
-          "why": "no_time_update"
+          "why": "not_visible"
         },
         {
           "id": "lava_orange_tint",

@@ -1866,13 +1866,13 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 66.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
           "mountains": "failed items: packed_ice_or_powder, meltwater_descent, cold_water_tint, lower_rock_exposure, alpine_fauna_grounded",
           "forest": "failed items: understory_fern_clump, cold_foliage_tint, cloud_deck_layer, snowfall_particles, forest_fauna_idle, podzol_or_coarse_dirt",
-          "highlands": "failed items: tussock_grass_clump, cool_grass_tint, highland_mist_hang, light_drizzle_rain, headwater_rill_flow, highland_fauna_idle",
+          "highlands": "failed items: tussock_grass_clump, cool_grass_tint, highland_mist_hang, light_drizzle_rain, headwater_rill_flow",
           "jungle": "failed items: hanging_vines_on_trunks, cocoa_melon_or_bamboo, pond_still_surface, waterfall_cascade, rain_shaft_fall, rising_mist_after_rain, jungle_fauna_ground, canopy_bird_motion",
           "swamp": "failed items: hanging_moss_drape, lily_pad_float, sugar_cane_shore, murky_pool_surface, olive_water_tint, mud_bank_render, mud_floor_recipe, marsh_fauna_idle",
           "grove": "failed items: pink_foliage_tint, feeder_stream_flow, petal_drift_particles, soft_warm_mist, grove_fauna_graze, bee_pollinator_buzz",
@@ -1899,7 +1899,8 @@
             "open_upland_plain",
             "grass_over_stone",
             "exposed_granite_render",
-            "sparse_scrub_cube"
+            "sparse_scrub_cube",
+            "highland_fauna_idle"
           ],
           "jungle": [
             "dense_canopy_tower",
@@ -1968,8 +1969,7 @@
             "cool_grass_tint",
             "highland_mist_hang",
             "light_drizzle_rain",
-            "headwater_rill_flow",
-            "highland_fauna_idle"
+            "headwater_rill_flow"
           ],
           "jungle": [
             "hanging_vines_on_trunks",
@@ -2027,24 +2027,24 @@
         },
         "biome_scores": {
           "mountains": 5.5,
-          "forest": 5.5,
-          "highlands": 7.5,
-          "jungle": 4.75,
+          "forest": 6.25,
+          "highlands": 8.0,
+          "jungle": 5.25,
           "swamp": 4.75,
           "grove": 6.0,
           "grassland": 8.25,
           "delta": 9.0,
           "desert": 8.5,
-          "volcano": 6.25
+          "volcano": 6.5
         },
-        "score": 66.0,
+        "score": 68.0,
         "max_score": 100,
         "scorecard": {
-          "score": 66.0,
+          "score": 68.0,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 66.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 5.5,
@@ -2253,7 +2253,7 @@
               "biome_visible": true
             },
             "forest": {
-              "score": 5.5,
+              "score": 6.25,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2380,10 +2380,10 @@
                   "label": "Grey cloud deck boxes above the conifer band",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.5,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -2393,7 +2393,7 @@
                   "llm_axis": "still",
                   "look_evidence": "buildCloudDeck(-10, 34, -25, 16, 10, '#eef6ff', 'conifers');",
                   "motion_evidence": "const driftX = Math.sin(elapsedTotal * 0.35 + i * 0.01) * 2.4;",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "snowfall_particles",
@@ -2420,10 +2420,10 @@
                   "label": "Forest animals (deer/fox/wolf/rabbit) grounded on terrain",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -2433,7 +2433,7 @@
                   "llm_axis": "grounded",
                   "look_evidence": "spawnAnimals(5, 'deer', B_CONIFER, [-28, 10, -31, -16], '#7a5843', '#dce8f2');",
                   "motion_evidence": "a.x = nx; a.z = nz;",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "podzol_or_coarse_dirt",
@@ -2460,7 +2460,7 @@
               "biome_visible": true
             },
             "highlands": {
-              "score": 7.5,
+              "score": 8.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2539,6 +2539,25 @@
                   "llm_axis": "n/a",
                   "look_evidence": "if (r > 0.87) { addSolid(x, y + 1, z, r > 0.94 ? '#6e7875' : '#4a6b46'); }",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "highland_fauna_idle",
+                  "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": null,
+                  "motion_seen": "",
+                  "motion_axis_seen": "",
+                  "seen": "Small quadruped voxel creatures standing on highland cells.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "grounded",
+                  "look_evidence": "spawnAnimals(4, 'deer', B_HIGHLAND, [-50, -24, -20, 4], '#8c6239', '#d9c5b2');",
+                  "motion_evidence": "let baseY = (cellWaterY[ci] > -100 ? cellWaterY[ci] : cellTopY[ci]) + 0.5;"
                 }
               ],
               "lost": [
@@ -2641,33 +2660,13 @@
                   "look_evidence": "if ((biome === B_HIGHLAND || biome === B_GROVE || biome === B_BEACH || biome === B_OCEAN) && dGroveStream < 1.3) {",
                   "motion_evidence": "",
                   "why": "no_motion"
-                },
-                {
-                  "id": "highland_fauna_idle",
-                  "label": "Sparse highland grazers (sheep/goat/llama/hare) grounded on terrain",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.5,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": false,
-                  "visual_motion": null,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Small quadruped voxel creatures standing on highland cells.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "grounded",
-                  "look_evidence": "spawnAnimals(4, 'deer', B_HIGHLAND, [-50, -24, -20, 4], '#8c6239', '#d9c5b2');",
-                  "motion_evidence": "let baseY = (cellWaterY[ci] > -100 ? cellWaterY[ci] : cellTopY[ci]) + 0.5;",
-                  "why": "no_time_update"
                 }
               ],
               "shows_biome": true,
               "biome_visible": true
             },
             "jungle": {
-              "score": 4.75,
+              "score": 5.25,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2836,10 +2835,10 @@
                   "label": "Edge grazers (deer class) grounded in jungle",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": false,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
@@ -2849,7 +2848,7 @@
                   "llm_axis": "grounded",
                   "look_evidence": "spawnAnimals(4, 'deer', B_JUNGLE, [9, 24, -6, 11], '#8f5b34', '#ebd5b3');",
                   "motion_evidence": "a.x = nx; a.z = nz;",
-                  "why": "no_time_update"
+                  "why": "not_visible"
                 },
                 {
                   "id": "canopy_bird_motion",
@@ -3905,7 +3904,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 6.25,
+              "score": 6.5,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3973,10 +3972,10 @@
                   "label": "Glowing orange/red emissive crater at summit",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.5,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": true,
-                  "code_motion": false,
+                  "code_motion": true,
                   "visual_motion": false,
                   "motion_seen": "no motion detected in crater mouth",
                   "motion_axis_seen": "still",
@@ -3986,7 +3985,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "if (coneDist < 3.4) { h = 35.0; cellIsLava[i] = 1; col = coneDist < 1.8 ? '#ffcc00' : '#ff4d00'; }",
                   "motion_evidence": "volcanoLight.intensity = lerp(3.4, 2.0, dayFactor) + Math.sin(elapsedTotal * 7.0) * 0.35;",
-                  "why": "no_time_update"
+                  "why": "motion_not_seen"
                 },
                 {
                   "id": "lava_flow_stream",
@@ -4026,7 +4025,7 @@
                   "llm_axis": "pulsing",
                   "look_evidence": "const inLavaPoolS = Math.hypot(x - 49, z - 55.5) < 3.2;",
                   "motion_evidence": "volcanoLight.intensity = lerp(3.4, 2.0, dayFactor) + Math.sin(elapsedTotal * 7.0) * 0.35;",
-                  "why": "no_time_update"
+                  "why": "duplicate_evidence"
                 },
                 {
                   "id": "ash_plume_rise",
@@ -4119,26 +4118,35 @@
           "score": "score.json",
           "visual": "visual.json",
           "motion": "motion.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 66.0,
+      "score": 68.0,
       "max_score": 100,
-      "probe_score": 66.0,
-      "probe_reason": "Scored 66.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 68.0,
+      "probe_reason": "Scored 68.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
       "passed": false,
-      "reason": "Scored 9.0/20; failed items: dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+      "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle, moon",
       "details": {
-        "score": 9.0,
+        "score": 14.0,
         "max_score": 20,
         "scorecard": {
-          "score": 9.0,
+          "score": 14.0,
           "max_score": 20,
           "points_total": 20,
           "passed": false,
-          "reason": "Scored 9.0/20; failed items: dusk_dawn_tint, season_cycle, season_world_tint, season_modulates_weather, sky_or_fog_day_cycle, moon",
+          "reason": "Scored 14.0/20; failed items: dusk_dawn_tint, season_world_tint, sky_or_fog_day_cycle, moon",
           "earned": [
             {
               "id": "sun_orbit",
@@ -4186,6 +4194,36 @@
               "seen": ""
             },
             {
+              "id": "season_cycle",
+              "label": "Four-season (or year) loop advancing on a clock",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "const seasonIdx = Math.floor(yearPhase * 4) % 4;",
+              "motion_evidence": "const yearPhase = (elapsedTotal % yearDuration) / yearDuration;",
+              "earned": 2.0,
+              "code": true,
+              "visual": true,
+              "seen": "HUD text updates between SPRING, SUMMER, AUTUMN, and WINTER successfully."
+            },
+            {
+              "id": "season_modulates_weather",
+              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
+              "kind": "entity",
+              "points": 2.0,
+              "llm_looks_ok": true,
+              "llm_moves_ok": true,
+              "llm_axis": "cyclic",
+              "look_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');",
+              "motion_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');",
+              "earned": 2.0,
+              "code": true,
+              "visual": null,
+              "seen": ""
+            },
+            {
               "id": "cloud_drift_wrap",
               "label": "Clouds drift and wrap \u2014 cyclic sky motion",
               "kind": "entity",
@@ -4212,27 +4250,11 @@
               "llm_axis": "cyclic",
               "look_evidence": "const finalSunCol = blendedSeasonTint.clone().lerp(duskColor, duskFactor * 0.65).lerp(nightColor, 1 - dayFactor);",
               "motion_evidence": "sunLight.color.copy(finalSunCol);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
               "seen": ""
-            },
-            {
-              "id": "season_cycle",
-              "label": "Four-season (or year) loop advancing on a clock",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "const seasonIdx = Math.floor(yearPhase * 4) % 4;",
-              "motion_evidence": "const yearPhase = (elapsedTotal % yearDuration) / yearDuration;",
-              "why": "no_time_update",
-              "earned": 1.0,
-              "code": false,
-              "visual": true,
-              "seen": "HUD text updates between SPRING, SUMMER, AUTUMN, and WINTER successfully."
             },
             {
               "id": "season_world_tint",
@@ -4244,26 +4266,10 @@
               "llm_axis": "cyclic",
               "look_evidence": "const blendedSeasonTint = curSeason.tint.clone().lerp(nextSeason.tint, seasonSub);",
               "motion_evidence": "const blendedSeasonTint = curSeason.tint.clone().lerp(nextSeason.tint, seasonSub);",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
+              "why": "not_visible",
+              "earned": 1.0,
+              "code": true,
               "visual": false,
-              "seen": ""
-            },
-            {
-              "id": "season_modulates_weather",
-              "label": "Season scales weather intensity (rain/snow/sand/ash multipliers)",
-              "kind": "entity",
-              "points": 2.0,
-              "llm_looks_ok": true,
-              "llm_moves_ok": true,
-              "llm_axis": "cyclic",
-              "look_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');",
-              "motion_evidence": "const envConifer = burstEnvelope(elapsedTotal, 22, 0.0, curSeason.snowMod, 'conifers');",
-              "why": "no_time_update",
-              "earned": 0.0,
-              "code": false,
-              "visual": null,
               "seen": ""
             },
             {
@@ -4319,13 +4325,13 @@
           "sun_orbit",
           "light_follows_sun",
           "night_dimming",
+          "season_cycle",
+          "season_modulates_weather",
           "cloud_drift_wrap"
         ],
         "item_misses": [
           "dusk_dawn_tint",
-          "season_cycle",
           "season_world_tint",
-          "season_modulates_weather",
           "sky_or_fog_day_cycle",
           "moon"
         ],
@@ -4333,9 +4339,18 @@
           "cycle": "cycle.json",
           "score": "score.json",
           "visual": "visual.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-26T10:25:11Z",
+            "did": [
+              "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
+            ],
+            "backup": ".repair_backups/20261026T102511Z"
+          }
+        ]
       },
-      "score": 9.0,
+      "score": 14.0,
       "max_score": 20
     },
     "WC001_voxel_world::check_voxel_judge": {
@@ -4492,17 +4507,15 @@
       "max_score": 20
     },
     "WC001_voxel_world::check_visual_bughunt": {
-      "passed": false,
-      "reason": "Scored 18.57/20: defects in direction_left (floating_blocks)",
+      "passed": true,
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
-        "score": 18.57,
+        "score": 20.0,
         "max_score": 20,
-        "missing": [
-          "direction_left"
-        ],
+        "missing": [],
         "ocean_void": false,
         "ocean_void_views": [],
-        "views_judged": 14,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -4532,8 +4545,8 @@
             "confirmed": true
           },
           "forest": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -4589,7 +4602,13 @@
                   "dy": 0
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "2_9",
+            "view": "biome_forest",
+            "identified_as": "none",
+            "confirmed": false
           },
           "highlands": {
             "status": "found",
@@ -4873,9 +4892,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:09:33Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_left', 'biome_forest'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070933Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070933Z"
+          }
+        ]
       },
-      "score": 18.57,
+      "score": 20.0,
       "max_score": 20
     }
   },
@@ -4907,8 +4942,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 201.69,
+  "total_score": 210.12,
   "total_max_score": 280.0,
-  "pct": 0.7203214285714286,
+  "pct": 0.7504285714285714,
   "island_gate": false
 }

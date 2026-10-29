@@ -22,7 +22,10 @@ property of the world.
   - `test.yaml` may set `needs_capture: true`: the test reads the shared
     capture (below), so `eval/validate.py` captures before running it.
   - Ladder (max 280, every max fixed so totals compare across models):
-    WC001 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20), WC002
+    WC001 voxel island 40 (LLM source judge 20 + VLM bug-hunt 20; the
+    bug-hunt prompt is versioned, `BUG_HUNT_VERSION` — v2 stopped calling
+    the requested "floating rock fragments beneath" `floating_blocks`, and
+    `eval.gaps` re-judges only the views a new version could change), WC002
     coverage + placement 20, WC003 micro-contents 100, WC004 physics 100,
     WC005 temporal cycles 20. **The old keyword biome-coverage test is gone**:
     it was folded into WC002 and deleted — every scored model got 10/10
@@ -56,7 +59,7 @@ property of the world.
     "look" and "motion": WC005 accepts that when the line is an update
     (`sunLight.intensity=.04+daylight*3.1`) and rejects it as spawn-only
     only when it constructs the object (`new …(`) — and only if the line
-    provably runs every frame (`_runs_every_frame`: inside the
+    provably runs every frame (`eval/frame_loop.py`: inside the
     `requestAnimationFrame`/`setAnimationLoop` callback or a function it
     calls, 4 deep; unknown → the strict rule). Rejecting every same-line
     quote failed 9 real per-frame lines; the frame-loop condition keeps a
@@ -72,7 +75,13 @@ property of the world.
     rejected gets one `eval/evidence_agent.py` hunt; verified evidence is
     patched in and graded like any other quote, and every hunt lands in
     `recheck.json`. Only disagreements are rechecked — on one real world,
-    4 of ~70 items, one agent run each.
+    4 of ~70 items, one agent run each. **An item whose quote was only a
+    comment** (`/* desert sandstorm */`) is hunted too, frames or not: the
+    probe found where the item is described and quoted the label. A model
+    picking "the code under the comment" was tried first and dropped — it
+    credited quench steam as obsidian and snowfall as a foothill shelf,
+    because the probe had cited the wrong comment; the agent hunts the item.
+    `QUOTE_RULES` now also forbids quoting a comment.
 - `checks/` — **generic structural pre-checks only**, shared by every
   test (unlike content checks, which stay in each test's own folder — see
   **Conventions** below for the distinction).
@@ -457,6 +466,17 @@ property of the world.
       kept as an image, filtered a11y tree, 8-step budget. **Its "found"
       is not trusted**: on kimi-k-3 it saved the volcano as "Backwater
       Swamp" at confidence 1.0 — judges re-confirm `shows_biome`.
+      **Legend fallback**: when an episode gives up (or the blind check
+      rejects its frame) after clicking a legend entry, capture reloads,
+      clicks that same entry and saves the world's own fly-to frame
+      (`legend_frame`, no model call; status `legend`). Every give-up in
+      the corpus had clicked the right entry and then orbited or zoomed
+      away from it, and a biome with no frame loses its whole frames half —
+      on one world that was the whole desert. The frame still counts only
+      if the blind check names the biome. `python -m eval.capture.run
+      <out_dir> --refill` applies it to an existing capture (only those
+      biomes, blind-checking only the new frames); `eval.gaps` then flags
+      their old verdicts as stale and re-judges them.
     - `judge.py` — the shared per-biome visual item judge (WC003/WC004).
     - `llm.py` — the judge client, images downscaled to 896px JPEG.
       Generation is separate and stays on OpenRouter. **Every judge
@@ -566,6 +586,20 @@ property of the world.
       elevation code) as a location hint when that run left one: worlds
       number or position biomes (`BIO[b]`, `case 1:`), and mapping an id
       was exactly where the looping hunt got stuck.
+  - `frame_loop.py` — `runs_every_frame(quote, js)`: does a quoted line sit
+    inside the frame loop (the `requestAnimationFrame`/`setAnimationLoop`
+    callback or a function it calls, 4 deep)? WC004 and WC005 count a motion
+    quote as an update if it does **or** it matches their time-name list
+    (`_TIME_UPDATE`); before, the name list alone decided, so
+    `burst(time,…)` passed while the same per-frame call written
+    `envelope(t,…)` or `burstEnvelope(elapsedTotal,…)` failed — up to 12
+    points per world, on how a variable was named. It reads the **raw**
+    script (`strip_html`), not `normalize()`'s whitespace-free text: with
+    whitespace gone a `//` comment glues onto the next line
+    (`//startlatemorningfunctionframe(){`), the loop was never found, and
+    every per-frame line of that world failed. Comments are stripped first
+    (string/regex-literal aware); whitespace between word characters is kept
+    as one space. A one-time setup line still fails.
   - `evidence.py` — `in_source(quote, normalize(js))`: every probe/judge
     quote must really be in the source (whitespace-insensitive, per line,
     tolerant of a garbled line *tail* — ≥85% prefix — not of invented

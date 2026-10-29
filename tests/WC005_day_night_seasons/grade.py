@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import hashlib
 import re
 import sys
@@ -12,6 +11,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from eval.evidence import in_source  # noqa: E402
+from eval.frame_loop import runs_every_frame  # noqa: E402
 from llm import CheckResult, CycleReport, VALID_AXES, load_templates
 
 POINTS_TOTAL = 20
@@ -54,90 +54,6 @@ _CELL_WALK = re.compile(r"for\s*\([^;]*\bz\b")
 # A quote that builds the object rather than changing it.
 _CONSTRUCTS = re.compile(r"\bnew\s+(?:THREE\.)?[A-Z]\w*\s*\(")
 
-# Frame-loop reachability, on whitespace-free source (eval.evidence.normalize).
-_LOOP_ROOT = re.compile(r"(?:requestAnimationFrame|setAnimationLoop)\((\w+)\)")
-_LOOP_OPEN = re.compile(r"(?:requestAnimationFrame|setAnimationLoop)\((?:function\w*)?\([^()]*\)(?:=>)?$")
-_FUNC_HEAD = re.compile(
-    r"(?:function(\w+)\([^()]*\)"            # function name(...)
-    r"|(\w+)=(?:async)?function\w*\([^()]*\)"  # name=function(...)
-    r"|(\w+)=(?:async)?\(?[\w,]*\)?=>"          # name=(...)=>  /  name=x=>
-    r"|(?<![.\w])(\w+)\([^()]*\))$"           # method name(...)
-)
-_NOT_FUNCS = {"if", "for", "while", "switch", "catch", "with", "function", "return"}
-# Without whitespace, a keyword glues onto the word before it (`else if(` ->
-# `elseif(`, `// animals` + `for(` -> `animalsfor(`): those are blocks, not functions.
-_GLUED_KEYWORD = re.compile(r"(?:if|for|while|switch|catch|else)$")
-_CALLED = re.compile(r"(\w+)\(")
-LOOP_DEPTH = 4
-
-
-def _open_brace_before(src: str, pos: int) -> int:
-    """Index of the `{` that encloses src[pos], or -1."""
-    depth = 0
-    for i in range(pos - 1, -1, -1):
-        c = src[i]
-        if c == "}":
-            depth += 1
-        elif c == "{":
-            if depth == 0:
-                return i
-            depth -= 1
-    return -1
-
-
-def _body(src: str, open_at: int) -> str:
-    depth = 0
-    for i in range(open_at, len(src)):
-        if src[i] == "{":
-            depth += 1
-        elif src[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return src[open_at + 1 : i]
-    return src[open_at + 1 :]
-
-
-@functools.lru_cache(maxsize=8)
-def _per_frame_functions(src: str) -> frozenset[str]:
-    """Names of the frame-loop callbacks and everything they call, LOOP_DEPTH deep."""
-    heads = {}
-    for m in re.finditer(r"\{", src):
-        head = _FUNC_HEAD.search(src[max(0, m.start() - 160) : m.start()])
-        name = head and next((g for g in head.groups() if g), None)
-        if name and name not in _NOT_FUNCS and not _GLUED_KEYWORD.search(name) and name not in heads:
-            heads[name] = m.start()
-    frontier = set(_LOOP_ROOT.findall(src)) & set(heads)
-    seen = set(frontier)
-    for _ in range(LOOP_DEPTH):
-        called = set()
-        for name in frontier:
-            called |= {c for c in _CALLED.findall(_body(src, heads[name])) if c in heads and c not in seen}
-        seen |= called
-        frontier = called
-    return frozenset(seen)
-
-
-def _runs_every_frame(quote: str, src: str) -> bool:
-    """True only if the quote's line sits inside the frame loop: the function
-    registered with requestAnimationFrame / setAnimationLoop, an anonymous
-    callback passed to it, or a function those call (LOOP_DEPTH deep).
-    Anything it can't establish is False, so the fallback is the strict rule."""
-    code = re.sub(r"\s+", "", _code_only(quote))
-    at = src.find(code) if code else -1
-    if at < 0:
-        return False
-    per_frame = _per_frame_functions(src)
-    pos = at
-    while (open_at := _open_brace_before(src, pos)) >= 0:
-        before = src[max(0, open_at - 160) : open_at]
-        if _LOOP_OPEN.search(before):
-            return True
-        head = _FUNC_HEAD.search(before)
-        name = head and next((g for g in head.groups() if g), None)
-        if name and name not in _NOT_FUNCS and not _GLUED_KEYWORD.search(name) and name in per_frame:
-            return True
-        pos = open_at
-    return False
 
 _TIME_UPDATE = re.compile(
     r"\b(?:dt|delta|clock\.getDelta|\btime\b|\bnow\b|performance\.now"
@@ -247,10 +163,13 @@ def grade_report(
     report: CycleReport | dict,
     visual: dict | None = None,
     source_normalized: str | None = None,
+    js: str | None = None,
 ) -> CheckResult:
-    """visual: visual.judge_cycle() output (None = code-only regrade of an old run)."""
+    """visual: visual.judge_cycle() output (None = code-only regrade of an old run).
+    js: the page's raw script text (probe.strip_html), for the frame-loop check;
+    None leaves only the strict rules."""
     templates = load_templates()
-    card = _grade_one(templates, report, visual, source_normalized)
+    card = _grade_one(templates, report, visual, source_normalized, js)
     score = card["score"]
     max_score = card["max_score"]
     passed = card["passed"]
@@ -389,7 +308,9 @@ def _empty_motion(text: str) -> bool:
     return not (text or "").strip() or _not_in_scope(text)
 
 
-def _grade_entity(entity: dict, judgement, used_hashes: set[str], source_normalized: str | None = None) -> tuple[bool, str, dict]:
+def _grade_entity(
+    entity: dict, judgement, used_hashes: set[str], source_normalized: str | None = None, js: str | None = None
+) -> tuple[bool, str, dict]:
     meta = {
         "llm_looks_ok": None if judgement is None else judgement.looks_ok,
         "llm_moves_ok": None if judgement is None else judgement.moves_ok,
@@ -437,14 +358,16 @@ def _grade_entity(entity: dict, judgement, used_hashes: set[str], source_normali
         # construct the object; otherwise the old strict rule stands.
         if motion == look and (
             _CONSTRUCTS.search(_code_only(motion))
-            or source_normalized is None
-            or not _runs_every_frame(motion, source_normalized)
+            or not runs_every_frame(motion, js)
         ):
             return False, "spawn_only_no_update", meta
         motion_reason = _reject_reason(motion, allow_config=False)
         if motion_reason:
             return False, motion_reason, meta
-        if not _TIME_UPDATE.search(_code_only(motion)):
+        # An update is code that runs every frame (eval/frame_loop.py), however
+        # its clock is named; the name list only adds lines the loop parse
+        # can't place.
+        if not _TIME_UPDATE.search(_code_only(motion)) and not runs_every_frame(motion, js):
             return False, "no_time_update", meta
         if not _axes_compatible(expected_axis, judgement.axis):
             return False, "wrong_axis", meta
@@ -507,7 +430,9 @@ def _item_row(item: dict, kind: str, hit: bool, points: float, why: str, meta: d
     return row
 
 
-def _grade_one(templates: dict, report, visual: dict | None = None, source_normalized: str | None = None) -> dict:
+def _grade_one(
+    templates: dict, report, visual: dict | None = None, source_normalized: str | None = None, js: str | None = None
+) -> dict:
     if not isinstance(report, CycleReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
         return {
@@ -531,7 +456,7 @@ def _grade_one(templates: dict, report, visual: dict | None = None, source_norma
 
     for entity in entities:
         judgement = report.entities.get(entity["id"])
-        code_ok, why, meta = _grade_entity(entity, judgement, used_hashes, source_normalized)
+        code_ok, why, meta = _grade_entity(entity, judgement, used_hashes, source_normalized, js)
         visual_ok = seen_items.get(entity["id"]) if use_visual else None
         points = round(unit * float(entity.get("weight", 1)), 2)
         if visual_ok is None:

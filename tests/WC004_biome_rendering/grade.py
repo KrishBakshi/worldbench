@@ -14,6 +14,7 @@ if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 from eval.capture.judge import VisualReport  # noqa: E402
 from eval.evidence import in_source  # noqa: E402
+from eval.frame_loop import runs_every_frame  # noqa: E402
 
 POINTS_PER_BIOME = 10
 
@@ -121,10 +122,13 @@ def grade_reports(
     visual: dict[str, VisualReport | dict] | None = None,
     source_normalized: str | None = None,
     motion: dict | None = None,
+    js: str | None = None,
 ) -> CheckResult:
     """visual: per-biome VisualReport (None = code-only regrade of an old run).
     motion: per-biome visual.MotionReport (or an unavailable/error dict); None = code-only motion.
-    source_normalized: eval.evidence.normalize(js); None skips the quote check."""
+    source_normalized: eval.evidence.normalize(js); None skips the quote check.
+    js: the page's raw script text (probe.strip_html), for the frame-loop check;
+    None leaves only the time-name list."""
     found, missing = {}, {}
     item_hits, item_misses = {}, {}
     biome_scores = {}
@@ -138,7 +142,7 @@ def grade_reports(
         card = _grade_one(
             biome_id, templates, reports.get(biome_id), (visual or {}).get(biome_id),
             source_normalized, visual is not None,
-            (motion or {}).get(biome_id), motion is not None,
+            (motion or {}).get(biome_id), motion is not None, js,
         )
         biome_scores[biome_id] = card["score"]
         total += card["score"]
@@ -294,6 +298,7 @@ def _grade_entity(
     judgement,
     used_hashes: set[str],
     source_normalized: str | None = None,
+    js: str | None = None,
 ) -> dict:
     """Code verdict for one entity: {look_ok, look_why, motion_ok, motion_why, meta}.
 
@@ -342,7 +347,10 @@ def _grade_entity(
             return reason
         if source_normalized is not None and not in_source(motion, source_normalized):
             return "evidence_not_in_source"
-        if not _TIME_UPDATE.search(_code_only(motion)):
+        # An update is code that runs every frame (eval/frame_loop.py), however
+        # its clock is named; the name list only adds lines the loop parse
+        # can't place.
+        if not _TIME_UPDATE.search(_code_only(motion)) and not runs_every_frame(motion, js):
             return "no_time_update"
         if not _axes_compatible(expected_axis, judgement.axis):
             return "wrong_axis"
@@ -407,6 +415,7 @@ def _grade_one(
     use_visual: bool = False,
     motion=None,
     use_motion: bool = False,
+    js: str | None = None,
 ) -> dict:
     if not isinstance(report, BiomeRenderReport):
         err = report.get("error", "no report") if isinstance(report, dict) else "no report"
@@ -440,7 +449,7 @@ def _grade_one(
     score = 0.0
     any_code = False
     for entity in entities:
-        v = _grade_entity(entity, report.entities.get(entity["id"]), used_hashes, source_normalized)
+        v = _grade_entity(entity, report.entities.get(entity["id"]), used_hashes, source_normalized, js)
         sighting = seen.get(entity["id"])
         visual_ok = bool(sighting and sighting.visible)
         look_credit = look_code * v["look_ok"] + look_visual * visual_ok

@@ -55,6 +55,13 @@ MAX_SCORE = 20
 DEFECTS = ("floating_blocks", "hollow_mass", "non_voxel", "water_void")
 PER_VIEW_DEFECTS = ("floating_blocks", "hollow_mass", "non_voxel")
 OCEAN_VOID_VIEWS = 2
+# 2: loose fragments under the island are not floating_blocks. The world
+# prompt asks for "floating rock fragments beneath", and v1 flagged exactly
+# those: 7 of 14 views on one world, 5 of 13 on another, with evidence like
+# "voxel blocks are floating independently beneath the main underside".
+# v2 only narrows floating_blocks, so a view clean under v1 stays clean;
+# stale_views() re-judges only v1 views that v2 could change.
+BUG_HUNT_VERSION = 2
 
 BUG_HUNT_PROMPT = """This is one frame of a 3D world meant to be a Minecraft-like voxel floating
 island in a black void. View: "{view}".
@@ -64,7 +71,11 @@ lava, buildings, animals) and how each looks built. Then hunt four defects, one 
 at a time. Assume defects are likely.
 
 1. floating_blocks: a block with visible empty space between it and the blocks that
-   should support or connect it. (The island itself floats by design.)
+   should support or connect it. (The island itself floats by design, and so do the
+   loose rock fragments drifting below or around its underside: the world was asked
+   for floating rock fragments beneath. Those are never floating_blocks. Judge blocks
+   on and in the land: a tree canopy cut off from its trunk, a block hanging over a
+   gap in the terrain, a structure piece with nothing under it.)
 2. hollow_mass: a structure that should be a solid volume (mountain, cliff, trunk,
    terrain mass, island underside) with holes showing the void through it.
 3. non_voxel: terrain or landforms that are smooth, curved, or a displaced surface
@@ -125,6 +136,7 @@ def judge_view(path: Path, view_id: str, model: str | None = None) -> dict:
         "votes": [v.model_dump() for v in votes],
         "tally": {**tally, "of": len(votes)},
         "defects": confirmed,
+        "prompt_version": BUG_HUNT_VERSION,
     }
 
 
@@ -136,6 +148,13 @@ def check_visual_bughunt(html_path: str, out_dir: Path | None = None, model: str
     dest = Path(out_dir) if out_dir is not None else Path(html_path).parent
     dest.mkdir(parents=True, exist_ok=True)
 
+    per_view = _judge_views(views, model)
+    return _score(per_view, manifest, dest)
+
+
+def _judge_views(views: dict[str, Path], model: str | None) -> dict[str, dict]:
+    from harness.status import log
+
     per_view: dict[str, dict] = {}
     for view_id, path in views.items():
         log(f"      judge     (vlm) {view_id}")
@@ -146,7 +165,72 @@ def check_visual_bughunt(html_path: str, out_dir: Path | None = None, model: str
         except Exception as exc:  # a failed call is not a defect; leave it out of the ratio
             per_view[view_id] = {"error": str(exc)[:300], "defects": None}
         per_view[view_id]["screenshot"] = str(path)
+    return per_view
 
+
+def stale_views(html_path: str | Path) -> list[str]:
+    """Views whose saved verdict the current prompt and frames could change:
+    a v1 verdict with floating_blocks, a view judged before its screenshot
+    last changed (the capture's legend fallback), or a view never judged."""
+    from eval.capture.run import load_manifest
+
+    out_dir = Path(html_path).parent
+    report_path = out_dir / "WC001_voxel_world" / "visual_bughunt_report.json"
+    manifest = load_manifest(out_dir)
+    if not report_path.is_file() or not manifest:
+        return []
+    report = json.loads(report_path.read_text())
+    judged_at = report_path.stat().st_mtime
+    stale = []
+    for view_id, path in view_paths(html_path, manifest, "overview", "direction", "biome").items():
+        if not path.is_file():  # a frame lost from disk keeps its saved verdict
+            continue
+        rec = report.get(view_id)
+        if rec is None or rec.get("error"):
+            stale.append(view_id)
+        elif rec.get("prompt_version", 1) < BUG_HUNT_VERSION and "floating_blocks" in (rec.get("defects") or []):
+            stale.append(view_id)
+        elif path.stat().st_mtime > judged_at:
+            stale.append(view_id)
+    return stale
+
+
+def rejudge_views(html_path: str | Path, view_ids: list[str], model: str | None = None) -> CheckResult:
+    """Re-judge only `view_ids`, keep every other saved verdict, drop views the
+    capture no longer has, and rescore."""
+    from eval.capture.run import load_manifest
+
+    out_dir = Path(html_path).parent
+    dest = out_dir / "WC001_voxel_world"
+    manifest = load_manifest(out_dir)
+    views = view_paths(html_path, manifest, "overview", "direction", "biome")
+    report_path = dest / "visual_bughunt_report.json"
+    report = json.loads(report_path.read_text())
+    judged_at = report_path.stat().st_mtime
+    per_view = {k: v for k, v in report.items() if k in views}
+    fresh = _judge_views({k: views[k] for k in view_ids if k in views and views[k].is_file()}, model)
+    for k, new in fresh.items():
+        per_view[k] = merge_verdict(report.get(k), new, frame_changed=views[k].stat().st_mtime > judged_at)
+    return _score(per_view, manifest, dest)
+
+
+def merge_verdict(old: dict | None, new: dict, frame_changed: bool) -> dict:
+    """A re-judged view's verdict. A new frame gets the new verdict whole. An
+    unchanged frame re-judged only for a prompt change keeps the old verdict
+    on every defect that change doesn't touch: one more roll of the judge on
+    water_void or hollow_mass would move only the worlds that happened to be
+    re-judged (a re-roll flipped one world's ocean_void and lifted its WC004
+    island gate, +6, with nothing in v2 aimed at it)."""
+    if frame_changed or not old or old.get("error") or new.get("error") or new.get("defects") is None:
+        return new
+    touched = {"floating_blocks"}  # what v2 changed (BUG_HUNT_VERSION)
+    kept = [d for d in (old.get("defects") or []) if d not in touched]
+    redone = [d for d in new["defects"] if d in touched]
+    return {**new, "defects": sorted(kept + redone), "kept_from": old.get("prompt_version", 1),
+            "kept_defects": kept}
+
+
+def _score(per_view: dict[str, dict], manifest: dict, dest: Path) -> CheckResult:
     raise_if_mostly_failed(per_view, "visual bug-hunt")
     judged = {k: v for k, v in per_view.items() if v.get("defects") is not None}
     view_defects = {k: [d for d in v["defects"] if d in PER_VIEW_DEFECTS] for k, v in judged.items()}

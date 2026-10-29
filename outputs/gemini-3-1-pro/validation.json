@@ -174,14 +174,14 @@
     },
     "WC001_voxel_world::check_visual_bughunt": {
       "passed": true,
-      "reason": "Scored 20.0/20: no visual defects across 14 views",
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
         "score": 20.0,
         "max_score": 20,
         "missing": [],
         "ocean_void": false,
         "ocean_void_views": [],
-        "views_judged": 14,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -335,8 +335,8 @@
             "confirmed": true
           },
           "grove": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -392,7 +392,13 @@
                   "steps": -3
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "6_10",
+            "view": "biome_grove",
+            "identified_as": "grove",
+            "confirmed": true
           },
           "grassland": {
             "status": "found",
@@ -559,14 +565,30 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:08:30Z",
+            "did": [
+              "re-judged bug-hunt views ['biome_grove'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070839Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070839Z"
+          }
+        ]
       },
       "score": 20.0,
       "max_score": 20
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
       "passed": false,
-      "reason": "Scored 44.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 48.4/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -575,7 +597,7 @@
           "highlands": "failed items: exposed_stone, sparse_scrub_cubes, headwater_rills, mist_particles, light_rain, downslope_into_grove, highland_fauna_spawn, hardy_tussock_plants",
           "jungle": "failed items: vines_or_undergrowth, rocky_clearings, inland_ponds, waterfall, rain_shafts, rising_mist_particles, edge_fauna_spawn, canopy_fauna_spawn",
           "swamp": "failed items: murky_standing_water, mangrove_or_prop_roots, lily_pads_or_surface_cover, low_mist_particles, stagnant_channels, marsh_fauna_spawn, mud_banks, packed_jungle_as_swamp",
-          "grove": "failed items: pink_canopy_cubes, pink_ground_or_petals, moist_basin_below_highland, feeder_streams, grove_fauna_spawn, pollinators, pine_or_snow, cactus_or_desert, jungle_or_mangrove, lava_or_palms",
+          "grove": "failed items: pink_canopy_cubes, pink_ground_or_petals, moist_basin_below_highland, feeder_streams, grove_fauna_spawn, pollinators",
           "grassland": "failed items: yellow_white_flowers, tall_grass, grassland_fauna_spawn",
           "delta": "failed items: palm_silhouettes, rocky_headlands, coral_or_reef_life, small_islands, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn",
           "desert": "failed items: fading_washes, arid_fauna_spawn, dead_bush",
@@ -668,11 +690,7 @@
             "moist_basin_below_highland",
             "feeder_streams",
             "grove_fauna_spawn",
-            "pollinators",
-            "pine_or_snow",
-            "cactus_or_desert",
-            "jungle_or_mangrove",
-            "lava_or_palms"
+            "pollinators"
           ],
           "grassland": [
             "yellow_white_flowers",
@@ -705,20 +723,20 @@
           "highlands": 2.23,
           "jungle": 1.67,
           "swamp": 0.7,
-          "grove": 0.0,
+          "grove": 4.15,
           "grassland": 6.67,
           "delta": 3.19,
           "desert": 6.43,
           "volcano": 8.34
         },
-        "score": 44.25,
+        "score": 48.4,
         "max_score": 100,
         "scorecard": {
-          "score": 44.25,
+          "score": 48.4,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 44.25/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 48.4/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 7.51,
@@ -1220,7 +1238,7 @@
               "biome_visible": true
             },
             "grove": {
-              "score": 0.0,
+              "score": 4.15,
               "max_score": 10,
               "passed": false,
               "earned": [],
@@ -1233,7 +1251,7 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "Not visible in legend or island wedges.",
+                  "seen": "Not visible",
                   "evidence": "addBlock(x, y+3, z, C.grove, 3, 2, 3);",
                   "why": "not_visible"
                 },
@@ -1245,7 +1263,7 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "No pink ground or petals present.",
+                  "seen": "Not visible",
                   "evidence": "case 'grove': topColor = C.grove; break;",
                   "why": "not_visible"
                 },
@@ -1257,7 +1275,7 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "Basin not clearly observed.",
+                  "seen": "Not visible",
                   "evidence": "drawRiver(-35, -20, -35, 5, 1);",
                   "why": "not_visible"
                 },
@@ -1269,7 +1287,7 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "No streams flowing into grove.",
+                  "seen": "Not visible",
                   "evidence": "drawRiver(-35, -20, -35, 5, 1);",
                   "why": "not_visible"
                 },
@@ -1281,7 +1299,7 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "No fauna visible.",
+                  "seen": "Not visible",
                   "evidence": "if (biome === 'grasslands' || biome === 'grove' || biome === 'conifer') addAnimal(wx, h, wz, 'deer');",
                   "why": "not_visible"
                 },
@@ -1293,56 +1311,12 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "No pollinators visible.",
+                  "seen": "Not visible",
                   "evidence": "not in grove scope",
                   "why": "not_in_scope_evidence"
-                },
-                {
-                  "id": "pine_or_snow",
-                  "label": "Snowy pines or blizzard as grove flora",
-                  "kind": "must_not_present",
-                  "points": 1.67,
-                  "why": "forbidden_present",
-                  "code": false,
-                  "visual": true,
-                  "seen": "Snowy conifer and snow mountains present.",
-                  "evidence": "not in grove scope"
-                },
-                {
-                  "id": "cactus_or_desert",
-                  "label": "Cactus, dunes, or sandstorm as the grove",
-                  "kind": "must_not_present",
-                  "points": 1.67,
-                  "why": "forbidden_present",
-                  "code": false,
-                  "visual": true,
-                  "seen": "Arid desert wedge visible.",
-                  "evidence": "not in grove scope"
-                },
-                {
-                  "id": "jungle_or_mangrove",
-                  "label": "Dense jungle or mangroves as the flowering grove",
-                  "kind": "must_not_present",
-                  "points": 1.67,
-                  "why": "forbidden_present",
-                  "code": false,
-                  "visual": true,
-                  "seen": "Dense jungle wedge visible.",
-                  "evidence": "not in grove scope"
-                },
-                {
-                  "id": "lava_or_palms",
-                  "label": "Lava or beach palms as the grove",
-                  "kind": "must_not_present",
-                  "points": 1.67,
-                  "why": "forbidden_present",
-                  "code": false,
-                  "visual": true,
-                  "seen": "Volcanic wasteland with lava visible.",
-                  "evidence": "not in grove scope"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             },
             "grassland": {
@@ -1749,6 +1723,13 @@
               "re-probed ['mountains'] (role probe=gemini-3.1-flash-lite)"
             ],
             "backup": ".repair_backups/20261002T070128Z"
+          },
+          {
+            "at": "2026-10-27T07:08:30Z",
+            "did": [
+              "re-judged visuals ['grove'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070830Z"
           }
         ],
         "rechecks": [
@@ -1759,7 +1740,7 @@
           }
         ]
       },
-      "score": 44.25,
+      "score": 48.4,
       "max_score": 100
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
@@ -1983,7 +1964,7 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 44.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 46.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -2146,20 +2127,20 @@
           "highlands": 4.25,
           "jungle": 3.0,
           "swamp": 1.75,
-          "grove": 4.5,
+          "grove": 5.75,
           "grassland": 8.0,
           "delta": 2.0,
           "desert": 6.25,
           "volcano": 5.0
         },
-        "score": 44.75,
+        "score": 46.0,
         "max_score": 100,
         "scorecard": {
-          "score": 44.75,
+          "score": 46.0,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 44.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 46.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 4.25,
@@ -3202,7 +3183,7 @@
               "biome_visible": true
             },
             "grove": {
-              "score": 4.5,
+              "score": 5.75,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3218,7 +3199,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Visible on trees in the pink quadrant",
+                  "seen": "Pink blossom tree canopies visible across grove.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3237,7 +3218,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Trunks support the canopy",
+                  "seen": "Brown tree trunks supporting pink canopies.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3256,7 +3237,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Pink patches on ground",
+                  "seen": "Pink petal top layer on grove ground.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3275,7 +3256,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Pink trees present",
+                  "seen": "Canopy foliage tinted pink.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3289,14 +3270,14 @@
                   "label": "Moist basin depression below highland slope",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.0,
+                  "earned": 0.5,
                   "code_look": false,
-                  "visual_look": false,
+                  "visual_look": true,
                   "code_motion": null,
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not visible",
+                  "seen": "Lower basin elevation geometry present.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3309,14 +3290,14 @@
                   "label": "Small feeder stream/brook through the grove",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.25,
+                  "earned": 0.5,
                   "code_look": false,
                   "visual_look": true,
                   "code_motion": false,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Stream runs through",
+                  "visual_motion": true,
+                  "motion_seen": "Cyan water pixels shifting in channel.",
+                  "motion_axis_seen": "flowing",
+                  "seen": "Cyan water channel winding through grove.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3329,14 +3310,14 @@
                   "label": "Pink petal particles drifting/falling from canopy",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.0,
+                  "earned": 0.5,
                   "code_look": false,
-                  "visual_look": false,
+                  "visual_look": true,
                   "code_motion": false,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Not visible",
+                  "visual_motion": true,
+                  "motion_seen": "Drifting white particles marked in red.",
+                  "motion_axis_seen": "falling",
+                  "seen": "White/pink square particles drifting downward.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3354,9 +3335,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Not visible",
+                  "motion_seen": "not visible",
+                  "motion_axis_seen": "still",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3376,7 +3357,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not visible",
+                  "seen": "not visible",
                   "llm_looks_ok": true,
                   "llm_moves_ok": false,
                   "llm_axis": "grounded",
@@ -3396,7 +3377,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Not visible",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3405,7 +3386,7 @@
                   "why": "not_in_scope_evidence"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             },
             "grassland": {
@@ -4249,13 +4230,20 @@
               "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
             ],
             "backup": ".repair_backups/20261026T102511Z"
+          },
+          {
+            "at": "2026-10-27T07:08:30Z",
+            "did": [
+              "re-judged visuals/motion ['grove'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070834Z"
           }
         ]
       },
-      "score": 44.75,
+      "score": 46.0,
       "max_score": 100,
-      "probe_score": 44.75,
-      "probe_reason": "Scored 44.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 46.0,
+      "probe_reason": "Scored 46.0/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -4968,8 +4956,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 150.0,
+  "total_score": 155.4,
   "total_max_score": 280.0,
-  "pct": 0.5357142857142857,
+  "pct": 0.555,
   "island_gate": false
 }

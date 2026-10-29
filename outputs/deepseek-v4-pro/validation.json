@@ -176,16 +176,17 @@
     },
     "WC001_voxel_world::check_visual_bughunt": {
       "passed": false,
-      "reason": "Scored 18.46/20: defects in biome_mountains (non_voxel)",
+      "reason": "Scored 17.33/20: defects in biome_forest (floating_blocks), biome_mountains (non_voxel)",
       "details": {
-        "score": 18.46,
+        "score": 17.33,
         "max_score": 20,
         "missing": [
+          "biome_forest",
           "biome_mountains"
         ],
         "ocean_void": false,
         "ocean_void_views": [],
-        "views_judged": 13,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -249,8 +250,8 @@
             "confirmed": true
           },
           "forest": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -305,7 +306,13 @@
                   "dy": 0
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "2_5",
+            "view": "biome_forest",
+            "identified_as": "none",
+            "confirmed": false
           },
           "highlands": {
             "status": "found",
@@ -552,7 +559,7 @@
             "confirmed": true
           },
           "delta": {
-            "status": "found",
+            "status": "legend",
             "reason": "",
             "steps": 7,
             "actions": [
@@ -608,12 +615,16 @@
             "confidence": 0.7,
             "note": "Shows green blocks and blue ocean in background.",
             "view": "biome_delta",
-            "identified_as": "forest",
-            "confirmed": false
+            "rejected_as": "forest",
+            "agent_status": "not_found",
+            "agent_reason": "blind check rejected the agent's frame",
+            "legend_click": "8_21",
+            "identified_as": "delta",
+            "confirmed": true
           },
           "desert": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -667,7 +678,13 @@
                   "steps": 2
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "9_23",
+            "view": "biome_desert",
+            "identified_as": "mountains",
+            "confirmed": false
           },
           "volcano": {
             "status": "found",
@@ -704,14 +721,30 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:06:12Z",
+            "did": [
+              "re-judged bug-hunt views ['biome_forest', 'biome_delta', 'biome_desert'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070814Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070814Z"
+          }
+        ]
       },
-      "score": 18.46,
+      "score": 17.33,
       "max_score": 20
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
       "passed": false,
-      "reason": "Scored 38.01/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 41.21/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -722,7 +755,7 @@
           "swamp": "failed items: murky_standing_water, mangrove_or_prop_roots, lily_pads_or_surface_cover, low_mist_particles, stagnant_channels, marsh_fauna_spawn, mud_banks",
           "grove": "failed items: pink_ground_or_petals, moist_basin_below_highland, feeder_streams, grove_fauna_spawn, pollinators",
           "grassland": "failed items: tributary_geometry, yellow_white_flowers, tall_grass, grassland_fauna_spawn",
-          "delta": "failed items: sand_bays, palm_silhouettes, rocky_headlands, coral_or_reef_life, small_islands, braided_river_mouths, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn, ocean_over_void",
+          "delta": "failed items: palm_silhouettes, rocky_headlands, coral_or_reef_life, small_islands, braided_river_mouths, fresh_salt_mix, cliff_waterfalls_to_void, coastal_fauna_spawn, shore_fauna_spawn",
           "desert": "failed items: flat_arid_basin, sandstone_peaks, cacti_on_flats, fading_washes, sandstorm_particles, arid_fauna_spawn, dead_bush, lush_or_snow",
           "volcano": "failed items: ash_or_eruption_particles, obsidian_quench"
         },
@@ -745,7 +778,8 @@
             "scattered_oak_copses"
           ],
           "delta": [
-            "depth_banded_water"
+            "depth_banded_water",
+            "sand_bays"
           ],
           "volcano": [
             "tall_cone",
@@ -812,7 +846,6 @@
             "grassland_fauna_spawn"
           ],
           "delta": [
-            "sand_bays",
             "palm_silhouettes",
             "rocky_headlands",
             "coral_or_reef_life",
@@ -821,8 +854,7 @@
             "fresh_salt_mix",
             "cliff_waterfalls_to_void",
             "coastal_fauna_spawn",
-            "shore_fauna_spawn",
-            "ocean_over_void"
+            "shore_fauna_spawn"
           ],
           "desert": [
             "flat_arid_basin",
@@ -847,18 +879,18 @@
           "swamp": 1.42,
           "grove": 4.99,
           "grassland": 5.0,
-          "delta": 0.0,
+          "delta": 3.2,
           "desert": 2.12,
           "volcano": 7.51
         },
-        "score": 38.01,
+        "score": 41.21,
         "max_score": 100,
         "scorecard": {
-          "score": 38.01,
+          "score": 41.21,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 38.01/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 41.21/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 5.83,
@@ -1517,7 +1549,7 @@
               "biome_visible": true
             },
             "delta": {
-              "score": 0.0,
+              "score": 3.2,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -1529,23 +1561,22 @@
                   "earned": 0.91,
                   "code": true,
                   "visual": true,
-                  "seen": "Shallow turquoise and deeper blue ocean water bands surround the island base.",
+                  "seen": "Shallow turquoise and deeper blue water around the island.",
                   "evidence": "const waterPlane = new THREE.Mesh(waterGeo, waterMat);\nconst oceanPlane = new THREE.Mesh(oceanGeo, oceanMat);"
-                }
-              ],
-              "lost": [
+                },
                 {
                   "id": "sand_bays",
                   "label": "Bright sand beaches / curved bays",
                   "kind": "must_present",
                   "points": 0.91,
-                  "earned": 0.46,
+                  "earned": 0.91,
                   "code": true,
-                  "visual": false,
-                  "seen": "",
-                  "evidence": "if (mv(x, z) > 0.8 && h < 3) return 'beach';",
-                  "why": "not_visible"
-                },
+                  "visual": true,
+                  "seen": "Bright sand beaches along the shoreline.",
+                  "evidence": "if (mv(x, z) > 0.8 && h < 3) return 'beach';"
+                }
+              ],
+              "lost": [
                 {
                   "id": "palm_silhouettes",
                   "label": "Palm voxel trees on warm beaches",
@@ -1554,7 +1585,7 @@
                   "earned": 0.46,
                   "code": true,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No palm trees visible.",
                   "evidence": "case 'beach':\nif (rnd < 0.2) {\nconst palm = createTree(x, topY, z, '#c4a870', '#5a9a3a', 3 + Math.random() * 3, 2.5 + Math.random() * 2,\n1.5 + Math.random() * 1.5, 'palm');",
                   "why": "not_visible"
                 },
@@ -1566,7 +1597,7 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No rocky headlands visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1578,7 +1609,7 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No coral structures visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1590,7 +1621,7 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No small offshore islands visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1602,7 +1633,7 @@
                   "earned": 0.46,
                   "code": true,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No river mouths visible.",
                   "evidence": "const riverPath = getRiverDepth(x, z);\nh = Math.min(h, h - riverPath);",
                   "why": "not_visible"
                 },
@@ -1614,7 +1645,7 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No mixing water visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1623,10 +1654,10 @@
                   "label": "Ocean or river water falling off island cliffs into the void",
                   "kind": "must_present",
                   "points": 0.91,
-                  "earned": 0.0,
+                  "earned": 0.46,
                   "code": false,
-                  "visual": false,
-                  "seen": "",
+                  "visual": true,
+                  "seen": "Waterfalls falling down the side of the island.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1638,7 +1669,7 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No coastal fauna visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
                 },
@@ -1650,21 +1681,13 @@
                   "earned": 0.0,
                   "code": false,
                   "visual": false,
-                  "seen": "",
+                  "seen": "No shore fauna visible.",
                   "evidence": "not in delta scope",
                   "why": "not_in_scope_evidence"
-                },
-                {
-                  "id": "ocean_over_void",
-                  "kind": "physics",
-                  "why": "ocean_over_void",
-                  "points": 10,
-                  "evidence": "ocean sheet extends over the void with no blocks beneath"
                 }
               ],
-              "shows_biome": false,
-              "biome_visible": true,
-              "ocean_over_void": true
+              "shows_biome": true,
+              "biome_visible": true
             },
             "desert": {
               "score": 2.12,
@@ -1855,9 +1878,18 @@
         "artifacts": {
           "micro_contents": "micro_contents.json",
           "score": "score.json",
-          "visual": "visual.json",
-          "recheck": "recheck.json"
+          "visual": "visual.json"
         },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:06:12Z",
+            "did": [
+              "re-judged visuals ['delta'] (role vlm=gemini-3.5-flash-lite)",
+              "1 recheck hunt(s), 0 verified (role judge=gemini-3.1-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070612Z"
+          }
+        ],
         "rechecks": [
           {
             "biome": "swamp",
@@ -1866,7 +1898,7 @@
           }
         ]
       },
-      "score": 38.01,
+      "score": 41.21,
       "max_score": 100
     },
     "WC004_biome_rendering::check_biome_rendering": {
@@ -3519,7 +3551,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Light blue shallow water surrounds the floating island.",
+                  "seen": "Light cyan water surrounding the island edge.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3538,7 +3570,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Pale yellow sand shoreline borders the green vegetation.",
+                  "seen": "Tan sand coastline bordering the green forest.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3559,7 +3591,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Only shallow water is visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3579,7 +3611,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Water is opaque blue without visible seafloor.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3599,7 +3631,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No palm trees visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3619,7 +3651,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No underwater plants visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3639,7 +3671,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No coral reefs visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3657,9 +3689,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No river mouths visible.",
+                  "motion_seen": "not visible",
+                  "motion_axis_seen": "still",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3677,9 +3709,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Waterfall is in the mountain biome section.",
+                  "motion_seen": "not visible",
+                  "motion_axis_seen": "still",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3699,7 +3731,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No coastal fauna visible.",
+                  "seen": "not visible",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3708,7 +3740,7 @@
                   "why": "not_in_scope_evidence"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             },
             "desert": {
@@ -4144,6 +4176,13 @@
               "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
             ],
             "backup": ".repair_backups/20261026T102511Z"
+          },
+          {
+            "at": "2026-10-27T07:06:12Z",
+            "did": [
+              "re-judged visuals/motion ['delta'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070809Z"
           }
         ]
       },
@@ -5139,8 +5178,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 138.22,
+  "total_score": 140.29,
   "total_max_score": 280.0,
-  "pct": 0.49364285714285716,
+  "pct": 0.5010357142857143,
   "island_gate": false
 }

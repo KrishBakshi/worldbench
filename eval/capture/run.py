@@ -47,7 +47,7 @@ if str(_ROOT) not in sys.path:
 
 from eval.capture.browser import DevToolsBrowser  # noqa: E402
 from eval.capture.llm import JudgeUnavailable  # noqa: E402
-from eval.capture.navigator import frame_biome  # noqa: E402
+from eval.capture.navigator import frame_biome, legend_frame  # noqa: E402
 from eval.capture.preview import build_preview  # noqa: E402
 from harness.status import log  # noqa: E402
 
@@ -189,28 +189,105 @@ async def _frame_one(browser, day_url, biome, views_dir, cap_dir, manifest, day_
         raise  # not one broken episode: no episode can succeed, so stop the capture
     except Exception as exc:  # one broken episode must not lose the other nine
         outcome = {"status": "error", "reason": str(exc)[:300]}
-    if out.is_file() and outcome.get("status") in ("found", "uncertain"):
-        log(f"      burst     {view_id}  near + far, {BURST_FRAMES} x {BURST_GAP_S}s")
-        try:
-            # The saved frame is retaken with the HUD hidden: every judge of a
-            # biome frame (and the blind check) sees terrain, never the label.
-            await browser.hide_hud(True)
-            await browser.screenshot(out)
-            b = await capture_bursts(browser, views_dir, view_id, out)
-            await browser.hide_hud(False)
-            rel = lambda p: str(p.relative_to(cap_dir))  # noqa: E731
-            extra = {
-                "bursts": {k: [rel(p) for p in v] for k, v in b["bursts"].items()},
-                "overlays": {k: rel(p) for k, p in b["overlays"].items()},
-                "motion_fraction": b["motion_fraction"],
-                "burst_gap_s": BURST_GAP_S,
-            }
-        except Exception as exc:  # no burst is a missing motion view, not a lost biome
-            extra = {"burst_error": str(exc)[:300]}
-        manifest["views"][view_id] = {"path": str(out.relative_to(cap_dir)), "kind": "biome",
-                                      "biome": biome["id"], "tod": day_tod, **extra}
-        outcome["view"] = view_id
+    if outcome.get("status") == "not_found":
+        await _legend_fallback(browser, day_url, biome, out, outcome)
+    if out.is_file() and outcome.get("status") in ("found", "uncertain", "legend"):
+        await _register_frame(browser, out, view_id, biome, views_dir, cap_dir, manifest, day_tod, outcome)
     manifest["biomes"][biome["id"]] = outcome
+
+
+def _last_click(outcome: dict) -> str | None:
+    clicks = [a["args"].get("uid") for a in outcome.get("actions", []) if a.get("tool") == "click"]
+    return next((c for c in reversed(clicks) if c), None)
+
+
+async def _legend_fallback(browser, day_url, biome, out, outcome) -> bool:
+    """After a give-up: the frame the world's own legend flies to. Counts only
+    if the blind check later names the biome."""
+    clicked = _last_click(outcome)
+    if not clicked:
+        return False
+    try:
+        ok = await legend_frame(browser, day_url, clicked, out)
+    except Exception as exc:  # a fallback that fails leaves the give-up as it was
+        outcome["legend_error"] = str(exc)[:300]
+        return False
+    if ok:
+        log(f"      legend    {biome['id']}  agent gave up; using the legend's own fly-to ({clicked})")
+        outcome.update(agent_status=outcome.get("status"), agent_reason=outcome.get("reason"),
+                       status="legend", reason="", legend_click=clicked)
+    return ok
+
+
+async def _register_frame(browser, out, view_id, biome, views_dir, cap_dir, manifest, day_tod, outcome) -> None:
+    """Retake the saved frame with the HUD hidden, take its motion bursts, and
+    record it as the biome's view."""
+    log(f"      burst     {view_id}  near + far, {BURST_FRAMES} x {BURST_GAP_S}s")
+    try:
+        # The saved frame is retaken with the HUD hidden: every judge of a
+        # biome frame (and the blind check) sees terrain, never the label.
+        await browser.hide_hud(True)
+        await browser.screenshot(out)
+        b = await capture_bursts(browser, views_dir, view_id, out)
+        await browser.hide_hud(False)
+        rel = lambda p: str(p.relative_to(cap_dir))  # noqa: E731
+        extra = {
+            "bursts": {k: [rel(p) for p in v] for k, v in b["bursts"].items()},
+            "overlays": {k: rel(p) for k, p in b["overlays"].items()},
+            "motion_fraction": b["motion_fraction"],
+            "burst_gap_s": BURST_GAP_S,
+        }
+    except Exception as exc:  # no burst is a missing motion view, not a lost biome
+        extra = {"burst_error": str(exc)[:300]}
+    manifest["views"][view_id] = {"path": str(out.relative_to(cap_dir)), "kind": "biome",
+                                  "biome": biome["id"], "tod": day_tod, **extra}
+    outcome["view"] = view_id
+
+
+async def _refill(cap_dir: Path, manifest: dict) -> list[str]:
+    """Legend fallback for every biome with no usable frame: the agent gave up,
+    or the blind check rejected its frame. Returns the biomes reframed."""
+    preview = cap_dir / "preview.html"
+    day_tod = manifest.get("time", {}).get("day_tod", 0.5)
+    day_url = _url(preview, day_tod)
+    todo = [b for b in BIOMES
+            if manifest["biomes"].get(b["id"], {}).get("status") == "not_found"
+            or manifest["biomes"].get(b["id"], {}).get("confirmed") is False]
+    done = []
+    async with DevToolsBrowser() as browser:
+        for biome in todo:
+            outcome = manifest["biomes"][biome["id"]]
+            if outcome.get("status") == "legend" or not _last_click(outcome):
+                continue
+            view_id = f"biome_{biome['id']}"
+            out = cap_dir / "views" / f"{view_id}.png"
+            if outcome.get("status") != "not_found":  # a rejected agent frame is replaced
+                outcome = {**outcome, "status": "not_found", "reason": "blind check rejected the agent's frame",
+                           "rejected_as": outcome.get("identified_as")}
+                manifest["views"].pop(view_id, None)
+            if await _legend_fallback(browser, day_url, biome, out, outcome):
+                await _register_frame(browser, out, view_id, biome, cap_dir / "views", cap_dir, manifest, day_tod, outcome)
+                outcome.pop("confirmed", None)
+                outcome.pop("identified_as", None)
+                done.append(biome["id"])
+            manifest["biomes"][biome["id"]] = outcome
+    return done
+
+
+def refill(output_dir: Path, model: str | None = None) -> list[str]:
+    """Apply the legend fallback to an existing capture (no re-run of the
+    other episodes), then blind-check only the new frames."""
+    output_dir = Path(output_dir)
+    manifest = load_manifest(output_dir)
+    if not manifest:
+        raise FileNotFoundError(f"no capture manifest in {output_dir}")
+    cap_dir = output_dir / "capture"
+    done = asyncio.run(_refill(cap_dir, manifest))
+    if done:
+        identify_biome_frames(cap_dir, manifest, model, only=done)
+    manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    log(f"      refill    {len(done)} biome(s) reframed from the legend: {', '.join(done) or '-'}")
+    return done
 
 
 async def _redo_biomes(cap_dir: Path, manifest: dict, ids: list[str], model: str | None) -> None:
@@ -232,7 +309,7 @@ none of them clearly (only sky/void, only UI, or a mix with no main biome):
 Answer for every frame by its name ({names})."""
 
 
-def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = None) -> None:
+def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = None, only: list[str] | None = None) -> None:
     """Blind check that each agent frame shows its biome: one call, shuffled, neutral names.
 
     The navigator's own "found" is not trusted (it saved kimi-k-3's volcano as
@@ -255,7 +332,7 @@ def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = Non
         labels: list[FrameLabel]
 
     views = manifest.get("views", {})
-    framed = [b["id"] for b in BIOMES if f"biome_{b['id']}" in views]
+    framed = [b["id"] for b in BIOMES if f"biome_{b['id']}" in views and (only is None or b["id"] in only)]
     if not framed:
         return
     order = framed[:]
@@ -280,7 +357,8 @@ def identify_biome_frames(cap_dir: Path, manifest: dict, model: str | None = Non
         said = answers.get(name, "none")
         manifest["biomes"][bid]["identified_as"] = said
         manifest["biomes"][bid]["confirmed"] = said == bid
-    manifest["identified"] = True
+    if only is None:
+        manifest["identified"] = True
     ok = sum(1 for bid in framed if manifest["biomes"][bid]["confirmed"])
     log(f"      identify  {ok}/{len(framed)} frames confirmed")
 
@@ -372,7 +450,7 @@ def capture(output_dir: Path, *, force: bool = False, model: str | None = None) 
     if not manifest.get("identified"):
         identify_biome_frames(cap_dir, manifest, model)
     manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    found = sum(1 for b in manifest["biomes"].values() if b.get("status") == "found")
+    found = sum(1 for b in manifest["biomes"].values() if b.get("status") in ("found", "legend"))
     log(f"      capture   {len(manifest['views'])} views, {found}/{len(BIOMES)} biomes framed")
     return manifest
 
@@ -397,7 +475,12 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("output_dir")
     parser.add_argument("--force", action="store_true", help="recapture even if the manifest matches")
     parser.add_argument("--model", help="use this model for every judge/agent call (default: roles in eval/judge.yaml)")
+    parser.add_argument("--refill", action="store_true",
+                        help="only reframe biomes with no usable frame from the world's legend (existing capture)")
     args = parser.parse_args(argv)
+    if args.refill:
+        print(json.dumps(refill(Path(args.output_dir), model=args.model)))
+        return
     manifest = capture(Path(args.output_dir), force=args.force, model=args.model)
     print(json.dumps({k: manifest[k] for k in ("time", "biomes")}, indent=2))
 

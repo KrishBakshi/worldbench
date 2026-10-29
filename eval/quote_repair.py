@@ -47,6 +47,7 @@ QUOTING RULES (every *evidence field is checked verbatim against the file, line 
 - Never join several source lines into one line; keep the line breaks.
 - Never shorten with "..." or "…"; quote fewer lines instead.
 - Quote at most 6 consecutive lines. If the code is spread out, quote the single most telling line.
+- Never quote only a comment (// ... or /* ... */). Quote the code line(s) that do what it says.
 """
 
 _ELLIPSIS = re.compile(r"\.\.\.|…")

@@ -173,14 +173,12 @@
       "max_score": 20
     },
     "WC001_voxel_world::check_visual_bughunt": {
-      "passed": false,
-      "reason": "Scored 18.67/20: defects in direction_left (floating_blocks)",
+      "passed": true,
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
-        "score": 18.67,
+        "score": 20.0,
         "max_score": 20,
-        "missing": [
-          "direction_left"
-        ],
+        "missing": [],
         "ocean_void": false,
         "ocean_void_views": [
           "direction_right"
@@ -476,9 +474,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:10:45Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_left'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T071045Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T071045Z"
+          }
+        ]
       },
-      "score": 18.67,
+      "score": 20.0,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -1183,7 +1197,7 @@
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
       "passed": false,
-      "reason": "Scored 58.01/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 58.84/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1329,16 +1343,16 @@
           "grassland": 5.0,
           "delta": 0.0,
           "desert": 7.14,
-          "volcano": 7.51
+          "volcano": 8.34
         },
-        "score": 58.01,
+        "score": 58.84,
         "max_score": 100,
         "scorecard": {
-          "score": 58.01,
+          "score": 58.84,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 58.01/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 58.84/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 5.83,
@@ -2255,7 +2269,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 7.51,
+              "score": 8.34,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -2322,12 +2336,12 @@
                   "label": "Water + lava contact becomes obsidian",
                   "kind": "must_present",
                   "points": 1.67,
-                  "earned": 0.0,
-                  "code": false,
+                  "earned": 0.83,
+                  "code": true,
                   "visual": false,
                   "seen": "No water and lava contact block formations visible.",
-                  "evidence": "/* obsidian quenching steam (constant faint) */",
-                  "why": "comment_only"
+                  "evidence": "/* obsidian quench zones where the west lava arm meets the bay */\nconst OBSSET=new Set(),OBSPTS=[];\n{\n const[cx,cz]=cellOf(wxOf(-.875),wzOf(.385));\n for(let z=cz-5;z<=cz+5;z++)for(let x=cx-5;x<=cx+5;x++){\n  if(x<1||x>=GN-1||z<1||z>=GN-1)continue;\n  if((x-cx)**2+(z-cz)**2>22)continue;\n  const ii=I(x,z);OBSSET.add(ii);\n  if(WT[ii]!==3)WT[ii]=0;\n }\n}\nif(OBSSET.has(ii))return P.obsid;\nbadd('OPQ',OBSSET.has(ii)?P.obsid:P.volScorch,bx,q*BH-BH/2,bz,CS,BH,CS);",
+                  "why": "not_visible"
                 }
               ],
               "shows_biome": true,
@@ -2338,9 +2352,17 @@
         "artifacts": {
           "micro_contents": "micro_contents.json",
           "score": "score.json",
-          "visual": "visual.json",
-          "recheck": "recheck.json"
+          "visual": "visual.json"
         },
+        "repairs": [
+          {
+            "at": "2026-10-27T06:52:25Z",
+            "did": [
+              "1 recheck hunt(s), 1 verified (role judge=gemini-3.1-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T065225Z"
+          }
+        ],
         "rechecks": [
           {
             "biome": "grassland",
@@ -2349,7 +2371,7 @@
           }
         ]
       },
-      "score": 58.01,
+      "score": 58.84,
       "max_score": 100
     },
     "WC004_biome_rendering::check_biome_rendering": {
@@ -4885,8 +4907,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 189.93,
+  "total_score": 192.09,
   "total_max_score": 280.0,
-  "pct": 0.6783214285714286,
+  "pct": 0.6860357142857143,
   "island_gate": false
 }

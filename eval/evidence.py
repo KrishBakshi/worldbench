@@ -25,6 +25,51 @@ MIN_MATCH_SHARE = 0.8
 MIN_PREFIX_SHARE = 0.85
 
 
+def strip_comments(js: str) -> str:
+    """Drop // and /* */ comments; strings, template literals and regex literals
+    are kept as they are."""
+    out: list[str] = []
+    i, n = 0, len(js)
+    last = ""  # last significant character emitted
+    while i < n:
+        c = js[i]
+        nxt = js[i + 1] if i + 1 < n else ""
+        if c in "'\"`":
+            j = i + 1
+            while j < n and js[j] != c:
+                j += 2 if js[j] == "\\" else 1
+            out.append(js[i : j + 1])
+            i, last = j + 1, c
+        elif c == "/" and nxt == "/":
+            j = js.find("\n", i)
+            i = n if j < 0 else j
+        elif c == "/" and nxt == "*":
+            j = js.find("*/", i + 2)
+            out.append(" ")
+            i = n if j < 0 else j + 2
+        elif c == "/" and (not last or last in "(,=:[!&|?{};+-*%<>~^"):
+            j, in_class = i + 1, False
+            while j < n and js[j] != "\n":
+                if js[j] == "\\":
+                    j += 2
+                    continue
+                if js[j] == "[":
+                    in_class = True
+                elif js[j] == "]":
+                    in_class = False
+                elif js[j] == "/" and not in_class:
+                    break
+                j += 1
+            out.append(js[i : j + 1])
+            i, last = j + 1, "/"
+        else:
+            out.append(c)
+            if not c.isspace():
+                last = c
+            i += 1
+    return "".join(out)
+
+
 def strip_to_js(html_path: str | Path) -> str:
     raw = Path(html_path).read_text(encoding="utf-8", errors="ignore")
     no_css = re.sub(r"<style\b[^>]*>.*?</style>", "", raw, flags=re.I | re.S)

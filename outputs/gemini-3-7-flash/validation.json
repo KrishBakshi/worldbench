@@ -169,20 +169,17 @@
       "max_score": 20
     },
     "WC001_voxel_world::check_visual_bughunt": {
-      "passed": false,
-      "reason": "Scored 17.14/20: defects in direction_bottom (floating_blocks), direction_right (floating_blocks)",
+      "passed": true,
+      "reason": "Scored 20.0/20: no visual defects across 15 views",
       "details": {
-        "score": 17.14,
+        "score": 20.0,
         "max_score": 20,
-        "missing": [
-          "direction_bottom",
-          "direction_right"
-        ],
+        "missing": [],
         "ocean_void": false,
         "ocean_void_views": [
           "direction_right"
         ],
-        "views_judged": 14,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -500,8 +497,8 @@
             "confirmed": true
           },
           "desert": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -558,7 +555,13 @@
                   "steps": -3
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "9_30",
+            "view": "biome_desert",
+            "identified_as": "grove",
+            "confirmed": false
           },
           "volcano": {
             "status": "found",
@@ -589,9 +592,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:09:12Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_right', 'direction_bottom', 'biome_desert'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070912Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070912Z"
+          }
+        ]
       },
-      "score": 17.14,
+      "score": 20.0,
       "max_score": 20
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
@@ -5102,8 +5121,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 172.09,
+  "total_score": 174.95,
   "total_max_score": 280.0,
-  "pct": 0.6146071428571429,
+  "pct": 0.6248214285714285,
   "island_gate": false
 }

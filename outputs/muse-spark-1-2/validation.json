@@ -178,14 +178,13 @@
     },
     "WC001_voxel_world::check_visual_bughunt": {
       "passed": false,
-      "reason": "Scored 15.38/20: defects in biome_delta (non_voxel), biome_swamp (floating_blocks), biome_volcano (floating_blocks); ocean spreads over the void (direction_right, overview)",
+      "reason": "Scored 17.33/20: defects in biome_delta (non_voxel), biome_swamp (floating_blocks); ocean spreads over the void (direction_right, overview)",
       "details": {
-        "score": 15.38,
+        "score": 17.33,
         "max_score": 20,
         "missing": [
           "biome_delta",
           "biome_swamp",
-          "biome_volcano",
           "ocean_void"
         ],
         "ocean_void": true,
@@ -193,12 +192,12 @@
           "direction_right",
           "overview"
         ],
-        "views_judged": 13,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -253,11 +252,17 @@
                   "steps": 3
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "1_7",
+            "view": "biome_mountains",
+            "identified_as": "none",
+            "confirmed": false
           },
           "forest": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -313,7 +318,13 @@
                   "steps": 1
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "2_8",
+            "view": "biome_forest",
+            "identified_as": "mountains",
+            "confirmed": false
           },
           "highlands": {
             "status": "found",
@@ -486,7 +497,7 @@
             "confirmed": true
           },
           "delta": {
-            "status": "found",
+            "status": "legend",
             "reason": "",
             "steps": 5,
             "actions": [
@@ -528,7 +539,11 @@
             "confidence": 1.0,
             "note": "Shows ocean and coast area.",
             "view": "biome_delta",
-            "identified_as": "none",
+            "rejected_as": "none",
+            "agent_status": "not_found",
+            "agent_reason": "blind check rejected the agent's frame",
+            "legend_click": "8_16",
+            "identified_as": "desert",
             "confirmed": false
           },
           "desert": {
@@ -599,9 +614,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:13:45Z",
+            "did": [
+              "re-judged bug-hunt views ['biome_swamp', 'biome_volcano', 'biome_mountains', 'biome_forest', 'biome_delta'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T071345Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T071345Z"
+          }
+        ]
       },
-      "score": 15.38,
+      "score": 17.33,
       "max_score": 20
     },
     "WC003_biome_micro_contents::check_biome_micro_contents": {
@@ -5069,8 +5100,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 163.92,
+  "total_score": 165.87,
   "total_max_score": 280.0,
-  "pct": 0.5854285714285714,
+  "pct": 0.5923928571428572,
   "island_gate": true
 }

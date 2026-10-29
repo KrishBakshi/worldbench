@@ -245,34 +245,6 @@
       },
       "burst_gap_s": 2.0
     },
-    "biome_delta": {
-      "path": "views/biome_delta.png",
-      "kind": "biome",
-      "biome": "delta",
-      "tod": 0.25,
-      "bursts": {
-        "near": [
-          "views/biome_delta.png",
-          "views/biome_delta_near_1.png",
-          "views/biome_delta_near_2.png",
-          "views/biome_delta_near_3.png"
-        ],
-        "far": [
-          "views/biome_delta_far_0.png",
-          "views/biome_delta_far_1.png",
-          "views/biome_delta_far_2.png"
-        ]
-      },
-      "overlays": {
-        "near": "views/biome_delta_near_motion.png",
-        "far": "views/biome_delta_far_motion.png"
-      },
-      "motion_fraction": {
-        "near": 0.35922,
-        "far": 0.40475
-      },
-      "burst_gap_s": 2.0
-    },
     "biome_volcano": {
       "path": "views/biome_volcano.png",
       "kind": "biome",
@@ -298,6 +270,90 @@
       "motion_fraction": {
         "near": 0.23146,
         "far": 0.19534
+      },
+      "burst_gap_s": 2.0
+    },
+    "biome_forest": {
+      "path": "views/biome_forest.png",
+      "kind": "biome",
+      "biome": "forest",
+      "tod": 0.25,
+      "bursts": {
+        "near": [
+          "views/biome_forest.png",
+          "views/biome_forest_near_1.png",
+          "views/biome_forest_near_2.png",
+          "views/biome_forest_near_3.png"
+        ],
+        "far": [
+          "views/biome_forest_far_0.png",
+          "views/biome_forest_far_1.png",
+          "views/biome_forest_far_2.png"
+        ]
+      },
+      "overlays": {
+        "near": "views/biome_forest_near_motion.png",
+        "far": "views/biome_forest_far_motion.png"
+      },
+      "motion_fraction": {
+        "near": 0.22459,
+        "far": 0.54986
+      },
+      "burst_gap_s": 2.0
+    },
+    "biome_delta": {
+      "path": "views/biome_delta.png",
+      "kind": "biome",
+      "biome": "delta",
+      "tod": 0.25,
+      "bursts": {
+        "near": [
+          "views/biome_delta.png",
+          "views/biome_delta_near_1.png",
+          "views/biome_delta_near_2.png",
+          "views/biome_delta_near_3.png"
+        ],
+        "far": [
+          "views/biome_delta_far_0.png",
+          "views/biome_delta_far_1.png",
+          "views/biome_delta_far_2.png"
+        ]
+      },
+      "overlays": {
+        "near": "views/biome_delta_near_motion.png",
+        "far": "views/biome_delta_far_motion.png"
+      },
+      "motion_fraction": {
+        "near": 0.416,
+        "far": 0.33518
+      },
+      "burst_gap_s": 2.0
+    },
+    "biome_desert": {
+      "path": "views/biome_desert.png",
+      "kind": "biome",
+      "biome": "desert",
+      "tod": 0.25,
+      "bursts": {
+        "near": [
+          "views/biome_desert.png",
+          "views/biome_desert_near_1.png",
+          "views/biome_desert_near_2.png",
+          "views/biome_desert_near_3.png"
+        ],
+        "far": [
+          "views/biome_desert_far_0.png",
+          "views/biome_desert_far_1.png",
+          "views/biome_desert_far_2.png"
+        ]
+      },
+      "overlays": {
+        "near": "views/biome_desert_near_motion.png",
+        "far": "views/biome_desert_far_motion.png"
+      },
+      "motion_fraction": {
+        "near": 0.25968,
+        "far": 0.19082
       },
       "burst_gap_s": 2.0
     }
@@ -364,8 +420,8 @@
       "confirmed": true
     },
     "forest": {
-      "status": "not_found",
-      "reason": "budget exhausted",
+      "status": "legend",
+      "reason": "",
       "steps": 8,
       "actions": [
         {
@@ -420,7 +476,13 @@
             "dy": 0
           }
         }
-      ]
+      ],
+      "agent_status": "not_found",
+      "agent_reason": "budget exhausted",
+      "legend_click": "2_5",
+      "view": "biome_forest",
+      "identified_as": "none",
+      "confirmed": false
     },
     "highlands": {
       "status": "found",
@@ -667,7 +729,7 @@
       "confirmed": true
     },
     "delta": {
-      "status": "found",
+      "status": "legend",
       "reason": "",
       "steps": 7,
       "actions": [
@@ -723,12 +785,16 @@
       "confidence": 0.7,
       "note": "Shows green blocks and blue ocean in background.",
       "view": "biome_delta",
-      "identified_as": "forest",
-      "confirmed": false
+      "rejected_as": "forest",
+      "agent_status": "not_found",
+      "agent_reason": "blind check rejected the agent's frame",
+      "legend_click": "8_21",
+      "identified_as": "delta",
+      "confirmed": true
     },
     "desert": {
-      "status": "not_found",
-      "reason": "budget exhausted",
+      "status": "legend",
+      "reason": "",
       "steps": 8,
       "actions": [
         {
@@ -782,7 +848,13 @@
             "steps": 2
           }
         }
-      ]
+      ],
+      "agent_status": "not_found",
+      "agent_reason": "budget exhausted",
+      "legend_click": "9_23",
+      "view": "biome_desert",
+      "identified_as": "mountains",
+      "confirmed": false
     },
     "volcano": {
       "status": "found",

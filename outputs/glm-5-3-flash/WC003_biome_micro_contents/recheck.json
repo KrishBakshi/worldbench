@@ -17,5 +17,35 @@
       "explanation": "The code defines a path (CORRIDOR) and uses the 'stamp' function with kind 1 (river) to carve a winding river geometry into the terrain. This path traverses the coordinate space associated with the grassland plateau biome."
     },
     "verified": true
+  },
+  {
+    "biome": "volcano",
+    "item": "obsidian_quench",
+    "seen": "",
+    "probe": {
+      "found": true,
+      "evidence": "/* obsidian quenching steam (constant faint) */"
+    },
+    "repair": "2026-10-27T06:52:25Z",
+    "agent": {
+      "found": true,
+      "evidence": "/* obsidian quench zones where the west lava arm meets the bay */\nconst OBSSET=new Set(),OBSPTS=[];\n{\n const[cx,cz]=cellOf(wxOf(-.875),wzOf(.385));\n for(let z=cz-5;z<=cz+5;z++)for(let x=cx-5;x<=cx+5;x++){\n  if(x<1||x>=GN-1||z<1||z>=GN-1)continue;\n  if((x-cx)**2+(z-cz)**2>22)continue;\n  const ii=I(x,z);OBSSET.add(ii);\n  if(WT[ii]!==3)WT[ii]=0;\n }\n}\nif(OBSSET.has(ii))return P.obsid;\nbadd('OPQ',OBSSET.has(ii)?P.obsid:P.volScorch,bx,q*BH-BH/2,bz,CS,BH,CS);",
+      "lines": [
+        304,
+        305,
+        306,
+        307,
+        308,
+        309,
+        310,
+        311,
+        312,
+        313,
+        362,
+        407
+      ],
+      "explanation": "The code defines an 'obsidian quench zone' (OBSSET) at the location where the lava arm meets the bay. The `OBSSET` set is used to override the material to `P.obsid` (obsidian) in both the top-level color function and the block-adding function, effectively turning those contact points into obsidian."
+    },
+    "verified": true
   }
 ]

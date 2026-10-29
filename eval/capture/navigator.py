@@ -218,3 +218,31 @@ async def frame_biome(
         await browser.screenshot(out_path)
     scratch.unlink(missing_ok=True)
     return outcome
+
+
+async def legend_frame(browser: DevToolsBrowser, day_url: str, clicked: str, out_path: Path) -> bool:
+    """The world's own fly-to for a biome: reload, click the legend entry the
+    agent clicked, wait for the camera, save. No model call.
+
+    For an episode that gave up after clicking the legend. On one world every
+    give-up had clicked the right entry and then orbited or zoomed away from
+    the framing the world's author set for that biome. The saved frame is
+    never trusted: it counts only if the blind check (run.identify_biome_frames)
+    names the biome. A uid is `<snapshot>_<node>`; the node part is stable
+    across reloads of the same page, the snapshot part is not.
+    """
+    await browser.open(day_url)
+    snapshot = await browser.snapshot()
+    if _UID.fullmatch(clicked):
+        prefix = next((m.group(1).split("_")[0] for m in _SNAPSHOT_TEXT.finditer(snapshot)), None)
+        if prefix is None:
+            return False
+        uid = f"{prefix}_{clicked.split('_')[1]}"
+    else:
+        uid = _resolve_uid(snapshot, clicked)
+        if not _UID.fullmatch(uid):
+            return False
+    await browser.click(uid)
+    await asyncio.sleep(3)
+    await browser.screenshot(out_path)
+    return True

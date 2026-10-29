@@ -35,20 +35,28 @@ from eval.capture.llm import JudgeUnavailable  # noqa: E402
 
 def disagreements(reports: dict, visual: dict, biome_ids: tuple[str, ...], source_normalized: str) -> list[tuple[str, dict, str]]:
     """(biome_id, requirement item, what the frames showed) for every
-    must_present item the frames saw but the code half rejected."""
+    must_present item the frames saw but the code half rejected, and every
+    item whose quote was only a comment.
+
+    A comment-only quote means the probe found where the item is described
+    and quoted the label instead of the code under it (`/* desert sandstorm */`).
+    The code may well be there, frames or not, so it gets the same hunt. A
+    narrower fix was tried first: a model picking the lines under the comment.
+    It credited quench steam as obsidian and snowfall as a foothill shelf,
+    because the probe had cited the wrong comment; the agent hunts the item
+    itself, not the comment."""
     out = []
     for biome_id in biome_ids:
         report, seen = reports.get(biome_id), visual.get(biome_id)
-        if not isinstance(report, BiomeMicroReport) or not isinstance(seen, VisualReport):
+        if not isinstance(report, BiomeMicroReport):
             continue
-        sightings = {s.id: s for s in seen.items}
+        sightings = {s.id: s for s in seen.items} if isinstance(seen, VisualReport) else {}
         for item in load_requirements(biome_id).get("must_present", []):
             sighting = sightings.get(item["id"])
-            if not (sighting and sighting.visible):
-                continue
-            code_ok, _ = _presence(report.must_present.get(item["id"]), source_normalized)
-            if not code_ok:
-                out.append((biome_id, item, sighting.seen))
+            visible = bool(sighting and sighting.visible)
+            code_ok, why = _presence(report.must_present.get(item["id"]), source_normalized)
+            if not code_ok and (visible or why == "comment_only"):
+                out.append((biome_id, item, sighting.seen if visible else ""))
     return out
 
 

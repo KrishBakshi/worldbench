@@ -33,7 +33,9 @@ nests under it, so a repair can be audited as one trace.
 
 Deliberately NOT flagged: a biome the capture never framed. Its visual report
 is valid (judged on the wider views) and its motion is "unavailable"; that is
-the world's capture result, not a judge outage.
+the world's capture result, not a judge outage. A biome framed *since* its
+verdict (the capture's legend fallback, `eval.capture.run --refill`) is
+flagged as a stale visual and re-judged on the new frame.
 
     uv run python -m eval.gaps find                 # every scored world
     uv run python -m eval.gaps find <model> ...
@@ -60,8 +62,10 @@ from eval.score import score_records  # noqa: E402
 
 OUTPUTS = ROOT / "outputs"
 TESTS = ROOT / "tests"
-WC003, WC004, WC005 = "WC003_biome_micro_contents", "WC004_biome_rendering", "WC005_day_night_seasons"
+WC001, WC003, WC004, WC005 = ("WC001_voxel_world", "WC003_biome_micro_contents", "WC004_biome_rendering",
+                              "WC005_day_night_seasons")
 KEYS = {
+    WC001: f"{WC001}::check_visual_bughunt",
     WC003: f"{WC003}::check_biome_micro_contents",
     WC004: f"{WC004}::check_biome_rendering",
     WC005: f"{WC005}::check_day_night_seasons",
@@ -86,6 +90,25 @@ def _main_module(test: str):
         return sys.modules[load_check(TESTS / test / "main.py", fn).__module__]
     finally:
         sys.path.pop(0)
+
+
+def _stale_visuals(model: str, test: str) -> list[str]:
+    """Biomes judged as having no confirmed frame that the capture has framed
+    since (the legend fallback, eval/capture/run.py refill)."""
+    path = OUTPUTS / model / test / "visual.json"
+    manifest_file = OUTPUTS / model / "capture" / "manifest.json"
+    if not path.is_file() or not manifest_file.is_file():
+        return []
+    from eval.capture.run import confirmed_biome_view
+
+    manifest = json.loads(manifest_file.read_text())
+    return [b for b, v in json.loads(path.read_text()).items()
+            if isinstance(v, dict) and "error" not in v and not v.get("shows_biome")
+            and confirmed_biome_view(manifest, b)]
+
+
+def _bughunt_module():
+    return sys.modules[load_check(TESTS / WC001 / "visual_check.py", "rejudge_views").__module__]
 
 
 def _open_rechecks(model: str) -> list[dict]:
@@ -159,6 +182,8 @@ def find(model: str) -> dict:
         "WC001_bughunt_views": [],
         "errored_checks": [],
         "WC003_recheck": _open_rechecks(model),
+        "WC003_stale_visual": _stale_visuals(model, WC003),
+        "WC004_stale_visual": _stale_visuals(model, WC004),
     }
     for test, biomes in _unrepaired_quotes(model).items():
         gaps[f"{test[:5]}_quotes"] = biomes
@@ -167,7 +192,8 @@ def find(model: str) -> dict:
         gaps["WC005_probe"] = ["cycle"]
     bughunt = O / "WC001_voxel_world" / "visual_bughunt_report.json"
     if bughunt.is_file():
-        gaps["WC001_bughunt_views"] = [k for k, v in json.loads(bughunt.read_text()).items() if v.get("error")]
+        # errored views, frames changed since judged, v1 verdicts the v2 prompt could change
+        gaps["WC001_bughunt_views"] = _bughunt_module().stale_views(O / "world.html")
     val = O / "validation.json"
     if val.is_file():
         checks = json.loads(val.read_text())["checks"]
@@ -229,7 +255,7 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
     stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
     # WC003: failed probes, failed visual verdicts, then open rechecks
-    if any(k in gaps for k in ("WC003_probe", "WC003_visual", "WC003_recheck", "WC003_quotes")):
+    if any(k in gaps for k in ("WC003_probe", "WC003_visual", "WC003_stale_visual", "WC003_recheck", "WC003_quotes")):
         D = O / WC003
         main = _main_module(WC003)
         rc_mod = sys.modules[main.recheck.__module__]
@@ -254,9 +280,10 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
             n = sum(len(repair_quotes(reports[b], src, label=b)) for b in gaps["WC003_quotes"]
                     if hasattr(reports[b], "model_dump"))
             did.append(f"quote repair on {gaps['WC003_quotes']} ({n} flagged; role repair={roles.get('repair')})")
-        if gaps.get("WC003_visual"):
+        redo3 = tuple(sorted(set(gaps.get("WC003_visual", [])) | set(gaps.get("WC003_stale_visual", []))))
+        if redo3:
             vis_mod = sys.modules[main.judge_all.__module__]
-            new = vis_mod.judge_all(html, tuple(gaps["WC003_visual"]), None)
+            new = vis_mod.judge_all(html, redo3, None)
             ok = {b: r for b, r in new.items() if not (isinstance(r, dict) and "error" in r)}
             visual.update(ok)
             (D / "visual.json").write_text(json.dumps({k: visual_io.dump(v) for k, v in visual.items()}, indent=2))
@@ -299,7 +326,7 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
         log(f"      gaps      {lines[-1]}")
 
     # WC004: failed probes and failed visual / motion verdicts
-    if any(k in gaps for k in ("WC004_probe", "WC004_visual", "WC004_motion", "WC004_quotes")):
+    if any(k in gaps for k in ("WC004_probe", "WC004_visual", "WC004_stale_visual", "WC004_motion", "WC004_quotes")):
         D = O / WC004
         main = _main_module(WC004)
         vis_mod = sys.modules[main.judge_all.__module__]
@@ -325,7 +352,8 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
             (D / "rendering.json").write_text(json.dumps(
                 {b: (r.model_dump() if hasattr(r, "model_dump") else r) for b, r in reports.items()}, indent=2))
             did.append(f"quote repair on {gaps['WC004_quotes']} ({n} flagged; role repair={roles.get('repair')})")
-        redo = tuple(sorted(set(gaps.get("WC004_visual", [])) | set(gaps.get("WC004_motion", []))))
+        redo = tuple(sorted(set(gaps.get("WC004_visual", [])) | set(gaps.get("WC004_stale_visual", []))
+                            | set(gaps.get("WC004_motion", []))))
         if redo:
             looks, motions = vis_mod.judge_all(html, redo, None)
             visual = json.loads((D / "visual.json").read_text())
@@ -344,6 +372,18 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
         lines.append(f"{model} WC004: {'; '.join(did)} | {b} -> {a} | total {tb} -> {ta}")
         log(f"      gaps      {lines[-1]}")
 
+    # WC001: bug-hunt views to re-judge (every other verdict is reused)
+    if gaps.get("WC001_bughunt_views"):
+        D = O / WC001
+        backup = _backup(model, [D / "visual_bughunt_report.json", O / "validation.json"])
+        views = gaps["WC001_bughunt_views"]
+        result = _bughunt_module().rejudge_views(html, views, None)
+        note = {"at": stamp, "did": [f"re-judged bug-hunt views {views} (role vlm={roles.get('vlm')})"],
+                "backup": str(backup.relative_to(O))}
+        b, a, tb, ta = _update_validation(model, WC001, result, note)
+        lines.append(f"{model} WC001 bug-hunt: {len(views)} view(s) | {b} -> {a} | total {tb} -> {ta}")
+        log(f"      gaps      {lines[-1]}")
+
     # WC005: a failed cycle probe
     if gaps.get("WC005_probe"):
         D = O / WC005
@@ -357,7 +397,7 @@ def repair(model: str, dry_run: bool = False) -> list[str]:
         b, a, tb, ta = _update_validation(model, WC005, result, note)
         lines.append(f"{model} WC005: re-probed cycle | {b} -> {a} | total {tb} -> {ta}")
 
-    for k in ("WC001_bughunt_views", "errored_checks"):
+    for k in ("errored_checks",):
         if gaps.get(k):
             lines.append(f"{model}: {k} {gaps[k]} need a full re-run of that test (eval.run --test ...)")
     return lines

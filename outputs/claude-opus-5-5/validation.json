@@ -466,7 +466,7 @@
             "confirmed": true
           },
           "volcano": {
-            "status": "found",
+            "status": "legend",
             "reason": "",
             "steps": 2,
             "actions": [
@@ -488,13 +488,33 @@
             "confidence": 1.0,
             "note": "Volcano with lava flows is clearly visible.",
             "view": "biome_volcano",
-            "identified_as": "none",
-            "confirmed": false
+            "rejected_as": "none",
+            "agent_status": "not_found",
+            "agent_reason": "blind check rejected the agent's frame",
+            "legend_click": "10_14",
+            "identified_as": "volcano",
+            "confirmed": true
           }
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:04:37Z",
+            "did": [
+              "re-judged bug-hunt views ['biome_volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070449Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070449Z"
+          }
+        ]
       },
       "score": 20.0,
       "max_score": 20
@@ -1552,7 +1572,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "Stratovolcano cone geometry present",
+                  "seen": "A tall volcanic cone structure is clearly visible on the island.",
                   "evidence": "let cone=10+50*Math.pow(1-dv/VR,1.2)+1.2*fbm(x*.3,z*.3);"
                 },
                 {
@@ -1563,7 +1583,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "Glowing crater at summit",
+                  "seen": "Glowing lava can be seen at the summit of the volcano.",
                   "evidence": "const craterLight=new THREE.PointLight(0xff5a1a,40,110,1); craterLight.position.set(VX,52,VZ); scene.add(craterLight);"
                 },
                 {
@@ -1574,7 +1594,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "Lava flows on dark slopes",
+                  "seen": "Lava streams flow down the dark volcanic mountainside.",
                   "evidence": "if(S[kk]!==S_LAND||B[kk]!==BI.VOLC)continue; S[kk]=S_LAVA;"
                 },
                 {
@@ -1585,7 +1605,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "Black basalt surface blocks",
+                  "seen": "The volcano is constructed from dark basalt and ash blocks.",
                   "evidence": "else if(b===BI.VOLC){ const dv=Math.hypot(x-VX,z-VZ); tc=dv>VR-5&&rnd()<.35?'#4a4441':pickN(TOP[8],x,z,.35); }"
                 },
                 {
@@ -1596,7 +1616,7 @@
                   "earned": 1.67,
                   "code": true,
                   "visual": true,
-                  "seen": "Ash plume from summit",
+                  "seen": "Ash particles and smoke are erupting from the top.",
                   "evidence": "const ASH={n:700,I:0,name:'Ash plume \u00b7 volcano',sw:'#8a8580'};"
                 }
               ],
@@ -1609,12 +1629,12 @@
                   "earned": 0.83,
                   "code": true,
                   "visual": false,
-                  "seen": "Not clearly visible",
+                  "seen": "No distinct obsidian quench blocks visible near water.",
                   "evidence": "if(near){S[k]=S_OBS; if(rnd()<.35) steam.push([cx(i),H[k],cx(j)]);}",
                   "why": "not_visible"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             }
           }
@@ -1632,6 +1652,13 @@
               "1 recheck hunt(s), 1 verified (role judge=gemini-3.1-flash-lite)"
             ],
             "backup": ".repair_backups/20261002T070017Z"
+          },
+          {
+            "at": "2026-10-27T07:04:37Z",
+            "did": [
+              "re-judged visuals ['volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070437Z"
           }
         ],
         "rechecks": [
@@ -1647,7 +1674,7 @@
     },
     "WC004_biome_rendering::check_biome_rendering": {
       "passed": false,
-      "reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "reason": "Scored 77.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "details": {
         "found": {},
         "missing": {
@@ -1660,7 +1687,7 @@
           "grassland": "failed items: open_meadow_green, tall_grass_blade, tributary_river_flow",
           "delta": "failed items: deep_offshore_blue, sand_seafloor_recipe, kelp_or_seagrass, coral_reef_color, river_mouth_braid, cliff_waterfall_fall",
           "desert": "failed items: dry_grass_clump",
-          "volcano": "failed items: glowing_crater_mouth, lava_flow_stream, lava_pool_glow, ash_plume_rise, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
+          "volcano": "failed items: lava_flow_stream, lava_pool_glow, eruption_burst, volcanic_dust_fog, obsidian_quench_edge"
         },
         "item_hits": {
           "mountains": [
@@ -1736,8 +1763,10 @@
           ],
           "volcano": [
             "volcano_cone_silhouette",
+            "glowing_crater_mouth",
             "basalt_over_ash",
-            "lava_orange_tint"
+            "lava_orange_tint",
+            "ash_plume_rise"
           ]
         },
         "item_misses": {
@@ -1797,10 +1826,8 @@
             "dry_grass_clump"
           ],
           "volcano": [
-            "glowing_crater_mouth",
             "lava_flow_stream",
             "lava_pool_glow",
-            "ash_plume_rise",
             "eruption_burst",
             "volcanic_dust_fog",
             "obsidian_quench_edge"
@@ -1816,16 +1843,16 @@
           "grassland": 8.75,
           "delta": 6.5,
           "desert": 9.5,
-          "volcano": 6.25
+          "volcano": 7.0
         },
-        "score": 76.75,
+        "score": 77.5,
         "max_score": 100,
         "scorecard": {
-          "score": 76.75,
+          "score": 77.5,
           "max_score": 100,
           "points_per_biome": 10,
           "passed": false,
-          "reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+          "reason": "Scored 77.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
           "biomes": {
             "mountains": {
               "score": 9.0,
@@ -3674,7 +3701,7 @@
               "biome_visible": true
             },
             "volcano": {
-              "score": 6.25,
+              "score": 7.0,
               "max_score": 10,
               "passed": false,
               "earned": [
@@ -3690,12 +3717,31 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Steep conical mountain rising on the right side.",
+                  "seen": "Steep black conical volcano cone geometry.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
                   "look_evidence": "let cone=10+50*Math.pow(1-dv/VR,1.2)+1.2*fbm(x*.3,z*.3);",
                   "motion_evidence": ""
+                },
+                {
+                  "id": "glowing_crater_mouth",
+                  "label": "Glowing orange/red emissive crater at summit",
+                  "kind": "entity",
+                  "points": 1.0,
+                  "earned": 1.0,
+                  "code_look": true,
+                  "visual_look": true,
+                  "code_motion": true,
+                  "visual_motion": true,
+                  "motion_seen": "Pulsing orange glow at crater.",
+                  "motion_axis_seen": "pulsing",
+                  "seen": "Bright orange emissive cubes at the top.",
+                  "llm_looks_ok": true,
+                  "llm_moves_ok": true,
+                  "llm_axis": "pulsing",
+                  "look_evidence": "const craterLight=new THREE.PointLight(0xff5a1a,40,110,1); craterLight.position.set(VX,52,VZ); scene.add(craterLight);",
+                  "motion_evidence": "craterLight.intensity=(28+160*e)*(0.85+.15*Math.sin(t*9))*(.6+.4*(1-env.dayF));"
                 },
                 {
                   "id": "basalt_over_ash",
@@ -3709,7 +3755,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Dark grey and black volcanic blocks forming the cone.",
+                  "seen": "Dark grey and black volcanic rock surface.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3728,48 +3774,47 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "Bright orange lava material on flows.",
+                  "seen": "Orange lava material on the volcano.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
                   "look_evidence": "LV.add(x,h-1,z,1,.9,1,col('#ff6a1a',0));",
                   "motion_evidence": ""
-                }
-              ],
-              "lost": [
+                },
                 {
-                  "id": "glowing_crater_mouth",
-                  "label": "Glowing orange/red emissive crater at summit",
+                  "id": "ash_plume_rise",
+                  "label": "Ash particles rising from volcano",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.75,
+                  "earned": 1.0,
                   "code_look": true,
                   "visual_look": true,
                   "code_motion": true,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Bright orange voxels near the top summit.",
+                  "visual_motion": true,
+                  "motion_seen": "Ash particles rising upward from summit.",
+                  "motion_axis_seen": "rising",
+                  "seen": "Grey particles and plume above the summit.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
-                  "llm_axis": "pulsing",
-                  "look_evidence": "const craterLight=new THREE.PointLight(0xff5a1a,40,110,1); craterLight.position.set(VX,52,VZ); scene.add(craterLight);",
-                  "motion_evidence": "craterLight.intensity=(28+160*e)*(0.85+.15*Math.sin(t*9))*(.6+.4*(1-env.dayF));",
-                  "why": "motion_not_seen"
-                },
+                  "llm_axis": "rising",
+                  "look_evidence": "ASH.mat=new THREE.PointsMaterial({color:'#6f6a66',size:1.4,transparent:true,opacity:.4,depthWrite:false});",
+                  "motion_evidence": "p.y+=p.v*dt*(1+e*1.5); p.x+=(wind*(.2+hgt*.03)+Math.sin(t+i)*.6)*dt;"
+                }
+              ],
+              "lost": [
                 {
                   "id": "lava_flow_stream",
                   "label": "Orange molten lava channel flowing on volcanic ground",
                   "kind": "entity",
                   "points": 1.0,
-                  "earned": 0.5,
+                  "earned": 0.75,
                   "code_look": true,
                   "visual_look": true,
                   "code_motion": false,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Orange glowing streams running down the volcano slope.",
+                  "visual_motion": true,
+                  "motion_seen": "Flowing orange lava stream voxels.",
+                  "motion_axis_seen": "flowing",
+                  "seen": "Orange lava stream flowing down the cone.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "flowing",
@@ -3787,35 +3832,15 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No pool visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "pulsing",
                   "look_evidence": "pond(VX,VZ,4.2,S_LAVA);",
                   "motion_evidence": "float fl_=0.5+0.5*sin(uTime*2.2+vWPos.x*0.8+vWPos.z*0.55+nz_*5.0);",
                   "why": "no_time_update"
-                },
-                {
-                  "id": "ash_plume_rise",
-                  "label": "Ash particles rising from volcano",
-                  "kind": "entity",
-                  "points": 1.0,
-                  "earned": 0.75,
-                  "code_look": true,
-                  "visual_look": true,
-                  "code_motion": true,
-                  "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "Dark particles and smoke rising from the peak.",
-                  "llm_looks_ok": true,
-                  "llm_moves_ok": true,
-                  "llm_axis": "rising",
-                  "look_evidence": "ASH.mat=new THREE.PointsMaterial({color:'#6f6a66',size:1.4,transparent:true,opacity:.4,depthWrite:false});",
-                  "motion_evidence": "p.y+=p.v*dt*(1+e*1.5); p.x+=(wind*(.2+hgt*.03)+Math.sin(t+i)*.6)*dt;",
-                  "why": "motion_not_seen"
                 },
                 {
                   "id": "eruption_burst",
@@ -3827,9 +3852,9 @@
                   "visual_look": false,
                   "code_motion": true,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No active burst visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "rising",
@@ -3847,9 +3872,9 @@
                   "visual_look": false,
                   "code_motion": false,
                   "visual_motion": false,
-                  "motion_seen": "",
-                  "motion_axis_seen": "",
-                  "seen": "No dust fog visible.",
+                  "motion_seen": "Not visible.",
+                  "motion_axis_seen": "still",
+                  "seen": "Not visible.",
                   "llm_looks_ok": false,
                   "llm_moves_ok": false,
                   "llm_axis": "n/a",
@@ -3869,7 +3894,7 @@
                   "visual_motion": null,
                   "motion_seen": "",
                   "motion_axis_seen": "",
-                  "seen": "No water contact boundary visible.",
+                  "seen": "Not visible.",
                   "llm_looks_ok": true,
                   "llm_moves_ok": true,
                   "llm_axis": "n/a",
@@ -3878,7 +3903,7 @@
                   "why": "not_visible"
                 }
               ],
-              "shows_biome": false,
+              "shows_biome": true,
               "biome_visible": true
             }
           }
@@ -3896,13 +3921,20 @@
               "regrade: motion counts if the line runs every frame (eval/frame_loop.py)"
             ],
             "backup": ".repair_backups/20261026T102511Z"
+          },
+          {
+            "at": "2026-10-27T07:04:37Z",
+            "did": [
+              "re-judged visuals/motion ['volcano'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070441Z"
           }
         ]
       },
-      "score": 76.75,
+      "score": 77.5,
       "max_score": 100,
-      "probe_score": 76.75,
-      "probe_reason": "Scored 76.75/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
+      "probe_score": 77.5,
+      "probe_reason": "Scored 77.5/100; incomplete biomes: mountains, forest, highlands, jungle, swamp, grove, grassland, delta, desert, volcano",
       "probe_passed": false
     },
     "WC005_day_night_seasons::check_day_night_seasons": {
@@ -4869,8 +4901,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 226.64,
+  "total_score": 227.39,
   "total_max_score": 280.0,
-  "pct": 0.8094285714285714,
+  "pct": 0.8121071428571428,
   "island_gate": false
 }

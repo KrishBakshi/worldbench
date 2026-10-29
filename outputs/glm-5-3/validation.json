@@ -176,19 +176,15 @@
     },
     "WC001_voxel_world::check_visual_bughunt": {
       "passed": false,
-      "reason": "Scored 7.14/20: defects in biome_desert (floating_blocks), biome_grassland (floating_blocks), biome_mountains (hollow_mass), biome_volcano (floating_blocks/hollow_mass), direction_bottom (floating_blocks), direction_left (floating_blocks), direction_right (floating_blocks), direction_top (floating_blocks), overview (hollow_mass); ocean spreads over the void (direction_left, direction_right)",
+      "reason": "Scored 13.33/20: defects in biome_desert (floating_blocks), biome_grassland (floating_blocks), biome_mountains (hollow_mass), biome_volcano (hollow_mass), overview (hollow_mass); ocean spreads over the void (direction_left, direction_right)",
       "details": {
-        "score": 7.14,
+        "score": 13.33,
         "max_score": 20,
         "missing": [
           "biome_desert",
           "biome_grassland",
           "biome_mountains",
           "biome_volcano",
-          "direction_bottom",
-          "direction_left",
-          "direction_right",
-          "direction_top",
           "overview",
           "ocean_void"
         ],
@@ -197,7 +193,7 @@
           "direction_left",
           "direction_right"
         ],
-        "views_judged": 14,
+        "views_judged": 15,
         "views_failed": [],
         "biome_capture": {
           "mountains": {
@@ -227,8 +223,8 @@
             "confirmed": true
           },
           "forest": {
-            "status": "not_found",
-            "reason": "budget exhausted",
+            "status": "legend",
+            "reason": "",
             "steps": 8,
             "actions": [
               {
@@ -283,7 +279,13 @@
                   "steps": -2
                 }
               }
-            ]
+            ],
+            "agent_status": "not_found",
+            "agent_reason": "budget exhausted",
+            "legend_click": "2_5",
+            "view": "biome_forest",
+            "identified_as": "none",
+            "confirmed": false
           },
           "highlands": {
             "status": "found",
@@ -566,9 +568,25 @@
         },
         "artifacts": {
           "report": "visual_bughunt_report.json"
-        }
+        },
+        "repairs": [
+          {
+            "at": "2026-10-27T07:09:39Z",
+            "did": [
+              "re-judged bug-hunt views ['direction_right', 'direction_left', 'direction_top', 'direction_bottom', 'biome_grassland', 'biome_desert', 'biome_volcano', 'biome_forest'] (role vlm=gemini-3.5-flash-lite)"
+            ],
+            "backup": ".repair_backups/20261027T070939Z"
+          },
+          {
+            "at": "2026-10-27T07:20:47Z",
+            "did": [
+              "kept v1 verdicts on defects bug-hunt v2 does not change (merge_verdict)"
+            ],
+            "backup": ".repair_backups/20261027T070939Z"
+          }
+        ]
       },
-      "score": 7.14,
+      "score": 13.33,
       "max_score": 20
     },
     "WC002_biome_placement::check_biome_placement": {
@@ -4947,8 +4965,8 @@
     "preview_ok": true
   },
   "passed": false,
-  "total_score": 163.48,
+  "total_score": 169.67000000000002,
   "total_max_score": 280.0,
-  "pct": 0.5838571428571429,
+  "pct": 0.6059642857142857,
   "island_gate": true
 }

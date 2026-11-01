@@ -6,7 +6,8 @@
 roles:
   judge: gemini-3.1-flash-lite   # other text-only judging: source judge, clock patch, evidence agent
   vlm: gemini-3.5-flash-lite     # every judge call that carries images
-  nav: gemma-4-26b-a4b-it        # the capture's navigator agent (tool calls on frames)
+  nav: gemini-3.5-flash-lite     # the capture's navigator agent (tool calls on frames)
+                                 # was gemma-4-26b-a4b-it until 2026-11-01, when it began rejecting every image (400 INVALID_ARGUMENT)
   extract: gemma-4-31b-it        # WC002 classify + extract: per-biome slicing, layout reading
   probe: gemini-3.1-flash-lite   # WC003/WC004/WC005 code probes (quote the code per item)
   repair: gemma-4-26b-a4b-it     # eval/quote_repair.py: picks source line numbers for a badly copied quote

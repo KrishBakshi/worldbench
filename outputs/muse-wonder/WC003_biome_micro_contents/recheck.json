@@ -1,0 +1,110 @@
+[
+  {
+    "biome": "mountains",
+    "item": "meltwater_stream",
+    "seen": "Stream runs down mountain into adjacent zones",
+    "probe": {
+      "found": false,
+      "evidence": "not in mountains scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The river logic explicitly excludes the 'mountain' biome from the river generation condition (isRiver), and there is no other code that places water or streams within the mountain biome coordinates."
+    },
+    "verified": false
+  },
+  {
+    "biome": "highlands",
+    "item": "downslope_into_grove",
+    "seen": "Adjacent to flowering grove",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "let gd=distPoly(x,z,groveStream);\nlet isRiver=(rd<1.7 && b!=='desert' && b!=='volcano') || (gd<1.3 && (b==='grove'||b==='highland'));\nelse if(isRiver){ S(x,h-1,z,0xcbb98a); W(x,h-.55,z,b==='swamp'?0x4a6a55:0x2fc3e8,1,.4,1); c.h=h-1; c.river=true; }",
+      "lines": [
+        122,
+        123,
+        125
+      ],
+      "explanation": "The code calculates the distance to 'groveStream' and includes 'highland' in the 'isRiver' condition when near that stream. This triggers the placement of a water feature (W) and a riverbed (S) within the highland biome, creating a moist feeder connection to the grove."
+    },
+    "verified": true
+  },
+  {
+    "biome": "highlands",
+    "item": "hardy_tussock_plants",
+    "seen": "Low grassy blocks",
+    "probe": {
+      "found": false,
+      "evidence": "not in highlands scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "else if(b==='highland'&&r<.10) S(x,h+.5,z,0x6f8560,.8,.8,.8);",
+      "lines": [
+        148
+      ],
+      "explanation": "The code uses the S function to place a solid object at a low height (h+.5) with a muted green color (0x6f8560) and small dimensions (.8, .8, .8), which corresponds to low hardy plants in the highland biome."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "low_mist_particles",
+    "seen": "Subtle mist particles hover above the swamp area.",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": false,
+      "evidence": "",
+      "lines": [],
+      "explanation": "The 'weather' property for the swamp biome is merely a string label used for UI display in the legend, and there is no code that consumes this string to instantiate or emit mist particles in the swamp area."
+    },
+    "verified": false
+  },
+  {
+    "biome": "grassland",
+    "item": "tributary_geometry",
+    "seen": "A winding blue river tributary flows across the grassland plateau.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "let rd=Math.min(distPoly(x,z,riverMain),distPoly(x,z,riverTrib),distPoly(x,z,riverTrib2));\nlet isRiver=(rd<1.7 && b!=='desert' && b!=='volcano') || (gd<1.3 && (b==='grove'||b==='highland'));\nelse if(isRiver){ S(x,h-1,z,0xcbb98a); W(x,h-.55,z,b==='swamp'?0x4a6a55:0x2fc3e8,1,.4,1); c.h=h-1; c.river=true; }",
+      "lines": [
+        121,
+        123,
+        125
+      ],
+      "explanation": "The code calculates the distance to river paths (riverMain, riverTrib, riverTrib2) and defines isRiver as true for grassland (since it is not desert or volcano). When isRiver is true, the code calls W() to place water geometry and S() to place riverbed geometry."
+    },
+    "verified": true
+  },
+  {
+    "biome": "desert",
+    "item": "sandstone_peaks",
+    "seen": "Sandstone formations rising in the desert section.",
+    "probe": {
+      "found": false,
+      "evidence": "not in desert scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "else if(b==='desert') h=5.4+gauss(x,z,10,31,9,8)+gauss(x,z,23,25,8,6)+gauss(x,z,17,36,7,5)+n*.3;",
+      "lines": [
+        86
+      ],
+      "explanation": "The desert biome's height function (line 86) uses multiple `gauss` functions to add significant height variations (up to 8, 6, and 5 units respectively) to the base height of 5.4, creating mountain-like formations on the desert flats."
+    },
+    "verified": true
+  }
+]

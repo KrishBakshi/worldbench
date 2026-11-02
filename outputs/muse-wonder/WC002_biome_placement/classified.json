@@ -1,0 +1,84 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "mountain"
+      ],
+      "placement_code": "if(z<-30) return 'mountain';",
+      "elevation_code": "if(b==='mountain') h=15+gauss(x,z,-18,-39,14,14)+gauss(x,z,1,-41,15,18)+gauss(x,z,19,-38,13,13)+gauss(x,z,-4,-34,10,8)+n;"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "snowforest"
+      ],
+      "placement_code": "if(z<-17 && x<19) return 'snowforest';",
+      "elevation_code": "else if(b==='snowforest') h=11.5+n*.7;"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highland"
+      ],
+      "placement_code": "if(x>=18 && z<-11) return 'highland';",
+      "elevation_code": "else if(b==='highland') h=11+gauss(x,z,30,-20,12,3)+n*.8-(z+11)*0.04;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "if(x<-13 && z>=-19 && z<14) return 'jungle';",
+      "elevation_code": "else if(b==='jungle') h=8.5+n;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "if(x<-29 && z>=-4 && z<16) return 'swamp';",
+      "elevation_code": "else if(b==='swamp') h=4.6+n*.3;"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "if(x>=19 && z>=-11 && z<17) return 'grove';",
+      "elevation_code": "else if(b==='grove') h=7+n*.5;"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grassland"
+      ],
+      "placement_code": "return 'grassland';",
+      "elevation_code": "else if(b==='grassland') h=5.8+n*.35;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "beach"
+      ],
+      "placement_code": "if(x<-24 && z>=14) return 'beach';\n  if(z>=30) return 'beach';",
+      "elevation_code": "else if(b==='beach') h=4.2+n*.3;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "if(z>=20 && x>-2 && x<34) return 'desert';\n  if(z>=15 && x>=28) return 'desert';",
+      "elevation_code": "else if(b==='desert') h=5.4+gauss(x,z,10,31,9,8)+gauss(x,z,23,25,8,6)+gauss(x,z,17,36,7,5)+n*.3;"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "if(dist(x,z,VOLC.x,VOLC.z)<13) return 'volcano';\n  if(z>26 && x>28) return 'volcano';",
+      "elevation_code": "else if(b==='volcano'){let d=dist(x,z,VOLC.x,VOLC.z); h=d<11? 24-d*1.55 : 6.5+n*.5; if(d<2.5)h=15.5;"
+    }
+  }
+}

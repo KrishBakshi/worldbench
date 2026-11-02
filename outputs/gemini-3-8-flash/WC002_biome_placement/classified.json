@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "mountains"
+      ],
+      "placement_code": "if (z < -26.0 && Math.abs(x - 2.0) < 25.0) {",
+      "elevation_code": "const p1 = Math.max(0, 1.0 - Math.hypot(x + 4, z + 46) / 16.0) * 36.0; const p2 = Math.max(0, 1.0 - Math.hypot(x - 10, z + 42) / 14.0) * 32.0; const p3 = Math.max(0, 1.0 - Math.hypot(x + 16, z + 40) / 12.0) * 26.0; const ridge = Math.max(0, 1.0 - Math.abs(z + 44) / 12.0) * Math.max(0, 1.0 - Math.abs(x) / 24.0) * 16.0; h = 10.0 + Math.max(p1, p2, p3, ridge);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "conifers"
+      ],
+      "placement_code": "else if (z < -14.0 && x < 6.0 && x > -34.0) {",
+      "elevation_code": "h = 16.0 + 3.0 * Math.sin(x * 0.22) + 2.5 * Math.cos(z * 0.25);"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "highlands"
+      ],
+      "placement_code": "else if (x >= 14.0 && z < 4.0 && z > -34.0) {",
+      "elevation_code": "const baseH = 17.0 + 2.0 * Math.sin(x * 0.18) + 1.8 * Math.cos(z * 0.16); const slopeToGrove = Math.max(0, (z - (-10.0)) / 14.0); h = baseH - slopeToGrove * 8.5;"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "jungle"
+      ],
+      "placement_code": "else if (x < -14.0 && z >= -12.0 && z <= 26.0) {",
+      "elevation_code": "h = 7.5 + 2.0 * Math.sin(x * 0.2) + 1.8 * Math.cos(z * 0.2);"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "swamp"
+      ],
+      "placement_code": "if (x < -32.0 && z >= -4.0) {",
+      "elevation_code": "h = 3.6 + 0.5 * Math.sin(x * 0.3 + z * 0.3);"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "grove"
+      ],
+      "placement_code": "else if (x > 18.0 && z >= 4.0 && z <= 26.0) {",
+      "elevation_code": "h = 7.5 + 1.2 * Math.sin(x * 0.25 + z * 0.2);"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "grassland"
+      ],
+      "placement_code": "else {",
+      "elevation_code": "h = 5.5 + 0.8 * Math.sin(x * 0.18 + z * 0.12);"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "ocean",
+        "beach"
+      ],
+      "placement_code": "if (isCoastalSouthWest && edgeDist < 6.5) {",
+      "elevation_code": "if (biome === \"ocean\") { h = 2.5; } else { h = 3.5; }"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "desert"
+      ],
+      "placement_code": "else if (z >= 24.0 && x >= -4.0) {",
+      "elevation_code": "h = 5.0 + 0.8 * Math.sin(x * 0.15 + z * 0.15); if (rDesMtn < 11.5) { const mesaRaw = (11.5 - rDesMtn) * 1.8; h = 5.0 + Math.floor(mesaRaw / 3.8) * 4.2 + 3.0; }"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "volcano"
+      ],
+      "placement_code": "if (rVolc < 18.0) {",
+      "elevation_code": "const coneH = Math.max(0, (18.0 - rVolc) * 2.1); h = 6.0 + coneH; if (rVolc < 3.8) { h = 32.0; }"
+    }
+  }
+}

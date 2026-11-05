@@ -1,0 +1,63 @@
+[
+  {
+    "biome": "forest",
+    "item": "dense_pine_silhouettes",
+    "seen": "Dense green pine voxel trees with white snowy tops visible in biome frame.",
+    "probe": null,
+    "agent": {
+      "found": true,
+      "evidence": "scatterBiome('conifer',105,2.25,pineTree);\nfunction pineTree(c,x,z){\n  const h=c.h,tr=rand(3.4,5.8),w=rand(2.4,3.1);\n  flora.add(x,h+tr/2,z,.55,tr,.55,0x544b3c);\n  for(let level=0;level<3;level++){\n    const ww=w-level*.55,y=h+1.7+level*1.25;\n    flora.add(x,y,z,ww,1.15,ww,pick([0x234c43,0x2c5b4c,0x1e443e]));\n    flora.add(x,y+.64,z,ww*.94,.18,ww*.94,pick([0xe4efed,0xcfdeda]));\n  }\n  flora.add(x,h+5.25,z,.8,.8,.8,0xe7f0ec);\n}",
+      "lines": [
+        425,
+        377,
+        378,
+        379,
+        380,
+        381,
+        382,
+        383,
+        385,
+        386
+      ],
+      "explanation": "The scatterBiome function places pineTree instances in the 'conifer' biome. The pineTree function builds the tree using a brown trunk (0x544b3c) and three levels of green canopy cubes (0x234c43, 0x2c5b4c, 0x1e443e) topped with white snowy voxel layers (0xe4efed, 0xcfdeda)."
+    },
+    "verified": true
+  },
+  {
+    "biome": "swamp",
+    "item": "stagnant_channels",
+    "seen": "Stagnant channels visible",
+    "probe": {
+      "found": false,
+      "evidence": "not in swamp scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "if(river&&!['desert','volcano'].includes(b))water.add(x,h+.06,z,BLOCK*.96,.28,BLOCK*.96,b==='swamp'?0x526f62:0x39b9ca);\nif(b==='swamp'&&hash(ix*3,iz)>.68)water.add(x,h+.09,z,BLOCK*.94,.25,BLOCK*.94,0x435f55);",
+      "lines": [
+        305,
+        307
+      ],
+      "explanation": "The code adds water objects to the swamp biome using water.add, which creates the stagnant channels. Line 305 adds river-based water with a specific swamp color, while line 307 adds additional stagnant water pools based on a hash threshold."
+    },
+    "verified": true
+  },
+  {
+    "biome": "grassland",
+    "item": "tall_grass",
+    "seen": "Tall meadow grass cubes scattered across the terrain.",
+    "probe": {
+      "found": false,
+      "evidence": "not in grassland scope"
+    },
+    "agent": {
+      "found": true,
+      "evidence": "scatterBiome('grass',150,.7,(c,x,z)=>flora.add(x,c.h+.18,z,.24,.36,.24,pick([0xf0dc78,0xf2eee0,0xd5c65a])));",
+      "lines": [
+        436
+      ],
+      "explanation": "The code uses scatterBiome to place flora objects across the 'grass' biome. The flora.add call creates cubes with dimensions .24x.36x.24, which represent the tall meadow grass cubes."
+    },
+    "verified": true
+  }
+]

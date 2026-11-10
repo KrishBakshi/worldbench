@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "B.MOUNT"
+      ],
+      "placement_code": "case B.MOUNT:return 26;",
+      "elevation_code": "h+=mountainExtra(x,z)*sstep(.3,.8,wM/ws);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "B.SNOWF"
+      ],
+      "placement_code": "case B.SNOWF:return 21+fbm(x*.05+3,z*.05+8)*4.5;",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "B.HIGH"
+      ],
+      "placement_code": "case B.HIGH:{const hills=Math.max(0,fbm(x*.09+40,z*.09+12)-.55)*22;return 18-5*sstep(.36,.47,v)+6*sstep(.53,.6,v)*sstep(.74,.8,u)+(fbm(x*.06+2,z*.06+6)-.5)*4+hills}",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "B.JUNGLE"
+      ],
+      "placement_code": "case B.JUNGLE:return 10.5+fbm(x*.045+9,z*.045+5)*4+((v+(vnoise(x*.08,5.5)-.5)*.02)<.445?8:0);",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "B.SWAMP"
+      ],
+      "placement_code": "case B.SWAMP:return 6.2+(fbm(x*.08,z*.08)-.5)*1.2;",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "B.GROVE"
+      ],
+      "placement_code": "case B.GROVE:return 9+(fbm(x*.06+15,z*.06+25)-.5)*2;",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "B.GRASS"
+      ],
+      "placement_code": "case B.GRASS:return 8+(fbm(x*.05,z*.05)-.5)*1.4;",
+      "elevation_code": "h+=w*baseH(b,x,z,u,v);"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "B.OCEAN",
+        "B.BEACH"
+      ],
+      "placement_code": "const delta=v>.5?Math.exp(-Math.pow((u-.41)/.085,2)):0;",
+      "elevation_code": "h=sd<.18?4:sd<.45?3:sd<.75?2:1;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "B.DESERT"
+      ],
+      "placement_code": "case B.DESERT:return 8+(fbm(x*.07+50,z*.035+20)-.45)*3;",
+      "elevation_code": "h+=ms;if(ms>1.5&&b1===B.DESERT)FLAG[i]|=F_MESA;"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "B.VOLC"
+      ],
+      "placement_code": "case B.VOLC:return 9+fbm(x*.11+70,z*.11+80)*3;",
+      "elevation_code": "if(rv<VR){const cone=9+48*Math.pow(1-rv/VR,1.4)+(vnoise(x*.3,z*.3)-.5)*1.6;h=Math.max(h,cone);if(rv<CR)h=CRATER}"
+    }
+  }
+}

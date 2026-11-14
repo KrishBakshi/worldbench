@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "MOUNTAIN"
+      ],
+      "placement_code": "else if (mtnW > 0.38) biome = BIOME.MOUNTAIN;",
+      "elevation_code": "h = lerp(h, 21.5 + ridge * 9.2 + peaks, mtnW);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "CONIFER"
+      ],
+      "placement_code": "else if (shelfW > 0.25) biome = (bx < 13.5) ? BIOME.CONIFER : BIOME.HIGHLAND;",
+      "elevation_code": "h = lerp(h, 15.4 + highlandRough + coniferRough, shelfW);"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "HIGHLAND"
+      ],
+      "placement_code": "else if (bx > 22 && bz < -8 && ih > 5) biome = BIOME.HIGHLAND;",
+      "elevation_code": "h = lerp(h, 15.4 + highlandRough + coniferRough, shelfW);"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "JUNGLE"
+      ],
+      "placement_code": "else if (jungleW > 0.36) biome = BIOME.JUNGLE;",
+      "elevation_code": "h += jungleW * (3.7 + nMed * 1.8 + nSmall * 0.85) + upperJungleW * 6.5;"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "SWAMP"
+      ],
+      "placement_code": "else if (swampW > 0.42) biome = BIOME.SWAMP;",
+      "elevation_code": "h = lerp(h, 1.05 + nSmall * 0.65, swampW);"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "GROVE"
+      ],
+      "placement_code": "else if (groveW > 0.38) biome = BIOME.GROVE;",
+      "elevation_code": "h = lerp(h, 4.6 + nMed * 0.85, groveW);"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "GRASSLAND"
+      ],
+      "placement_code": "let biome = BIOME.GRASSLAND;",
+      "elevation_code": "let h = 2.35 + nMed * 0.65;"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "OCEAN",
+        "BEACH"
+      ],
+      "placement_code": "else if (ih <= 0) biome = BIOME.OCEAN; else if (ih <= 2 && (coastApron > 0.15 || oceanW > 0.04)) biome = BIOME.BEACH;",
+      "elevation_code": "h = lerp(h, seaFloor, oceanW);"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "DESERT"
+      ],
+      "placement_code": "else if (desertRegionW > 0.42 || rimW > 0.38) biome = BIOME.DESERT;",
+      "elevation_code": "h = lerp(h, 3.2 + nMed * 0.55, desertRegionW);"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "VOLCANO"
+      ],
+      "placement_code": "if (volcW > 0.42) biome = BIOME.VOLCANO;",
+      "elevation_code": "h = lerp(h, volcH, volcW);"
+    }
+  }
+}

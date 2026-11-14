@@ -1,0 +1,84 @@
+{
+  "biome": "cycle",
+  "aliases": [
+    "SOURCE_TOKEN"
+  ],
+  "entities": {
+    "sun_orbit": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "squareSun.add(new THREE.Mesh(new THREE.BoxGeometry(13, 13, 13), sunCoreMat));",
+      "motion_evidence": "squareSun.position.set(sx, sy, sz);"
+    },
+    "light_follows_sun": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sunLight.position.set(sx, Math.max(18, sy), sz);",
+      "motion_evidence": "sunLight.position.set(sx, Math.max(18, sy), sz);"
+    },
+    "night_dimming": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sunLight.intensity = (0.06 + 1.52 * dayFactor) * (1.0 - stormCover * 0.26);",
+      "motion_evidence": "sunLight.intensity = (0.06 + 1.52 * dayFactor) * (1.0 - stormCover * 0.26);"
+    },
+    "dusk_dawn_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "sunColorTmp.setRGB(clamp(rSun, 0, 1), clamp(gSun, 0, 1), clamp(bSun, 0, 1));",
+      "motion_evidence": "sunLight.color.copy(sunColorTmp);"
+    },
+    "season_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const seasonU = ((elapsed / SEASON_PERIOD) % 1) * 4;",
+      "motion_evidence": "const seasonU = ((elapsed / SEASON_PERIOD) % 1) * 4;"
+    },
+    "season_world_tint": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "hemiLight.color.copy(skyHemiTmp);",
+      "motion_evidence": "hemiLight.color.copy(skyHemiTmp);"
+    },
+    "season_modulates_weather": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "const blizEnv = clamp(burstEnvelope(elapsed, 26, 0.08, 0.58) * seasonCfg.blizzardMod, 0, 1);",
+      "motion_evidence": "const blizEnv = clamp(burstEnvelope(elapsed, 26, 0.08, 0.58) * seasonCfg.blizzardMod, 0, 1);"
+    },
+    "cloud_drift_wrap": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "coniferDeck.group.position.x = drift;",
+      "motion_evidence": "const drift = Math.sin(elapsed * 0.18) * 3.5;"
+    },
+    "sky_or_fog_day_cycle": {
+      "looks_ok": true,
+      "moves_ok": true,
+      "axis": "cyclic",
+      "look_evidence": "hemiLight.intensity = lerp(0.22, 0.68, dayFactor);",
+      "motion_evidence": "hemiLight.intensity = lerp(0.22, 0.68, dayFactor);"
+    },
+    "moon": {
+      "looks_ok": false,
+      "moves_ok": false,
+      "axis": "n/a",
+      "look_evidence": "not in cycle scope",
+      "motion_evidence": "not in cycle scope"
+    }
+  },
+  "must_not_present": {
+    "stars_or_atmosphere_dome": {
+      "found": false,
+      "evidence": "scene.background = new THREE.Color(0x000000);"
+    }
+  }
+}

@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Floating Voxel Biome Continent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000000;
+    color: #e9eef5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  #viewport {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #status-hud {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 10;
+    background: rgba(8, 10, 14, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 10px 14px;
+    min-width: 196px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  }
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .status-label {
+    color: #8b96a8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+  }
+  #season-name {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: #8ee58f;
+  }
+  #day-phase {
+    color: #d6deeb;
+    font-size: 11px;
+  }
+  .bar-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  #season-bar {
+    height: 100%;
+    width: 0%;
+    background: #8ee58f;
+    transition: background-color 0.25s linear;
+  }
+  #legend {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 10;
+    width: 266px;
+    max-height: calc(100vh - 28px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(8, 10, 14, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+  }
+  .legend-header {
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .legend-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f3f6fb;
+  }
+  .legend-sub {
+    font-size: 10px;
+    color: #8b96a8;
+  }
+  #legend-list {
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .biome-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    padding: 6px 8px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .biome-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  .biome-btn.active {
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(255, 255, 255, 0.36);
+  }
+  .swatch {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    display: inline-block;
+  }
+  .biome-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #eef3fa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .biome-weather {
+    font-size: 10px;
+    color: #93a0b4;
+    white-space: nowrap;
+  }
+  .legend-footer {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 10px;
+    line-height: 1.45;
+    color: #96a2b5;
+  }
+  @media (max-width: 680px) {
+    #legend { width: 224px; }
+    .biome-weather { display: none; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="viewport"></canvas>
+
+<aside id="legend" aria-label="Biome Navigation">
+  <div class="legend-header">
+    <span class="legend-title">Voxel Continent</span>
+    <span class="legend-sub">Click to fly</span>
+  </div>
+  <div id="legend-list"></div>
+  <div class="legend-footer">
+    Drag: Orbit &middot; Scroll: Zoom &middot; Right-drag: Pan
+  </div>
+</aside>
+
+<section id="status-hud" aria-label="Season and Cycle">
+  <div class="status-row">
+    <span class="status-label">Season</span>
+    <span id="season-name">Spring</span>
+  </div>
+  <div class="status-row">
+    <span class="status-label">Solar Cycle</span>
+    <span id="day-phase">Noon</span>
+  </div>
+  <div class="bar-track"><div id="season-bar"></div></div>
+</section>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================================
+  1. DETERMINISTIC HASH & NOISE UTILITIES
+
+   ============================================================================ */
+function hash2(ix, iz) {
+  let h = (Math.imul(ix, 374761393) + Math.imul(iz, 668265263)) ^ 0x5bf03635;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+
+function hash3(ix, iy, iz) {
+  let h = (Math.imul(ix, 374761393) + Math.imul(iy, 1103515245) + Math.imul(iz, 668265263)) ^ 0x27d4eb2d;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+
+function smooth(t) { return t * t * (3 - 2 * t); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function smoothstep(e0, e1, x) {
+  const t = clamp((x - e0) / (e1 - e0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+function noise2(x, z) {
+  const ix = Math.floor(x), iz = Math.floor(z);
+  const fx = smooth(x - ix), fz = smooth(z - iz);
+  const a = hash2(ix, iz), b = hash2(ix + 1, iz);
+  const c = hash2(ix, iz + 1), d = hash2(ix + 1, iz + 1);
+  return lerp(lerp(a, b, fx), lerp(c, d, fx), fz) * 2 - 1;
+}
+
+function fbm2(x, z, oct = 4) {
+  let v = 0, amp = 0.5, freq = 1, norm = 0;
+  for (let i = 0; i < oct; i++) {
+    v += amp * noise2(x * freq, z * freq);
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2.03;
+  }
+  return v / norm;
+}
+
+function ridged2(x, z, oct = 3) {
+  let v = 0, amp = 0.5, freq = 1, norm = 0;
+  for (let i = 0; i < oct; i++) {
+    v += amp * (1 - Math.abs(noise2(x * freq, z * freq)));
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2.07;
+  }
+  return v / norm;
+}
+
+function noise3(x, y, z) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  const fx = smooth(x - ix), fy = smooth(y - iy), fz = smooth(z - iz);
+  return lerp(
+    lerp(
+      lerp(hash3(ix, iy, iz), hash3(ix + 1, iy, iz), fx),
+      lerp(hash3(ix, iy + 1, iz), hash3(ix + 1, iy + 1, iz), fx),
+      fy
+    ),
+    lerp(
+      lerp(hash3(ix, iy, iz + 1), hash3(ix + 1, iy, iz + 1), fx),
+      lerp(hash3(ix, iy + 1, iz + 1), hash3(ix + 1, iy + 1, iz + 1), fx),
+      fy
+    ),
+    fz
+  ) * 2 - 1;
+}
+
+/* ============================================================================
+  2. VOXEL GRID & BLOCK PALETTE
+
+   ============================================================================ */
+const NX = 196, NY = 132, NZ = 196;
+const HALF_X = 98, HALF_Z = 98, SEA_Y = 48;
+
+const B = {
+  AIR: 0,
+  STONE_DARK: 1,
+  STONE_MID: 2,
+  STONE_LIGHT: 3,
+  ALPINE_ROCK: 4,
+  DIRT: 5,
+  SNOW: 6,
+  SNOW_PODZOL: 7,
+  HIGHLAND_GRASS: 8,
+  HIGHLAND_SCRUB: 9,
+  JUNGLE_FLOOR: 10,
+  JUNGLE_WOOD: 11,
+  JUNGLE_LEAF_DARK: 12,
+  JUNGLE_LEAF_BRIGHT: 13,
+  JUNGLE_VINE: 14,
+  SWAMP_MUD: 15,
+  SWAMP_WOOD: 16,
+  SWAMP_LEAF: 17,
+  PLAINS_GRASS: 18,
+  PLAINS_OLIVE: 19,
+  OAK_WOOD: 20,
+  OAK_LEAF: 21,
+  FLOWER_YELLOW: 22,
+  FLOWER_WHITE: 23,
+  GROVE_PINK: 24,
+  GROVE_MOSS: 25,
+  GROVE_WOOD: 26,
+  BLOSSOM_LIGHT: 27,
+  BLOSSOM_DEEP: 28,
+  PINE_WOOD: 29,
+  PINE_LEAF: 30,
+  DESERT_SAND: 31,
+  DESERT_OCHRE: 32,
+  DRY_WASH: 33,
+  SANDSTONE_GOLD: 34,
+  SANDSTONE_TERRA: 35,
+  SANDSTONE_CREAM: 36,
+  CACTUS: 37,
+  BASALT_DARK: 38,
+  BASALT_ASH: 39,
+  OBSIDIAN: 40,
+  BEACH_SAND: 41,
+  BEACH_TAN: 42,
+  PALM_WOOD: 43,
+  PALM_LEAF: 44,
+  CORAL_CYAN: 45,
+  CORAL_PINK: 46,
+  CORAL_AMBER: 47,
+  RIVER_WATER: 48,
+  SWAMP_WATER: 49,
+  DELTA_WATER: 50,
+  LAGOON_WATER: 51,
+  OCEAN_WATER: 52,
+  LAVA: 53,
+  LAVA_BRIGHT: 54,
+  GLOW_MINERAL: 55
+};
+
+const HEX_PALETTE = {
+  [B.STONE_DARK]: 0x2a2f3a,
+  [B.STONE_MID]: 0x464f5e,
+  [B.STONE_LIGHT]: 0x677385,
+  [B.ALPINE_ROCK]: 0x5c6b7e,
+  [B.DIRT]: 0x6c4f37,
+  [B.SNOW]: 0xf3f7fc,
+  [B.SNOW_PODZOL]: 0x536158,
+  [B.HIGHLAND_GRASS]: 0x6f8c61,
+  [B.HIGHLAND_SCRUB]: 0x4f6845,
+  [B.JUNGLE_FLOOR]: 0x1b6d34,
+  [B.JUNGLE_WOOD]: 0x4b3320,
+  [B.JUNGLE_LEAF_DARK]: 0x115c29,
+  [B.JUNGLE_LEAF_BRIGHT]: 0x228b3f,
+  [B.JUNGLE_VINE]: 0x2ea048,
+  [B.SWAMP_MUD]: 0x3b4329,
+  [B.SWAMP_WOOD]: 0x3d3626,
+  [B.SWAMP_LEAF]: 0x48582d,
+  [B.PLAINS_GRASS]: 0x69a844,
+  [B.PLAINS_OLIVE]: 0x7d9e43,
+  [B.OAK_WOOD]: 0x614428,
+  [B.OAK_LEAF]: 0x4a8f38,
+  [B.FLOWER_YELLOW]: 0xf4d03f,
+  [B.FLOWER_WHITE]: 0xf5f7f0,
+  [B.GROVE_PINK]: 0xd884a7,
+  [B.GROVE_MOSS]: 0x89b37e,
+  [B.GROVE_WOOD]: 0x593c47,
+  [B.BLOSSOM_LIGHT]: 0xffb5d2,
+  [B.BLOSSOM_DEEP]: 0xe76d9e,
+  [B.PINE_WOOD]: 0x3f2b1d,
+  [B.PINE_LEAF]: 0x1e4a38,
+  [B.DESERT_SAND]: 0xe2b969,
+  [B.DESERT_OCHRE]: 0xcf9648,
+  [B.DRY_WASH]: 0xb89c6f,
+  [B.SANDSTONE_GOLD]: 0xd49b54,
+  [B.SANDSTONE_TERRA]: 0xb86d3c,
+  [B.SANDSTONE_CREAM]: 0xe7ca8b,
+  [B.CACTUS]: 0x358242,
+  [B.BASALT_DARK]: 0x1e1f24,
+  [B.BASALT_ASH]: 0x34353d,
+  [B.OBSIDIAN]: 0x160d29,
+  [B.BEACH_SAND]: 0xf4e7c3,
+  [B.BEACH_TAN]: 0xdec896,
+  [B.PALM_WOOD]: 0x8a643b,
+  [B.PALM_LEAF]: 0x4ca644,
+  [B.CORAL_CYAN]: 0x3be0d8,
+  [B.CORAL_PINK]: 0xf06ca2,
+  [B.CORAL_AMBER]: 0xf4ad42,
+  [B.RIVER_WATER]: 0x35d2eb,
+  [B.SWAMP_WATER]: 0x365242,
+  [B.DELTA_WATER]: 0x29c5cf,
+  [B.LAGOON_WATER]: 0x1ebbd1,
+  [B.OCEAN_WATER]: 0x1068a8,
+  [B.LAVA]: 0xff4d12,
+  [B.LAVA_BRIGHT]: 0xffae19,
+  [B.GLOW_MINERAL]: 0x38d6ff
+};
+
+const CAT = new Uint8Array(64);
+for (let i = 1; i <= 47; i++) CAT[i] = 1;  // Solid opaque
+for (let i = 48; i <= 52; i++) CAT[i] = 2; // Translucent water
+for (let i = 53; i <= 55; i++) CAT[i] = 3; // Unlit emissive (lava & glowing mineral seams)
+
+// Precompute linear RGB for Three.js vertex colors
+const BLOCK_RGB = new Float32Array(64 * 3);
+{
+  const tmp = new THREE.Color();
+  for (const [idStr, hex] of Object.entries(HEX_PALETTE)) {
+    const id = Number(idStr);
+    tmp.setHex(hex);
+    BLOCK_RGB[id * 3] = tmp.r;
+    BLOCK_RGB[id * 3 + 1] = tmp.g;
+    BLOCK_RGB[id * 3 + 2] = tmp.b;
+  }
+}
+
+const grid = new Uint8Array(NX * NY * NZ);
+const surfaceY = new Int16Array(NX * NZ);
+const underYArr = new Int16Array(NX * NZ);
+const biomeMap = new Uint8Array(NX * NZ);
+const insideMap = new Uint8Array(NX * NZ);
+const waterMask = new Uint8Array(NX * NZ);
+
+function colIdx(wx, wz) {
+  const x = wx + HALF_X, z = wz + HALF_Z;
+  if (x < 0 || x >= NX || z < 0 || z >= NZ) return -1;
+  return z * NX + x;
+}
+
+function setBlock(wx, wy, wz, id) {
+  const x = wx + HALF_X, y = wy + SEA_Y, z = wz + HALF_Z;
+  if (x < 1 || x >= NX - 1 || y < 1 || y >= NY - 1 || z < 1 || z >= NZ - 1) return;
+  grid[(y * NZ + z) * NX + x] = id;
+}
+
+function getBlock(wx, wy, wz) {
+  const x = wx + HALF_X, y = wy + SEA_Y, z = wz + HALF_Z;
+  if (x < 0 || x >= NX || y < 0 || y >= NY || z < 0 || z >= NZ) return 0;
+  return grid[(y * NZ + z) * NX + x];
+}
+
+/* ============================================================================
+  3. CONTINENT SILHOUETTE & ECOLOGICAL BIOME LAYOUT
+
+   ============================================================================ */
+const BIOME = {
+  OCEAN: 1,
+  BEACH: 2,
+  MOUNTAIN: 3,
+  CONIFER: 4,
+  HIGHLAND: 5,
+  JUNGLE: 6,
+  SWAMP: 7,
+  GRASSLAND: 8,
+  GROVE: 9,
+  DESERT: 10,
+  VOLCANO: 11
+};
+
+const LOBES = [
+  [-8, -68, 56, 22],   // Far North Snow Mountains
+  [-20, -40, 38, 18],  // Snowy Conifer Foothill Shelf
+  [45, -38, 36, 24],   // Elevated Temperate Highlands
+  [58, -1, 29, 20],    // Moist Pink Flowering Grove Basin
+  [-68, -26, 20, 22],  // Backwater Swamp (Jungle far backside)
+  [-40, -1, 30, 27],   // Dense Emerald Jungle
+  [6, 10, 32, 30],     // Open Central Grassland Plateau
+  [-66, 25, 22, 18],   // Western Coastal Bay
+  [-66, 58, 23, 23],   // Volcanic Wasteland Peninsula
+  [-10, 60, 41, 28],   // Southern Braided Delta & Lagoon Ocean
+  [56, 50, 34, 34]     // Arid Rain-Shadow Desert & Sandstone Peaks
+];
+
+function islandField(wx, wz) {
+  let best = -999;
+  for (let i = 0; i < LOBES.length; i++) {
+    const [cx, cz, rx, rz] = LOBES[i];
+    const d = 1.0 - Math.hypot((wx - cx) / rx, (wz - cz) / rz);
+    if (d > best) best = d;
+  }
+  return best + fbm2(wx * 0.045 + 11.3, wz * 0.045 - 7.1, 3) * 0.14 + noise2(wx * 0.12, wz * 0.12) * 0.04;
+}
+
+function sampleColumn(wx, wz) {
+  const bx = wx + fbm2(wx * 0.04 + 5.1, wz * 0.04 - 3.7, 2) * 3.2;
+  const bz = wz + fbm2(wx * 0.04 - 8.2, wz * 0.04 + 9.4, 2) * 3.2;
+  const nSmall = fbm2(wx * 0.08, wz * 0.08, 3);
+  const nMed = fbm2(wx * 0.035 + 21, wz * 0.035 - 14, 3);
+
+  // Open low grassland river plain baseline
+  let h = 2.35 + nMed * 0.65;
+
+  // Backwater Swamp on Jungle's far NW side (away from plains outlet)
+  const swampW = smoothstep(-52, -60, bx) * smoothstep(-3, -10, bz) * smoothstep(-50, -42, bz);
+  h = lerp(h, 1.05 + nSmall * 0.65, swampW);
+
+  // Dense Jungle + Upper Northern Waterfall Escarpment
+  const jungleW = smoothstep(-11, -19, bx) * smoothstep(-63, -54, bx) * smoothstep(23, 14, bz) * smoothstep(-30, -24, bz) * (1 - swampW * 0.88);
+  const upperJungleW = smoothstep(-13.5, -16.5, bz) * smoothstep(-56, -48, bx) * smoothstep(-15, -22, bx) * smoothstep(-30, -25, bz);
+  h += jungleW * (3.7 + nMed * 1.8 + nSmall * 0.85) + upperJungleW * 6.5;
+
+  // Moist Flowering Grove Basin (east of Grasslands, below Highland downslope)
+  const groveW = smoothstep(26, 35, bx) * smoothstep(-16, -8, bz) * smoothstep(18, 12, bz);
+  h = lerp(h, 4.6 + nMed * 0.85, groveW);
+
+  // Elevated Foothill Shelf: Snowy Conifers (west/center) + Temperate Highlands (east)
+  // East of bx=24, the southern Highland edge slopes gently down from y~16 into Flowering Grove (y~5)
+  const gentleSlopeBlend = smoothstep(24, 34, bx);
+  const southShelfEdge0 = lerp(-21, -8, gentleSlopeBlend);
+  const southShelfEdge1 = lerp(-28, -26, gentleSlopeBlend);
+  const shelfW = smoothstep(southShelfEdge0, southShelfEdge1, bz) * smoothstep(-56, -48, bx);
+  const highlandRough = smoothstep(12, 22, bx) * (nMed * 2.1 + Math.max(0, ridged2(wx * 0.07, wz * 0.07, 2) - 0.68) * 9.0);
+  const coniferRough = (1 - smoothstep(10, 18, bx)) * (nMed * 1.8 + nSmall * 1.1);
+  h = lerp(h, 15.4 + highlandRough + coniferRough, shelfW);
+
+  // Far Rear Snow Mountain Range (high-relief alpine massif)
+  const mtnW = smoothstep(-48, -57, bz) * smoothstep(48, 34, bx) * smoothstep(-66, -54, bx);
+  if (mtnW > 0.001) {
+    const ridge = ridged2(wx * 0.045 + 3.1, wz * 0.045 - 2.4, 4);
+    let peaks = 0;
+    const peakList = [
+      [-14, -71, 24, 24.5],
+      [-41, -69, 20, 19.5],
+      [12, -72, 21, 20.5],
+      [31, -66, 17, 15.0],
+      [-26, -63, 18, 15.5]
+    ];
+    for (const [px, pz, pr, ph] of peakList) {
+      const d = Math.hypot(wx - px, wz - pz) / pr;
+      if (d < 1) peaks = Math.max(peaks, (1 - d) * (1 - d * 0.35) * ph);
+    }
+    h = lerp(h, 21.5 + ridge * 9.2 + peaks, mtnW);
+  }
+
+  // Arid Desert Basin + Rain-Shadow Rim + Distinct Sandstone Mountains (SE, far from Volcano)
+  const desertRegionW = smoothstep(23, 31, bx) * smoothstep(14, 22, bz);
+  h = lerp(h, 3.2 + nMed * 0.55, desertRegionW);
+
+  // Rocky rain-shadow divide keeping moist Grove separate from arid Desert
+  const rimW = smoothstep(25, 34, bx) * smoothstep(12, 16.5, bz) * smoothstep(24, 18.5, bz);
+  h += rimW * (8.5 + ridged2(wx * 0.09, wz * 0.09, 3) * 5.5);
+
+  if (wx > 34 && wz > 20) {
+    let mesa = 0;
+    const sandstonePeaks = [
+      [66, 40, 16.5, 23.5],
+      [54, 30, 12.5, 18.0],
+      [75, 54, 13.0, 18.5],
+      [53, 69, 11.5, 13.5]
+    ];
+    for (const [px, pz, pr, ph] of sandstonePeaks) {
+      const d = Math.hypot(wx - px, (wz - pz) * 1.05) / pr;
+      if (d < 1) {
+        const prof = Math.min(1.0, (1 - d) * 1.45);
+        const crag = ridged2(wx * 0.08 + 7, wz * 0.08 - 5, 3) * 0.35 + 0.72;
+        mesa = Math.max(mesa, prof * crag * ph);
+      }
+    }
+    h += mesa * desertRegionW;
+  }
+
+  // Sandy Coastal Beaches & Turquoise Ocean Shelf (Southern & Western Edges)
+  const southBeachApron = smoothstep(29, 43, bz) * smoothstep(-49, -37, bx) * smoothstep(29, 18, bx);
+  const westBeachApron = smoothstep(-44, -56, bx) * smoothstep(5, 15, bz) * smoothstep(42, 32, bz);
+  const coastApron = clamp(southBeachApron + westBeachApron, 0, 1);
+  if (coastApron > 0.001) {
+    h = lerp(h, 1.15 + nSmall * 0.35, coastApron * 0.75);
+  }
+
+  const southOceanW = smoothstep(38, 49, bz) * smoothstep(-48, -38, bx) * smoothstep(27, 18, bx);
+  const westBayW = smoothstep(-51, -61, bx) * smoothstep(9, 17, bz) * smoothstep(39, 31, bz);
+  const oceanW = clamp(southOceanW + westBayW, 0, 1);
+  if (oceanW > 0.001) {
+    const deepT = clamp(smoothstep(56, 76, bz) * 0.85 + smoothstep(-67, -82, bx) * westBayW, 0, 1);
+    let seaFloor = lerp(-1.8, -5.2, deepT) + nSmall * 0.8;
+    // Small offshore rocky islands & shallow reef shoals
+    const islets = [
+      [-23, 68, 6.5, 4.4],
+      [5, 71, 5.6, 4.0],
+      [-72, 24, 5.2, 4.6],
+      [-8, 61, 6.8, 1.5]
+    ];
+    for (const [ix, iz, ir, ih] of islets) {
+      const d = Math.hypot(wx - ix, wz - iz) / ir;
+      if (d < 1) seaFloor += (1 - d * d) * ih;
+    }
+    h = lerp(h, seaFloor, oceanW);
+  }
+
+  // Tall Stratovolcano on Separate SW Volcanic Ground
+  const volcW = smoothstep(-42, -50, bx) * smoothstep(33, 41, bz);
+  if (volcW > 0.001) {
+    let volcH = 5.2 + ridged2(wx * 0.09, wz * 0.09, 2) * 2.5;
+    const vr = Math.hypot(wx + 67, wz - 57);
+    if (vr < 22.5) {
+      const cone = Math.pow((22.5 - vr) / 17.3, 1.12) * 37.0;
+      const ribs = ridged2((wx + 67) * 0.11, (wz - 57) * 0.11, 2) * 2.3;
+      volcH += Math.max(0, cone + ribs);
+      if (vr < 5.6) volcH -= smoothstep(5.6, 3.1, vr) * 11.5;
+    }
+    h = lerp(h, volcH, volcW);
+  }
+
+  const ih = Math.round(h);
+  let biome = BIOME.GRASSLAND;
+  if (volcW > 0.42) biome = BIOME.VOLCANO;
+  else if (mtnW > 0.38) biome = BIOME.MOUNTAIN;
+  else if (swampW > 0.42) biome = BIOME.SWAMP;
+  else if (shelfW > 0.25) biome = (bx < 13.5) ? BIOME.CONIFER : BIOME.HIGHLAND;
+  else if (desertRegionW > 0.42 || rimW > 0.38) biome = BIOME.DESERT;
+  else if (groveW > 0.38) biome = BIOME.GROVE;
+  else if (jungleW > 0.36) biome = BIOME.JUNGLE;
+  else if (ih <= 0) biome = BIOME.OCEAN;
+  else if (ih <= 2 && (coastApron > 0.15 || oceanW > 0.04)) biome = BIOME.BEACH;
+  else if (bx > 22 && bz < -8 && ih > 5) biome = BIOME.HIGHLAND;
+
+  return { h: ih, biome };
+}
+
+/* ============================================================================
+  4. BUILD TERRAIN, CLIFFS, UNDERSIDE, HYDROLOGY & VOLCANIC SYSTEMS
+
+   ============================================================================ */
+const waterfallSpouts = [];
+
+function buildTerrainAndHydrology() {
+  // Pass 1: Landmass Columns, Vertical Perimeter Cliffs, Deep Roots & Coastal Ocean
+  for (let z = 0; z < NZ; z++) {
+    for (let x = 0; x < NX; x++) {
+      const wx = x - HALF_X, wz = z - HALF_Z;
+      const k = z * NX + x;
+      const f = islandField(wx, wz);
+      if (f <= 0) {
+        surfaceY[k] = -999;
+        continue;
+      }
+      insideMap[k] = 1;
+      const col = sampleColumn(wx, wz);
+      surfaceY[k] = col.h;
+      biomeMap[k] = col.biome;
+
+      const edgeFactor = clamp(f / 0.24, 0, 1);
+      const crag = Math.abs(noise2(wx * 0.11 - 4.2, wz * 0.11 + 8.7)) * 8.5 + ridged2(wx * 0.055, wz * 0.055, 2) * 7.5;
+      const massDepth = Math.max(0, col.h) * 0.54;
+      const uY = -Math.round(7 + edgeFactor * (11 + massDepth + crag));
+      underYArr[k] = Math.max(-44, Math.min(col.h - 3, uY));
+
+      for (let wy = underYArr[k]; wy <= col.h; wy++) {
+        let blk = B.STONE_MID;
+        if (wy === col.h) {
+          switch (col.biome) {
+            case BIOME.MOUNTAIN:
+              blk = (wy >= 28 || (wy >= 22 && noise2(wx * 0.14, wz * 0.14) > -0.15)) ? B.SNOW : B.ALPINE_ROCK;
+              break;
+            case BIOME.CONIFER:
+              blk = noise2(wx * 0.18, wz * 0.18) > -0.12 ? B.SNOW : B.SNOW_PODZOL;
+              break;
+            case BIOME.HIGHLAND:
+              blk = (wy >= 19 || noise2(wx * 0.16, wz * 0.16) > 0.42) ? B.STONE_LIGHT : B.HIGHLAND_GRASS;
+              break;
+            case BIOME.JUNGLE:
+              blk = B.JUNGLE_FLOOR;
+              break;
+            case BIOME.SWAMP:
+              blk = B.SWAMP_MUD;
+              break;
+            case BIOME.GRASSLAND:
+              blk = noise2(wx * 0.13, wz * 0.13) > 0.15 ? B.PLAINS_OLIVE : B.PLAINS_GRASS;
+              break;
+            case BIOME.GROVE:
+              blk = noise2(wx * 0.17, wz * 0.17) > -0.25 ? B.GROVE_PINK : B.GROVE_MOSS;
+              break;
+            case BIOME.DESERT:
+              if (wy >= 6) {
+                const band = ((wy + Math.round(noise2(wx * 0.08, wz * 0.08) * 1.5)) % 4 + 4) % 4;
+                blk = band === 0 ? B.SANDSTONE_TERRA : band === 2 ? B.SANDSTONE_CREAM : B.SANDSTONE_GOLD;
+              } else {
+                blk = noise2(wx * 0.11, wz * 0.11) > 0.2 ? B.DESERT_OCHRE : B.DESERT_SAND;
+              }
+              break;
+            case BIOME.VOLCANO:
+              blk = noise2(wx * 0.15, wz * 0.15) > 0.18 ? B.BASALT_ASH : B.BASALT_DARK;
+              break;
+            case BIOME.BEACH:
+              blk = wy <= 1 ? B.BEACH_TAN : B.BEACH_SAND;
+              break;
+            default:
+              blk = wy >= -2 ? B.BEACH_TAN : B.STONE_MID;
+              break;
+          }
+        } else if (wy >= col.h - 2) {
+          if (col.biome === BIOME.DESERT) blk = B.SANDSTONE_GOLD;
+          else if (col.biome === BIOME.VOLCANO) blk = B.BASALT_DARK;
+          else if (col.biome === BIOME.MOUNTAIN) blk = B.ALPINE_ROCK;
+          else if (col.biome === BIOME.BEACH) blk = B.BEACH_TAN;
+          else blk = B.DIRT;
+        } else {
+          if (wy < underYArr[k] + 5) blk = B.STONE_DARK;
+          else if (col.biome === BIOME.VOLCANO && wy > -6) blk = B.BASALT_DARK;
+          else if (col.biome === BIOME.DESERT && wy > 0) blk = B.SANDSTONE_TERRA;
+          else blk = (wy % 5 === 0) ? B.STONE_LIGHT : B.STONE_MID;
+
+          // Blue glowing mineral seams in deep cliff walls & underside roots
+          if (wy < -3) {
+            const seam = Math.abs(noise3(wx * 0.09, wy * 0.14, wz * 0.09));
+            if (seam < 0.043 && hash3(wx, wy, wz) > 0.34) blk = B.GLOW_MINERAL;
+          }
+        }
+        setBlock(wx, wy, wz, blk);
+      }
+
+      // Coastal Ocean Water & Coral Reefs
+      if (col.h < 0 && col.biome === BIOME.OCEAN) {
+        if (col.h >= -3 && col.h <= -1 && hash2(wx * 3, wz * 5) > 0.87 && wz > 46) {
+          const rPick = hash2(wx + 19, wz - 23);
+          setBlock(wx, col.h + 1, wz, rPick < 0.35 ? B.CORAL_CYAN : rPick < 0.7 ? B.CORAL_PINK : B.CORAL_AMBER);
+        }
+        const wBlk = col.h <= -4 ? B.OCEAN_WATER : B.LAGOON_WATER;
+        for (let wy = col.h + 1; wy <= 0; wy++) {
+          if (getBlock(wx, wy, wz) === B.AIR) setBlock(wx, wy, wz, wBlk);
+        }
+      }
+    }
+  }
+
+  // Pass 2: Floating Rock Fragments Beneath the Island Underside
+  const fragments = [
+    [-42, -26, -34, 5.2], [-12, -31, -60, 6.0], [28, -28, -42, 5.0],
+    [56, -25, 36, 5.8], [-64, -27, 54, 5.4], [8, -24, 22, 4.6],
+    [-26, -22, 56, 4.4], [48, -23, -4, 4.5], [-68, -24, -22, 4.8],
+    [22, -30, 52, 4.3], [-48, -25, 12, 4.2], [68, -27, 56, 4.8]
+  ];
+  for (const [fx, fy, fz, fr] of fragments) {
+    const ir = Math.ceil(fr);
+    for (let dy = -ir; dy <= ir; dy++) {
+      for (let dz = -ir; dz <= ir; dz++) {
+        for (let dx = -ir; dx <= ir; dx++) {
+          const d = Math.hypot(dx * 0.95, dy * 1.25, dz * 0.95) / fr;
+          if (d + noise3((fx + dx) * 0.25, (fy + dy) * 0.25, (fz + dz) * 0.25) * 0.22 < 0.88) {
+            const isGlow = dy === 0 && hash3(fx + dx, fy + dy, fz + dz) > 0.84;
+            setBlock(fx + dx, fy + dy, fz + dz, isGlow ? B.GLOW_MINERAL : (dy < 0 ? B.STONE_DARK : B.STONE_MID));
+          }
+        }
+      }
+    }
+  }
+
+  // Pass 3: Jungle Plunge Pool & Rocky Clearing
+  for (let dz = -6; dz <= 6; dz++) {
+    for (let dx = -6; dx <= 6; dx++) {
+      const wx = -36 + dx, wz = -11 + dz;
+      const d = Math.hypot(dx, dz);
+      if (d > 5.6) continue;
+      const k = colIdx(wx, wz);
+      if (k < 0 || !insideMap[k]) continue;
+      waterMask[k] = 1;
+      if (d <= 4.3) {
+        for (let wy = 6; wy <= surfaceY[k] + 2; wy++) setBlock(wx, wy, wz, B.AIR);
+        setBlock(wx, 4, wz, B.STONE_MID);
+        setBlock(wx, 5, wz, B.RIVER_WATER);
+        surfaceY[k] = 5;
+      } else if (wz > -14) {
+        for (let wy = 7; wy <= surfaceY[k] + 1; wy++) setBlock(wx, wy, wz, B.AIR);
+        setBlock(wx, 6, wz, B.ALPINE_ROCK);
+        surfaceY[k] = 6;
+      }
+    }
+  }
+  // Second Jungle inland rocky pond clearing
+  for (let dz = -4; dz <= 4; dz++) {
+    for (let dx = -4; dx <= 4; dx++) {
+      const wx = -46 + dx, wz = 7 + dz;
+      const d = Math.hypot(dx, dz);
+      if (d > 3.8) continue;
+      const k = colIdx(wx, wz);
+      if (k < 0 || !insideMap[k]) continue;
+      waterMask[k] = 1;
+      const py = 5;
+      for (let wy = py + 1; wy <= surfaceY[k] + 2; wy++) setBlock(wx, wy, wz, B.AIR);
+      setBlock(wx, py - 1, wz, B.STONE_MID);
+      setBlock(wx, py, wz, d <= 2.7 ? B.RIVER_WATER : B.ALPINE_ROCK);
+      surfaceY[k] = py;
+    }
+  }
+
+  // Helper to carve monotonic downhill rivers & waterfalls
+  function carveRiver(pts, rStart, rEnd, waterType = B.RIVER_WATER) {
+    const samples = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+      const dist = Math.hypot(x1 - x0, z1 - z0);
+      const steps = Math.max(2, Math.ceil(dist * 2.2));
+      const nx = -(z1 - z0) / (dist || 1), nz = (x1 - x0) / (dist || 1);
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        const globalT = (i + t) / (pts.length - 1);
+        const wobble = Math.sin(globalT * 18.0 + i * 1.7) * 1.05;
+        const sx = lerp(x0, x1, t) + nx * wobble;
+        const sz = lerp(z0, z1, t) + nz * wobble;
+        const rad = lerp(rStart, rEnd, globalT);
+        const k = colIdx(Math.round(sx), Math.round(sz));
+        const terrH = (k >= 0 && insideMap[k]) ? surfaceY[k] : 0;
+        samples.push({ x: sx, z: sz, r: rad, rawY: Math.max(0, terrH) });
+      }
+    }
+    for (let i = 1; i < samples.length; i++) {
+      if (samples[i].rawY > samples[i - 1].rawY) samples[i].rawY = samples[i - 1].rawY;
+    }
+    for (let i = 0; i < samples.length; i++) {
+      const { x, z, r, rawY } = samples[i];
+      const prevY = i > 0 ? samples[i - 1].rawY : rawY;
+      if (prevY - rawY >= 3) {
+        waterfallSpouts.push({ x, yTop: prevY, yBot: rawY, z, voidFall: false });
+      }
+      const ir = Math.ceil(r + 1.5);
+      const cx = Math.round(x), cz = Math.round(z);
+      for (let dz = -ir; dz <= ir; dz++) {
+        for (let dx = -ir; dx <= ir; dx++) {
+          const wx = cx + dx, wz = cz + dz;
+          const d = Math.hypot(wx - x, wz - z);
+          if (d > r + 1.2) continue;
+          const k = colIdx(wx, wz);
+          if (k < 0 || !insideMap[k]) continue;
+          waterMask[k] = 1;
+          if (d <= r) {
+            for (let wy = rawY + 1; wy <= surfaceY[k] + 2; wy++) setBlock(wx, wy, wz, B.AIR);
+            const bedBlk = wz > 36 ? B.BEACH_TAN : (rawY > 10 ? B.ALPINE_ROCK : B.STONE_MID);
+            setBlock(wx, rawY - 1, wz, bedBlk);
+            const wBlk = (waterType === B.RIVER_WATER && wz > 47) ? B.LAGOON_WATER
+                       : (waterType === B.RIVER_WATER && wz > 39) ? B.DELTA_WATER : waterType;
+            for (let wy = rawY; wy <= prevY; wy++) setBlock(wx, wy, wz, wBlk);
+            surfaceY[k] = Math.min(surfaceY[k], rawY);
+          } else if (surfaceY[k] > rawY + 1 && rawY < 10) {
+            for (let wy = rawY + 2; wy <= surfaceY[k]; wy++) setBlock(wx, wy, wz, B.AIR);
+            surfaceY[k] = rawY + 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Wet Corridor Trunk: Alpine Melt -> Conifer Foothills -> Jungle Escarpment Waterfall -> Jungle -> Grasslands -> Braided Delta
+  carveRiver([[-31, -56], [-35, -43], [-37, -28], [-36, -18], [-36, -12], [-30, -4], [-20, 3], [-10, 10], [-6, 22], [-6, 35],
+[-8, 50]], 1.1, 2.5);
+  // Delta Distributary Braids & Freshwater-Saltwater Mixing Mouths
+  carveRiver([[-6, 34], [-16, 41], [-22, 50]], 1.5, 2.2);
+  carveRiver([[-6, 35], [2, 42], [9, 51]], 1.5, 2.2);
+  carveRiver([[-6, 26], [10, 33], [17, 45]], 1.1, 1.7);
+  carveRiver([[-15, 12], [-20, 23], [-24, 36], [-28, 48]], 1.1, 1.8);
+  // Central Alpine Melt -> Snow Forest -> Foothill Cascade -> Grasslands Network
+  carveRiver([[-5, -56], [-4, -40], [-3, -25], [1, -12], [5, 2], [2, 16], [-5, 25]], 1.0, 1.7);
+  carveRiver([[11, -52], [11, -36], [13, -21], [15, -6], [12, 8], [2, 18]], 0.9, 1.35);
+  // Temperate Highland Melt -> Gentle Slope -> Pink Flowering Grove -> Grasslands (never into Desert!)
+  carveRiver([[43, -38], [46, -24], [52, -8], [50, 3], [36, 5], [20, 9], [5, 14]], 0.95, 1.45);
+  carveRiver([[64, -8], [56, 1], [50, 3]], 0.85, 1.1);
+  // Backwater Swamp Stagnant Channels & Murky Pools (Jungle backside)
+  carveRiver([[-56, -17], [-65, -22], [-73, -30], [-77, -18]], 1.3, 1.9, B.SWAMP_WATER);
+  for (const [px, pz, pr] of [[-68, -28, 4.6], [-75, -18, 4.1], [-64, -14, 3.7], [-72, -37, 3.9]]) {
+    for (let dz = -5; dz <= 5; dz++) {
+      for (let dx = -5; dx <= 5; dx++) {
+        if (Math.hypot(dx, dz) > pr) continue;
+        const wx = px + dx, wz = pz + dz, k = colIdx(wx, wz);
+        if (k < 0 || !insideMap[k]) continue;
+        waterMask[k] = 1;
+        for (let wy = 2; wy <= surfaceY[k] + 1; wy++) setBlock(wx, wy, wz, B.AIR);
+        setBlock(wx, 0, wz, B.SWAMP_MUD);
+        setBlock(wx, 1, wz, B.SWAMP_WATER);
+        surfaceY[k] = 1;
+      }
+    }
+  }
+
+  // Desert Fading Dry Washes (arid gravel/ochre tracks that fade out on the flats — zero water)
+  const washes = [
+    [[58, 36], [48, 43], [39, 49], [33, 53]],
+    [[66, 52], [56, 58], [46, 63]],
+    [[51, 34], [43, 35], [36, 37]]
+  ];
+  for (const wash of washes) {
+    for (let i = 0; i < wash.length - 1; i++) {
+      const [x0, z0] = wash[i], [x1, z1] = wash[i + 1];
+      const steps = Math.ceil(Math.hypot(x1 - x0, z1 - z0) * 2);
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps, gt = (i + t) / (wash.length - 1);
+        if (hash2(s * 7 + i, Math.round(gt * 50)) < gt * 0.55) continue;
+        const wx = Math.round(lerp(x0, x1, t)), wz = Math.round(lerp(z0, z1, t));
+        const r = lerp(1.55, 0.5, gt);
+        for (let dz = -2; dz <= 2; dz++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            if (Math.hypot(dx, dz) > r) continue;
+            const k = colIdx(wx + dx, wz + dz);
+            if (k >= 0 && insideMap[k] && surfaceY[k] <= 6) {
+              setBlock(wx + dx, surfaceY[k], wz + dz, B.DRY_WASH);
+              waterMask[k] = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Volcano Glowing Crater + Lava Tributaries + Basalt Lava Pools + Coastal Obsidian Quench
+  for (let dz = -6; dz <= 6; dz++) {
+    for (let dx = -6; dx <= 6; dx++) {
+      const d = Math.hypot(dx, dz);
+      if (d <= 4.7) {
+        const wx = -67 + dx, wz = 57 + dz, k = colIdx(wx, wz);
+        for (let wy = 39; wy <= 49; wy++) setBlock(wx, wy, wz, B.AIR);
+        setBlock(wx, 37, wz, B.BASALT_DARK);
+        setBlock(wx, 38, wz, d < 2.6 ? B.LAVA_BRIGHT : B.LAVA);
+        if (k >= 0) { surfaceY[k] = 38; waterMask[k] = 1; }
+      }
+    }
+  }
+
+  function carveLavaStream(pts) {
+    let prevY = 38;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+      const steps = Math.ceil(Math.hypot(x1 - x0, z1 - z0) * 2.5);
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps;
+        const sx = lerp(x0, x1, t), sz = lerp(z0, z1, t);
+        const cx = Math.round(sx), cz = Math.round(sz);
+        const ck = colIdx(cx, cz);
+        if (ck < 0 || !insideMap[ck]) continue;
+        const curY = Math.min(prevY, Math.max(1, surfaceY[ck]));
+        for (let dz = -1; dz <= 1; dz++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (Math.hypot(cx + dx - sx, cz + dz - sz) > 1.15) continue;
+            const wx = cx + dx, wz = cz + dz, k = colIdx(wx, wz);
+            if (k < 0 || !insideMap[k]) continue;
+            waterMask[k] = 1;
+            let touchesWater = (curY <= 1 && wz >= 46 && wx >= -49);
+            for (let ndz = -1; ndz <= 1; ndz++) {
+              for (let ndx = -1; ndx <= 1; ndx++) {
+                if (CAT[getBlock(wx + ndx, 0, wz + ndz)] === 2) touchesWater = true;
+              }
+            }
+            if (touchesWater) {
+              setBlock(wx, curY - 1, wz, B.OBSIDIAN);
+              setBlock(wx, curY, wz, B.OBSIDIAN);
+            } else {
+              for (let wy = curY + 1; wy <= surfaceY[k] + 1; wy++) setBlock(wx, wy, wz, B.AIR);
+              setBlock(wx, curY - 1, wz, B.BASALT_DARK);
+              for (let wy = curY; wy <= prevY; wy++) {
+                setBlock(wx, wy, wz, (wy === curY && hash2(wx, wz) > 0.55) ? B.LAVA_BRIGHT : B.LAVA);
+              }
+              surfaceY[k] = curY;
+            }
+          }
+        }
+        prevY = curY;
+      }
+    }
+  }
+  carveLavaStream([[-67, 61], [-71, 65], [-75, 70]]);
+  carveLavaStream([[-71, 55], [-75, 50], [-78, 45]]);
+  carveLavaStream([[-62, 57], [-56, 55], [-50, 53], [-45, 52]]);
+
+  for (const [px, pz, pr, py] of [[-75, 70, 4.0, 6], [-78, 45, 3.6, 6]]) {
+    for (let dz = -5; dz <= 5; dz++) {
+      for (let dx = -5; dx <= 5; dx++) {
+        const d = Math.hypot(dx, dz);
+        if (d > pr + 1.0) continue;
+        const wx = px + dx, wz = pz + dz, k = colIdx(wx, wz);
+        if (k < 0 || !insideMap[k]) continue;
+        waterMask[k] = 1;
+        if (d <= pr) {
+          for (let wy = py + 1; wy <= surfaceY[k] + 2; wy++) setBlock(wx, wy, wz, B.AIR);
+          setBlock(wx, py - 1, wz, B.BASALT_DARK);
+          setBlock(wx, py, wz, d < pr * 0.45 ? B.LAVA_BRIGHT : B.LAVA);
+          surfaceY[k] = py;
+        } else {
+          setBlock(wx, Math.max(py, surfaceY[k]), wz, B.BASALT_DARK);
+        }
+      }
+    }
+  }
+
+  // Explicit Obsidian Quench Zone where Volcanic Lava meets Coastal Lagoon (-45, 52)
+  for (let dz = -4; dz <= 4; dz++) {
+    for (let dx = -4; dx <= 4; dx++) {
+      const d = Math.hypot(dx, dz);
+      if (d > 3.9) continue;
+      const wx = -45 + dx, wz = 52 + dz, k = colIdx(wx, wz);
+      if (k < 0 || !insideMap[k]) continue;
+      waterMask[k] = 1;
+      const oy = dx < -1.2 ? 1 : 0;
+      for (let wy = oy + 1; wy <= Math.max(oy + 1, surfaceY[k]); wy++) setBlock(wx, wy, wz, B.AIR);
+      setBlock(wx, oy - 1, wz, B.BASALT_DARK);
+      setBlock(wx, oy, wz, dx < -2.3 ? B.LAVA : B.OBSIDIAN);
+      if (d < 2.4 && hash2(wx, wz) > 0.42) setBlock(wx, oy + 1, wz, B.OBSIDIAN);
+      surfaceY[k] = oy;
+    }
+  }
+
+  // Pass 4: Cliff-Edge Void Waterfalls where Suspended Ocean & Swamp Meet the Perimeter Drop-off
+  let edgeCounter = 0;
+  for (let z = 2; z < NZ - 2; z++) {
+    for (let x = 2; x < NX - 2; x++) {
+      const k = z * NX + x;
+      if (!insideMap[k]) continue;
+      const wx = x - HALF_X, wz = z - HALF_Z;
+      const topBlk = getBlock(wx, 0, wz);
+      const swampBlk = getBlock(wx, 1, wz);
+      const isOceanEdge = CAT[topBlk] === 2;
+      const isSwampEdge = swampBlk === B.SWAMP_WATER;
+      if (!isOceanEdge && !isSwampEdge) continue;
+
+      let outDx = 0, outDz = 0;
+      for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        if (!insideMap[(z + dz) * NX + (x + dx)]) { outDx = dx; outDz = dz; break; }
+      }
+      if (outDx === 0 && outDz === 0) continue;
+      edgeCounter++;
+      if (edgeCounter % 5 === 0) {
+        const startY = isSwampEdge ? 1 : 0;
+        const dropLen = 22 + Math.floor(hash2(wx, wz) * 14);
+        const wType = isSwampEdge ? B.SWAMP_WATER : (topBlk === B.OCEAN_WATER ? B.OCEAN_WATER : B.LAGOON_WATER);
+        for (let wy = startY; wy >= startY - dropLen; wy--) {
+          setBlock(wx + outDx, wy, wz + outDz, wType);
+        }
+        waterfallSpouts.push({
+          x: wx + outDx * 1.15,
+          yTop: startY,
+          yBot: startY - dropLen - 6,
+          z: wz + outDz * 1.15,
+          voidFall: true
+        });
+      }
+    }
+  }
+}
+
+/* ============================================================================
+  5. VOXEL FLORA (STACKED BLOCK TREES, SNOW CANOPIES, MANGROVES, CACTI, PALMS)
+
+   ============================================================================ */
+function placeSnowPine(wx, wy, wz, h) {
+  for (let y = 1; y <= h; y++) setBlock(wx, wy + y, wz, B.PINE_WOOD);
+  const tiers = [
+    { dy: h - 4, r: 2 },
+    { dy: h - 2, r: 2 },
+    { dy: h - 1, r: 1 },
+    { dy: h,     r: 1 }
+  ];
+  for (const { dy, r } of tiers) {
+    if (dy < 2) continue;
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.abs(dx) === r && Math.abs(dz) === r && r > 1) continue;
+        if (dx === 0 && dz === 0 && dy < h) continue;
+        setBlock(wx + dx, wy + dy, wz + dz, B.PINE_LEAF);
+        // Explicit snow cap blocks resting directly on conifer canopy tiers
+        if (dy === h || dy === h - 2 || (Math.abs(dx) + Math.abs(dz) >= r && hash2(wx + dx, wz + dz) > 0.25)) {
+          if (getBlock(wx + dx, wy + dy + 1, wz + dz) === B.AIR) {
+            setBlock(wx + dx, wy + dy + 1, wz + dz, B.SNOW);
+          }
+        }
+      }
+    }
+  }
+  setBlock(wx, wy + h + 1, wz, B.PINE_LEAF);
+  setBlock(wx, wy + h + 2, wz, B.SNOW);
+}
+
+function placeJungleTree(wx, wy, wz, h) {
+  for (let y = 1; y <= h; y++) setBlock(wx, wy + y, wz, B.JUNGLE_WOOD);
+  // Buttress roots on tall emergent trees
+  if (h >= 9) {
+    for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      setBlock(wx + dx, wy + 1, wz + dz, B.JUNGLE_WOOD);
+    }
+  }
+  const rMain = h >= 9 ? 3 : 2;
+  for (let dy = -1; dy <= 2; dy++) {
+    const r = dy === 2 ? rMain - 1 : rMain;
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dz * dz > r * r + 1) continue;
+        const leaf = (dy >= 1 && hash3(wx + dx, wy + h + dy, wz + dz) > 0.42) ? B.JUNGLE_LEAF_BRIGHT : B.JUNGLE_LEAF_DARK;
+        setBlock(wx + dx, wy + h + dy, wz + dz, leaf);
+        // Hanging blocky vines at outer canopy rim
+        if (dy === -1 && Math.abs(dx) + Math.abs(dz) >= rMain && hash2(wx + dx * 3, wz + dz * 5) > 0.68) {
+          const vLen = 2 + Math.floor(hash2(wx - dx, wz + dz) * 3);
+          for (let v = 1; v <= vLen; v++) {
+            if (getBlock(wx + dx, wy + h - 1 - v, wz + dz) === B.AIR) {
+              setBlock(wx + dx, wy + h - 1 - v, wz + dz, B.JUNGLE_VINE);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function placeMangrove(wx, wy, wz) {
+  // Blocky arched prop roots + olive canopy
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    setBlock(wx + dx, wy, wz + dz, B.SWAMP_WOOD);
+    setBlock(wx + dx, wy + 1, wz + dz, B.SWAMP_WOOD);
+  }
+  for (let y = 1; y <= 5; y++) setBlock(wx, wy + y, wz, B.SWAMP_WOOD);
+  for (let dy = 0; dy <= 1; dy++) {
+    const r = dy === 0 ? 2 : 1;
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+        setBlock(wx + dx, wy + 5 + dy, wz + dz, B.SWAMP_LEAF);
+        if (dy === 0 && (Math.abs(dx) === 2 || Math.abs(dz) === 2) && hash2(wx + dx, wz + dz) > 0.55) {
+          setBlock(wx + dx, wy + 4, wz + dz, B.SWAMP_LEAF);
+          setBlock(wx + dx, wy + 3, wz + dz, B.SWAMP_LEAF);
+        }
+      }
+    }
+  }
+}
+
+function placeBlossomTree(wx, wy, wz, h) {
+  for (let y = 1; y <= h; y++) setBlock(wx, wy + y, wz, B.GROVE_WOOD);
+  for (let dy = -1; dy <= 2; dy++) {
+    const r = (dy === 2 || dy === -1) ? 1 : 2;
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2 && dy !== 0) continue;
+        const bBlk = hash3(wx + dx, wy + h + dy, wz + dz) > 0.38 ? B.BLOSSOM_LIGHT : B.BLOSSOM_DEEP;
+        setBlock(wx + dx, wy + h + dy, wz + dz, bBlk);
+      }
+    }
+  }
+}
+
+function placeOakTree(wx, wy, wz, h) {
+  for (let y = 1; y <= h; y++) setBlock(wx, wy + y, wz, B.OAK_WOOD);
+  for (let dy = 0; dy <= 2; dy++) {
+    const r = dy === 2 ? 1 : 2;
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (r === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+        setBlock(wx + dx, wy + h + dy, wz + dz, B.OAK_LEAF);
+      }
+    }
+  }
+}
+
+function placeCactus(wx, wy, wz, h) {
+  for (let y = 1; y <= h; y++) setBlock(wx, wy + y, wz, B.CACTUS);
+  if (h >= 4 && hash2(wx * 3, wz * 7) > 0.3) {
+    const dir = hash2(wx, wz + 9) > 0.5 ? [1, 0] : [0, 1];
+    setBlock(wx + dir[0], wy + 2, wz + dir[1], B.CACTUS);
+    setBlock(wx + dir[0], wy + 3, wz + dir[1], B.CACTUS);
+    if (hash2(wx + 5, wz - 3) > 0.45) {
+      setBlock(wx - dir[0], wy + 3, wz - dir[1], B.CACTUS);
+      setBlock(wx - dir[0], wy + 4, wz - dir[1], B.CACTUS);
+    }
+  }
+}
+
+function placePalm(wx, wy, wz) {
+  const leanX = wz > 42 ? 0 : -1;
+  const leanZ = wz > 42 ? 1 : 0;
+  let cx = wx, cz = wz;
+  for (let y = 1; y <= 6; y++) {
+    if (y === 4 || y === 6) { cx += leanX; cz += leanZ; }
+    setBlock(cx, wy + y, cz, B.PALM_WOOD);
+  }
+  setBlock(cx, wy + 7, cz, B.PALM_LEAF);
+  for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+    setBlock(cx + dx, wy + 7, cz + dz, B.PALM_LEAF);
+    setBlock(cx + dx * 2, wy + 6, cz + dz * 2, B.PALM_LEAF);
+  }
+}
+
+function populateFlora() {
+  for (let wz = -HALF_Z + 4; wz <= HALF_Z - 4; wz += 2) {
+    for (let wx = -HALF_X + 4; wx <= HALF_X - 4; wx += 2) {
+      const jx = wx + (hash2(wx, wz) > 0.5 ? 1 : 0);
+      const jz = wz + (hash2(wz + 13, wx - 7) > 0.5 ? 1 : 0);
+      const k = colIdx(jx, jz);
+      if (k < 0 || !insideMap[k] || waterMask[k]) continue;
+
+      const wy = surfaceY[k];
+      const b = biomeMap[k];
+      const topBlk = getBlock(jx, wy, jz);
+      if (CAT[topBlk] !== 1) continue;
+      const r = hash2(jx * 11 + 3, jz * 17 - 5);
+
+      if (b === BIOME.CONIFER && wy >= 11 && wy <= 24) {
+        if (jx % 3 === 0 && jz % 3 === 0 || r > 0.56) {
+          placeSnowPine(jx, wy, jz, 6 + Math.floor(r * 4));
+        }
+      } else if (b === BIOME.HIGHLAND && wy >= 8 && wy <= 19) {
+        if (r > 0.80) {
+          setBlock(jx, wy + 1, jz, B.HIGHLAND_SCRUB);
+          if (r > 0.92) setBlock(jx + 1, wy + 1, jz, B.HIGHLAND_SCRUB);
+        } else if (r < 0.04) {
+          setBlock(jx, wy + 1, jz, B.STONE_LIGHT);
+          setBlock(jx, wy + 2, jz, B.STONE_LIGHT);
+        }
+      } else if (b === BIOME.JUNGLE && wy >= 3) {
+        if (r > 0.36) {
+          placeJungleTree(jx, wy, jz, 6 + Math.floor(r * 6));
+        } else if (r > 0.14) {
+          setBlock(jx, wy + 1, jz, B.JUNGLE_LEAF_BRIGHT);
+        }
+      } else if (b === BIOME.SWAMP && wy >= 1 && wy <= 3) {
+        if (r > 0.66) {
+          placeMangrove(jx, wy, jz);
+        }
+      } else if (b === BIOME.GROVE && wy >= 3 && wy <= 9) {
+        if (r > 0.52) {
+          placeBlossomTree(jx, wy, jz, 4 + Math.floor(r * 3));
+        } else if (r < 0.16) {
+          setBlock(jx, wy + 1, jz, B.BLOSSOM_LIGHT);
+        }
+      } else if (b === BIOME.GRASSLAND && wy >= 2 && wy <= 6) {
+        const copse = noise2(jx * 0.09 + 4, jz * 0.09 - 2);
+        if (copse > 0.44 && r > 0.72) {
+          placeOakTree(jx, wy, jz, 4 + Math.floor(r * 2));
+        } else if (r < 0.09) {
+          setBlock(jx, wy + 1, jz, r < 0.045 ? B.FLOWER_YELLOW : B.FLOWER_WHITE);
+        }
+      } else if (b === BIOME.DESERT && wy >= 2 && wy <= 6) {
+        if (r > 0.87 && ((jx + jz) & 1) === 0) {
+          placeCactus(jx, wy, jz, 3 + Math.floor(hash2(jx - 9, jz + 4) * 3));
+        } else if (r < 0.03) {
+          setBlock(jx, wy + 1, jz, B.DRY_WASH);
+        }
+      } else if (b === BIOME.BEACH && wy >= 1 && wy <= 2) {
+        if (r > 0.90 && jx > -42 && jx < 24) {
+          placePalm(jx, wy, jz);
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================================
+  6. FACE-CULLED VOXEL MESH BUILDER WITH VERTEX AO
+
+   ============================================================================ */
+const FACES = [
+  { // +X
+    dir: [1, 0, 0], shade: 0.86,
+    verts: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]],
+    ao: [[[1,-1,0],[1,0,-1],[1,-1,-1]], [[1,1,0],[1,0,-1],[1,1,-1]], [[1,1,0],[1,0,1],[1,1,1]], [[1,-1,0],[1,0,1],[1,-1,1]]]
+  },
+  { // -X
+    dir: [-1, 0, 0], shade: 0.80,
+    verts: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]],
+    ao: [[[-1,-1,0],[-1,0,1],[-1,-1,1]], [[-1,1,0],[-1,0,1],[-1,1,1]], [[-1,1,0],[-1,0,-1],[-1,1,-1]],
+[[-1,-1,0],[-1,0,-1],[-1,-1,-1]]]
+  },
+  { // +Y
+    dir: [0, 1, 0], shade: 1.00,
+    verts: [[0,1,1],[1,1,1],[1,1,0],[0,1,0]],
+    ao: [[[-1,1,0],[0,1,1],[-1,1,1]], [[1,1,0],[0,1,1],[1,1,1]], [[1,1,0],[0,1,-1],[1,1,-1]], [[-1,1,0],[0,1,-1],[-1,1,-1]]]
+  },
+  { // -Y
+    dir: [0, -1, 0], shade: 0.56,
+    verts: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]],
+    ao: [[[-1,-1,0],[0,-1,-1],[-1,-1,-1]], [[1,-1,0],[0,-1,-1],[1,-1,-1]], [[1,-1,0],[0,-1,1],[1,-1,1]],
+[[-1,-1,0],[0,-1,1],[-1,-1,1]]]
+  },
+  { // +Z
+    dir: [0, 0, 1], shade: 0.92,
+    verts: [[1,0,1],[1,1,1],[0,1,1],[0,0,1]],
+    ao: [[[1,0,1],[0,-1,1],[1,-1,1]], [[1,0,1],[0,1,1],[1,1,1]], [[-1,0,1],[0,1,1],[-1,1,1]], [[-1,0,1],[0,-1,1],[-1,-1,1]]]
+  },
+  { // -Z
+    dir: [0, 0, -1], shade: 0.76,
+    verts: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]],
+    ao: [[[-1,0,-1],[0,-1,-1],[-1,-1,-1]], [[-1,0,-1],[0,1,-1],[-1,1,-1]], [[1,0,-1],[0,1,-1],[1,1,-1]],
+[[1,0,-1],[0,-1,-1],[1,-1,-1]]]
+  }
+];
+
+function buildVoxelMeshes(scene) {
+  let opaqueQuads = 0, waterQuads = 0, emissiveQuads = 0;
+
+  for (let y = 1; y < NY - 1; y++) {
+    for (let z = 1; z < NZ - 1; z++) {
+      const row = (y * NZ + z) * NX;
+      for (let x = 1; x < NX - 1; x++) {
+        const id = grid[row + x];
+        if (id === 0) continue;
+        const cat = CAT[id];
+        for (let f = 0; f < 6; f++) {
+          const d = FACES[f].dir;
+          const nid = grid[((y + d[1]) * NZ + (z + d[2])) * NX + (x + d[0])];
+          const ncat = CAT[nid];
+          if (cat === 1 && ncat !== 1) opaqueQuads++;
+          else if (cat === 2 && nid === 0) waterQuads++;
+          else if (cat === 3 && (nid === 0 || ncat === 2)) emissiveQuads++;
+        }
+      }
+    }
+  }
+
+  function allocBuffers(quadCount) {
+    return {
+      pos: new Float32Array(quadCount * 12),
+      nrm: new Float32Array(quadCount * 12),
+      col: new Float32Array(quadCount * 12),
+      idx: new Uint32Array(quadCount * 6),
+      vPtr: 0,
+      iPtr: 0,
+      vCount: 0
+    };
+  }
+
+  const bOpaque = allocBuffers(opaqueQuads);
+  const bWater = allocBuffers(waterQuads);
+  const bEmissive = allocBuffers(emissiveQuads);
+
+  const AO_LUT = [1.0, 0.85, 0.71, 0.57];
+
+  for (let y = 1; y < NY - 1; y++) {
+    const wy = y - SEA_Y;
+    for (let z = 1; z < NZ - 1; z++) {
+      const wz = z - HALF_Z;
+      const row = (y * NZ + z) * NX;
+      for (let x = 1; x < NX - 1; x++) {
+        const id = grid[row + x];
+        if (id === 0) continue;
+        const wx = x - HALF_X;
+        const cat = CAT[id];
+
+        const baseR = BLOCK_RGB[id * 3];
+        const baseG = BLOCK_RGB[id * 3 + 1];
+        const baseB = BLOCK_RGB[id * 3 + 2];
+        // Subtle per-voxel block tone variation so stacked voxels read crisply
+        const jitter = cat === 1 ? (1.0 + (hash3(x, y, z) - 0.5) * 0.07) : 1.0;
+
+        for (let f = 0; f < 6; f++) {
+          const face = FACES[f];
+          const d = face.dir;
+          const nid = grid[((y + d[1]) * NZ + (z + d[2])) * NX + (x + d[0])];
+          const ncat = CAT[nid];
+
+          let target = null;
+          if (cat === 1 && ncat !== 1) target = bOpaque;
+          else if (cat === 2 && nid === 0) target = bWater;
+          else if (cat === 3 && (nid === 0 || ncat === 2)) target = bEmissive;
+          if (!target) continue;
+
+          const yDrop = (cat === 2 && f === 2) ? -0.12 : 0.0;
+          const aoScores = [0, 0, 0, 0];
+
+          for (let v = 0; v < 4; v++) {
+            const fv = face.verts[v];
+            let aoMul = 1.0;
+            if (cat === 1) {
+              const aoN = face.ao[v];
+              const s1 = CAT[grid[((y + aoN[0][1]) * NZ + (z + aoN[0][2])) * NX + (x + aoN[0][0])]] === 1 ? 1 : 0;
+              const s2 = CAT[grid[((y + aoN[1][1]) * NZ + (z + aoN[1][2])) * NX + (x + aoN[1][0])]] === 1 ? 1 : 0;
+              const c  = CAT[grid[((y + aoN[2][1]) * NZ + (z + aoN[2][2])) * NX + (x + aoN[2][0])]] === 1 ? 1 : 0;
+              const occ = (s1 && s2) ? 3 : (s1 + s2 + c);
+              aoScores[v] = occ;
+              aoMul = AO_LUT[occ];
+            }
+
+            const shade = (cat === 3 ? 1.0 : face.shade) * aoMul * jitter;
+            const p = target.vPtr;
+            target.pos[p]     = wx + fv[0];
+            target.pos[p + 1] = wy + fv[1] + (fv[1] === 1 ? yDrop : 0);
+            target.pos[p + 2] = wz + fv[2];
+
+            target.nrm[p]     = d[0];
+            target.nrm[p + 1] = d[1];
+            target.nrm[p + 2] = d[2];
+
+            target.col[p]     = Math.min(1, baseR * shade);
+            target.col[p + 1] = Math.min(1, baseG * shade);
+            target.col[p + 2] = Math.min(1, baseB * shade);
+            target.vPtr += 3;
+          }
+
+          const vc = target.vCount;
+          const ip = target.iPtr;
+          if (aoScores[0] + aoScores[2] > aoScores[1] + aoScores[3]) {
+            target.idx[ip] = vc + 1; target.idx[ip + 1] = vc + 2; target.idx[ip + 2] = vc + 3;
+            target.idx[ip + 3] = vc + 1; target.idx[ip + 4] = vc + 3; target.idx[ip + 5] = vc;
+          } else {
+            target.idx[ip] = vc; target.idx[ip + 1] = vc + 1; target.idx[ip + 2] = vc + 2;
+            target.idx[ip + 3] = vc; target.idx[ip + 4] = vc + 2; target.idx[ip + 5] = vc + 3;
+          }
+          target.iPtr += 6;
+          target.vCount += 4;
+        }
+      }
+    }
+  }
+
+  function makeGeo(buf) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(buf.pos, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(buf.nrm, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(buf.col, 3));
+    geo.setIndex(new THREE.BufferAttribute(buf.idx, 1));
+    geo.computeBoundingSphere();
+    return geo;
+  }
+
+  const opaqueMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const opaqueMesh = new THREE.Mesh(makeGeo(bOpaque), opaqueMat);
+  opaqueMesh.castShadow = true;
+  opaqueMesh.receiveShadow = true;
+  scene.add(opaqueMesh);
+
+  const emissiveMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const emissiveMesh = new THREE.Mesh(makeGeo(bEmissive), emissiveMat);
+  scene.add(emissiveMesh);
+
+  const waterMat = new THREE.MeshLambertMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.82,
+    depthWrite: false
+  });
+  const waterMesh = new THREE.Mesh(makeGeo(bWater), waterMat);
+  waterMesh.receiveShadow = true;
+  scene.add(waterMesh);
+
+  return { emissiveMat, waterMat };
+}
+
+/* ============================================================================
+  7. BLOCKY VOXEL FAUNA (GRAZERS, FOXES, SWAMP FROGS, COASTAL PELICANS)
+
+   ============================================================================ */
+function buildVoxelAnimal(parts) {
+  const group = new THREE.Group();
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  for (const p of parts) {
+    const mat = new THREE.MeshLambertMaterial({ color: p.color });
+    const mesh = new THREE.Mesh(box, mat);
+    mesh.scale.set(p.s[0], p.s[1], p.s[2]);
+    mesh.position.set(p.p[0], p.p[1], p.p[2]);
+    mesh.castShadow = true;
+    group.add(mesh);
+  }
+  return group;
+}
+
+function createFaunaSystem(scene) {
+  const agents = [];
+
+  const DEER_PARTS = [
+    { s: [0.55, 0.45, 0.95], p: [0, 0.62, 0], color: 0x9c6b3e },
+    { s: [0.32, 0.42, 0.32], p: [0, 0.95, 0.40], color: 0xa87648 },
+    { s: [0.34, 0.30, 0.44], p: [0, 1.14, 0.56], color: 0xb68556 },
+    { s: [0.16, 0.14, 0.14], p: [0, 0.76, -0.52], color: 0xf2ece1 },
+    { s: [0.08, 0.24, 0.08], p: [0.14, 1.36, 0.50], color: 0xdccab0 },
+    { s: [0.08, 0.24, 0.08], p: [-0.14, 1.36, 0.50], color: 0xdccab0 },
+    { s: [0.14, 0.44, 0.14], p: [0.18, 0.22, 0.32], color: 0x6e4826 },
+    { s: [0.14, 0.44, 0.14], p: [-0.18, 0.22, 0.32], color: 0x6e4826 },
+    { s: [0.14, 0.44, 0.14], p: [0.18, 0.22, -0.32], color: 0x6e4826 },
+    { s: [0.14, 0.44, 0.14], p: [-0.18, 0.22, -0.32], color: 0x6e4826 }
+  ];
+
+  const FOX_PARTS = [
+    { s: [0.38, 0.30, 0.68], p: [0, 0.34, 0], color: 0xd86b28 },
+    { s: [0.34, 0.28, 0.34], p: [0, 0.50, 0.36], color: 0xe27832 },
+    { s: [0.10, 0.14, 0.08], p: [0.11, 0.68, 0.34], color: 0x3b2416 },
+    { s: [0.10, 0.14, 0.08], p: [-0.11, 0.68, 0.34], color: 0x3b2416 },
+    { s: [0.22, 0.20, 0.42], p: [0, 0.36, -0.48], color: 0xf2dfd0 },
+    { s: [0.10, 0.22, 0.10], p: [0.12, 0.11, 0.22], color: 0x3b2416 },
+    { s: [0.10, 0.22, 0.10], p: [-0.12, 0.11, 0.22], color: 0x3b2416 },
+    { s: [0.10, 0.22, 0.10], p: [0.12, 0.11, -0.22], color: 0x3b2416 },
+    { s: [0.10, 0.22, 0.10], p: [-0.12, 0.11, -0.22], color: 0x3b2416 }
+  ];
+
+  const SWAMP_CRITTER_PARTS = [
+    { s: [0.46, 0.28, 0.50], p: [0, 0.20, 0], color: 0x688f38 },
+    { s: [0.12, 0.12, 0.12], p: [0.14, 0.38, 0.16], color: 0xe6d445 },
+    { s: [0.12, 0.12, 0.12], p: [-0.14, 0.38, 0.16], color: 0xe6d445 },
+    { s: [0.14, 0.14, 0.26], p: [0.24, 0.09, -0.10], color: 0x4b6e26 },
+    { s: [0.14, 0.14, 0.26], p: [-0.24, 0.09, -0.10], color: 0x4b6e26 }
+  ];
+
+  const BIRD_PARTS = [
+    { s: [0.44, 0.24, 0.62], p: [0, 0, 0], color: 0xf4f7fb },
+    { s: [1.35, 0.10, 0.34], p: [0, 0.05, 0.02], color: 0xe2e9f2 },
+    { s: [0.20, 0.14, 0.28], p: [0, 0.06, 0.42], color: 0xf2a93b }
+  ];
+
+  function trySpawnWalker(cx, cz, radius, validBiomes, parts, speed, hopAmp, count) {
+    let spawned = 0;
+    for (let attempt = 0; attempt < count * 25 && spawned < count; attempt++) {
+      const a = hash2(attempt * 13 + cx, cz * 7 + spawned) * Math.PI * 2;
+      const r = Math.sqrt(hash2(attempt * 29 - cz, cx + attempt)) * radius;
+      const wx = Math.round(cx + Math.cos(a) * r);
+      const wz = Math.round(cz + Math.sin(a) * r);
+      const k = colIdx(wx, wz);
+      if (k < 0 || !insideMap[k] || waterMask[k]) continue;
+      if (!validBiomes.includes(biomeMap[k])) continue;
+      const wy = surfaceY[k];
+      if (getBlock(wx, wy + 1, wz) !== B.AIR || getBlock(wx, wy + 2, wz) !== B.AIR) continue;
+
+      const mesh = buildVoxelAnimal(parts);
+      mesh.position.set(wx + 0.5, wy + 1, wz + 0.5);
+      scene.add(mesh);
+      agents.push({
+        type: 'walker',
+        mesh,
+        homeX: wx + 0.5,
+        homeZ: wz + 0.5,
+        x: wx + 0.5,
+        z: wz + 0.5,
+        heading: a,
+        speed,
+        hopAmp,
+        phase: attempt * 1.37,
+        validBiomes
+      });
+      spawned++;
+    }
+  }
+
+  // Deer / grazers in Grasslands, Flowering Grove, Conifer Foothills, Jungle edges & Highlands
+  trySpawnWalker(8, 12, 22, [BIOME.GRASSLAND], DEER_PARTS, 1.35, 0.10, 8);
+  trySpawnWalker(52, 2, 16, [BIOME.GROVE], DEER_PARTS, 1.15, 0.09, 5);
+  trySpawnWalker(-16, -38, 18, [BIOME.CONIFER], DEER_PARTS, 1.10, 0.09, 5);
+  trySpawnWalker(-22, 4, 15, [BIOME.JUNGLE, BIOME.GRASSLAND], DEER_PARTS, 1.20, 0.10, 4);
+  trySpawnWalker(40, -34, 16, [BIOME.HIGHLAND], DEER_PARTS, 1.25, 0.10, 4);
+
+  // Foxes & small creatures in Desert flats & Backwater Swamp
+  trySpawnWalker(48, 46, 22, [BIOME.DESERT], FOX_PARTS, 2.0, 0.14, 7);
+  trySpawnWalker(-68, -24, 14, [BIOME.SWAMP], SWAMP_CRITTER_PARTS, 1.1, 0.24, 6);
+
+  // Coastal & Delta birds wheeling low over lagoons, beaches, and braided river mouths
+  const birdCenters = [
+    [-10, 52, 16, 9.5], [-24, 58, 14, 11.0], [8, 56, 15, 10.0],
+    [-64, 24, 12, 9.0], [-4, 42, 13, 8.5], [16, 48, 12, 10.5]
+  ];
+  for (let i = 0; i < birdCenters.length; i++) {
+    const [bx, bz, br, by] = birdCenters[i];
+    const mesh = buildVoxelAnimal(BIRD_PARTS);
+    scene.add(mesh);
+    agents.push({
+      type: 'flyer',
+      mesh,
+      cx: bx,
+      cz: bz,
+      radius: br,
+      alt: by,
+      speed: 0.38 + (i % 3) * 0.08,
+      phase: i * 1.15
+    });
+  }
+
+  function update(dt, elapsed) {
+    for (let i = 0; i < agents.length; i++) {
+      const a = agents[i];
+      if (a.type === 'flyer') {
+        const ang = elapsed * a.speed + a.phase;
+        const nx = a.cx + Math.cos(ang) * a.radius;
+        const nz = a.cz + Math.sin(ang) * a.radius * 0.72;
+        const ny = a.alt + Math.sin(elapsed * 2.2 + a.phase) * 0.8;
+        a.mesh.position.set(nx, ny, nz);
+        a.mesh.rotation.y = Math.atan2(-Math.sin(ang) * a.radius, Math.cos(ang) * a.radius * 0.72);
+        a.mesh.rotation.z = Math.sin(elapsed * 6.5 + a.phase) * 0.14;
+        continue;
+      }
+
+      // Pause intermittently to graze / look around
+      const gaitWave = Math.sin(elapsed * 0.75 + a.phase);
+      if (gaitWave < -0.35) {
+        a.mesh.position.y = Math.round(a.mesh.position.y);
+        continue;
+      }
+
+      a.heading += Math.sin(elapsed * 0.9 + a.phase * 2.1) * dt * 0.8;
+      const stepX = a.x + Math.sin(a.heading) * a.speed * dt;
+      const stepZ = a.z + Math.cos(a.heading) * a.speed * dt;
+      const distHome = Math.hypot(stepX - a.homeX, stepZ - a.homeZ);
+
+      const gx = Math.floor(stepX), gz = Math.floor(stepZ);
+      const k = colIdx(gx, gz);
+      const curK = colIdx(Math.floor(a.x), Math.floor(a.z));
+      const curY = curK >= 0 ? surfaceY[curK] : 2;
+      const nextY = k >= 0 ? surfaceY[k] : -99;
+
+      if (
+        k >= 0 && insideMap[k] && !waterMask[k] &&
+        a.validBiomes.includes(biomeMap[k]) &&
+        Math.abs(nextY - curY) <= 1 &&
+        distHome < 18 &&
+        getBlock(gx, nextY + 1, gz) === B.AIR
+      ) {
+        a.x = stepX;
+        a.z = stepZ;
+        const hop = Math.abs(Math.sin(elapsed * 7.5 + a.phase)) * a.hopAmp;
+        a.mesh.position.set(a.x, nextY + 1 + hop, a.z);
+        a.mesh.rotation.y = a.heading;
+      } else {
+        a.heading += 1.9;
+      }
+    }
+  }
+
+  return { update };
+}
+
+/* ============================================================================
+  8. CYCLIC CLOUD DECKS, WEATHER SYSTEMS & WATER-CYCLE PARTICLES
+
+   ============================================================================ */
+function burstEnvelope(t, period, phase, holdEnd = 0.54) {
+  const u = (((t / period) + phase) % 1 + 1) % 1;
+  const fadeIn = 0.15, fadeOut = 0.17;
+  if (u < fadeIn) {
+    const x = u / fadeIn;
+    return x * x * (3 - 2 * x);
+  }
+  if (u < holdEnd) return 1.0;
+  if (u < holdEnd + fadeOut) {
+    const x = 1.0 - (u - holdEnd) / fadeOut;
+    return x * x * (3 - 2 * x);
+  }
+  return 0.0;
+}
+
+function makeCloudDeck( puffs, colorHex ) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({
+    color: colorHex,
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false
+  });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  for (const [x, y, z, sx, sy, sz] of puffs) {
+    const m = new THREE.Mesh(box, mat);
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    group.add(m);
+  }
+  return { group, mat };
+}
+
+function makeInstancedBoxes(count, colorHex, opacity = 0.85, unlit = false) {
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const mat = unlit
+    ? new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity, depthWrite: false })
+    : new THREE.MeshLambertMaterial({ color: colorHex, transparent: true, opacity, depthWrite: false });
+  const mesh = new THREE.InstancedMesh(geo, mat, count);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false;
+  return { mesh, mat, count };
+}
+
+function createWeatherSystems(scene) {
+  const dummy = new THREE.Object3D();
+
+  // 1. Blocky Cloud Decks over Snowy Conifers, Dense Jungle, and Temperate Highlands
+  const coniferDeck = makeCloudDeck([
+    [-34, 34, -38, 16, 2.5, 11], [-18, 35, -41, 18, 3.0, 12], [-2, 34, -37, 15, 2.5, 10],
+    [-26, 33, -32, 14, 2.2, 10], [-10, 35, -45, 14, 2.6, 9]
+  ], 0xdce6f5);
+  scene.add(coniferDeck.group);
+
+  const jungleDeck = makeCloudDeck([
+    [-46, 30, -10, 18, 2.8, 14], [-32, 31, 0, 20, 3.2, 15], [-44, 29, 11, 16, 2.5, 12],
+    [-25, 30, -13, 15, 2.6, 12], [-56, 28, -18, 14, 2.4, 11]
+  ], 0x9fb0bf);
+  scene.add(jungleDeck.group);
+
+  const highlandDeck = makeCloudDeck([
+    [34, 32, -38, 15, 2.2, 11], [48, 33, -32, 16, 2.5, 12], [44, 31, -20, 14, 2.2, 10],
+    [54, 27, -6, 13, 2.0, 10]
+  ], 0xcfdbe6);
+  scene.add(highlandDeck.group);
+
+  // 2. Behind-Mountain Alpine Blizzard (wide rear strip z in [-90, -68], x in [-56, +40])
+  const blizzard = makeInstancedBoxes(240, 0xf2f7ff, 0.0, true);
+  scene.add(blizzard.mesh);
+  const blizSeeds = Array.from({ length: blizzard.count }, (_, i) => ({
+    u: hash2(i, 11),
+    y: 22 + hash2(i, 23) * 32,
+    z: -91 + hash2(i, 37) * 23,
+    len: 3.2 + hash2(i, 53) * 4.5,
+    spd: 28 + hash2(i, 71) * 18
+  }));
+
+  // 3. Snowfall under Snowy Conifer Foothill Cloud Deck
+  const snowfall = makeInstancedBoxes(220, 0xf8fbff, 0.0, true);
+  scene.add(snowfall.mesh);
+  const snowSeeds = Array.from({ length: snowfall.count }, (_, i) => ({
+    x: -44 + hash2(i, 101) * 54,
+    z: -50 + hash2(i, 113) * 24,
+    phase: hash2(i, 127),
+    spd: 4.2 + hash2(i, 139) * 2.4
+  }));
+
+  // 4. Jungle Persistent Rain Shafts
+  const jungleRain = makeInstancedBoxes(280, 0x6cb8ff, 0.0, true);
+  scene.add(jungleRain.mesh);
+  const jRainSeeds = Array.from({ length: jungleRain.count }, (_, i) => ({
+    x: -58 + hash2(i, 151) * 40,
+    z: -20 + hash2(i, 163) * 36,
+    phase: hash2(i, 179),
+    spd: 22 + hash2(i, 191) * 8
+  }));
+
+  // 5. Highland & Grove Light Rain
+  const highlandRain = makeInstancedBoxes(140, 0x82c4ff, 0.0, true);
+  scene.add(highlandRain.mesh);
+  const hRainSeeds = Array.from({ length: highlandRain.count }, (_, i) => ({
+    x: 26 + hash2(i, 211) * 38,
+    z: -44 + hash2(i, 223) * 46,
+    phase: hash2(i, 239),
+    spd: 19 + hash2(i, 251) * 6
+  }));
+
+  // 6. Rising Mist & Water-Cycle Evaporation (Jungle post-shower, Swamp backwater, Highlands, Lagoon)
+  const mist = makeInstancedBoxes(150, 0xdbe6ec, 0.0, false);
+  scene.add(mist.mesh);
+  const mistSeeds = Array.from({ length: mist.count }, (_, i) => {
+    const zone = i % 4;
+    let x, z, baseY;
+    if (zone === 0) { x = -76 + hash2(i, 301) * 20; z = -38 + hash2(i, 311) * 26; baseY = 2.0; }       // Swamp mist
+    else if (zone === 1) { x = -50 + hash2(i, 317) * 30; z = -14 + hash2(i, 331) * 28; baseY = 10.0; } // Jungle canopy evaporation
+    else if (zone === 2) { x = 32 + hash2(i, 347) * 32; z = -34 + hash2(i, 353) * 32; baseY = 14.0; }  // Highland mist
+    else { x = -28 + hash2(i, 367) * 44; z = 44 + hash2(i, 373) * 24; baseY = 1.2; }                   // Warm lagoon evaporation
+    return { x, z, baseY, phase: hash2(i, 389), scale: 2.2 + hash2(i, 397) * 2.6, zone };
+  });
+
+  // 7. Desert Winds & Sandstorm / Dust Storm
+  const sandstorm = makeInstancedBoxes(240, 0xdca65b, 0.0, false);
+  scene.add(sandstorm.mesh);
+  const sandSeeds = Array.from({ length: sandstorm.count }, (_, i) => ({
+    u: hash2(i, 409),
+    y: 4.0 + hash2(i, 419) * 14.0,
+    z: 22 + hash2(i, 431) * 52,
+    len: 2.4 + hash2(i, 443) * 3.8,
+    spd: 22 + hash2(i, 457) * 14
+  }));
+
+  // 8. Volcano Periodic Ash Plume & Glowing Eruption Bombs + Quench Steam
+  const ashPlume = makeInstancedBoxes(110, 0x45464f, 0.0, false);
+  scene.add(ashPlume.mesh);
+  const ashSeeds = Array.from({ length: ashPlume.count }, (_, i) => ({
+    phase: hash2(i, 503),
+    ang: hash2(i, 509) * Math.PI * 2,
+    drift: 0.4 + hash2(i, 521) * 0.9,
+    size: 1.4 + hash2(i, 541) * 2.6
+  }));
+
+  const lavaBombs = makeInstancedBoxes(48, 0xff8c1a, 0.0, true);
+  scene.add(lavaBombs.mesh);
+  const bombSeeds = Array.from({ length: lavaBombs.count }, (_, i) => ({
+    phase: hash2(i, 557),
+    ang: hash2(i, 563) * Math.PI * 2,
+    rad: 2.5 + hash2(i, 569) * 9.5,
+    peak: 10 + hash2(i, 577) * 16
+  }));
+
+  // 9. Continuous Waterfall Foam & Obsidian Quench Steam Cubes
+  const spray = makeInstancedBoxes(220, 0xdcf7ff, 0.72, true);
+  scene.add(spray.mesh);
+  const spraySeeds = Array.from({ length: spray.count }, (_, i) => {
+    const isQuench = i < 36;
+    const sp = waterfallSpouts.length > 0
+      ? waterfallSpouts[i % waterfallSpouts.length]
+      : { x: -36, yTop: 14, yBot: 5, z: -12, voidFall: false };
+    return {
+      isQuench,
+      sp,
+      phase: hash2(i, 601),
+      jx: (hash2(i, 613) - 0.5) * 2.2,
+      jz: (hash2(i, 619) - 0.5) * 2.2
+    };
+  });
+
+  function update(elapsed, seasonCfg) {
+    // Staggered cyclic weather envelopes (fade in -> hold -> fade out -> quiet gap)
+    const blizEnv = clamp(burstEnvelope(elapsed, 26, 0.08, 0.58) * seasonCfg.blizzardMod, 0, 1);
+    const snowEnv = clamp(burstEnvelope(elapsed, 29, 0.34, 0.56) * seasonCfg.snowMod, 0, 1);
+    const jRainEnv = clamp(burstEnvelope(elapsed, 24, 0.62, 0.58) * seasonCfg.rainMod, 0, 1);
+    const hRainEnv = clamp(burstEnvelope(elapsed, 31, 0.19, 0.46) * seasonCfg.rainMod, 0, 1);
+    const sandEnv = clamp(burstEnvelope(elapsed, 28, 0.48, 0.52) * seasonCfg.sandMod, 0, 1);
+    const eruptEnv = burstEnvelope(elapsed, 22, 0.77, 0.48);
+    // Rising mist intensifies right after jungle rain fades + steady swamp/evaporation mist
+    const postJungleMist = burstEnvelope(elapsed - 6.0, 24, 0.62, 0.50);
+    const mistEnv = clamp((0.35 + 0.65 * postJungleMist) * seasonCfg.evapMod, 0, 0.72);
+
+    // Cloud deck drift & fade
+    const drift = Math.sin(elapsed * 0.18) * 3.5;
+    coniferDeck.group.position.x = drift;
+    coniferDeck.mat.opacity = 0.86 * snowEnv;
+    coniferDeck.group.visible = coniferDeck.mat.opacity > 0.02;
+
+    jungleDeck.group.position.x = -drift * 1.1;
+    jungleDeck.mat.opacity = 0.88 * jRainEnv;
+    jungleDeck.group.visible = jungleDeck.mat.opacity > 0.02;
+
+    highlandDeck.group.position.z = drift * 0.7;
+    highlandDeck.mat.opacity = 0.78 * hRainEnv;
+    highlandDeck.group.visible = highlandDeck.mat.opacity > 0.02;
+
+    // Behind-mountain blizzard sheets
+    blizzard.mat.opacity = 0.76 * blizEnv;
+    blizzard.mesh.visible = blizEnv > 0.02;
+    if (blizzard.mesh.visible) {
+      for (let i = 0; i < blizzard.count; i++) {
+        const s = blizSeeds[i];
+        const x = -58 + (((s.u * 98 + elapsed * s.spd) % 98 + 98) % 98);
+        const y = s.y + Math.sin(elapsed * 4.0 + i) * 0.9;
+        dummy.position.set(x, y, s.z);
+        dummy.scale.set(s.len, 0.35, 0.55);
+        dummy.rotation.set(0, 0, -0.08);
+        dummy.updateMatrix();
+        blizzard.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      blizzard.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Conifer foothill snowfall
+    snowfall.mat.opacity = 0.90 * snowEnv;
+    snowfall.mesh.visible = snowEnv > 0.02;
+    if (snowfall.mesh.visible) {
+      for (let i = 0; i < snowfall.count; i++) {
+        const s = snowSeeds[i];
+        const fall = ((s.phase + elapsed * (s.spd / 20)) % 1);
+        const y = 33 - fall * 19;
+        const sway = Math.sin(elapsed * 1.8 + i) * 1.1;
+        dummy.position.set(s.x + sway + drift, y, s.z);
+        dummy.scale.set(0.38, 0.38, 0.38);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        snowfall.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      snowfall.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Jungle rain shafts
+    jungleRain.mat.opacity = 0.68 * jRainEnv;
+    jungleRain.mesh.visible = jRainEnv > 0.02;
+    if (jungleRain.mesh.visible) {
+      for (let i = 0; i < jungleRain.count; i++) {
+        const s = jRainSeeds[i];
+        const fall = ((s.phase + elapsed * (s.spd / 24)) % 1);
+        const y = 29 - fall * 24;
+        dummy.position.set(s.x - drift * 1.1, y, s.z);
+        dummy.scale.set(0.14, 1.85, 0.14);
+        dummy.rotation.set(0, 0, 0.04);
+        dummy.updateMatrix();
+        jungleRain.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      jungleRain.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Highland & Grove light rain
+    highlandRain.mat.opacity = 0.58 * hRainEnv;
+    highlandRain.mesh.visible = hRainEnv > 0.02;
+    if (highlandRain.mesh.visible) {
+      for (let i = 0; i < highlandRain.count; i++) {
+        const s = hRainSeeds[i];
+        const fall = ((s.phase + elapsed * (s.spd / 24)) % 1);
+        const y = 31 - fall * 24;
+        dummy.position.set(s.x, y, s.z + drift * 0.7);
+        dummy.scale.set(0.12, 1.55, 0.12);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        highlandRain.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      highlandRain.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Rising mist & evaporation puffs
+    mist.mat.opacity = mistEnv * 0.42;
+    mist.mesh.visible = mist.mat.opacity > 0.02;
+    if (mist.mesh.visible) {
+      for (let i = 0; i < mist.count; i++) {
+        const s = mistSeeds[i];
+        const u = (s.phase + elapsed * 0.055) % 1;
+        const y = s.baseY + u * 8.5;
+        const grow = Math.sin(u * Math.PI);
+        dummy.position.set(s.x + Math.sin(elapsed * 0.4 + i) * 1.4, y, s.z);
+        dummy.scale.set(s.scale * (0.7 + grow * 0.6), 0.75, s.scale * (0.7 + grow * 0.6));
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        mist.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      mist.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Desert sandstorm / dust sheets
+    sandstorm.mat.opacity = 0.62 * sandEnv;
+    sandstorm.mesh.visible = sandEnv > 0.02;
+    if (sandstorm.mesh.visible) {
+      for (let i = 0; i < sandstorm.count; i++) {
+        const s = sandSeeds[i];
+        const x = 28 + (((s.u * 56 + elapsed * s.spd) % 56 + 56) % 56);
+        const y = s.y + Math.sin(elapsed * 3.1 + i) * 0.8;
+        dummy.position.set(x, y, s.z);
+        dummy.scale.set(s.len, 0.42, 0.75);
+        dummy.rotation.set(0, 0.12, 0);
+        dummy.updateMatrix();
+        sandstorm.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      sandstorm.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Volcano ash plume & glowing lava bombs
+    const ashAlpha = 0.25 + 0.65 * eruptEnv;
+    ashPlume.mat.opacity = ashAlpha;
+    for (let i = 0; i < ashPlume.count; i++) {
+      const s = ashSeeds[i];
+      const u = (s.phase + elapsed * (0.09 + eruptEnv * 0.09)) % 1;
+      const spread = u * 11.0 * s.drift;
+      const x = -67 + Math.cos(s.ang + elapsed * 0.2) * spread - u * 5.0;
+      const z = 57 + Math.sin(s.ang + elapsed * 0.2) * spread + u * 3.0;
+      const y = 39 + u * (24 + eruptEnv * 14);
+      const sz = s.size * (0.6 + u * 1.4);
+      dummy.position.set(x, y, z);
+      dummy.scale.set(sz, sz * 0.85, sz);
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+      ashPlume.mesh.setMatrixAt(i, dummy.matrix);
+    }
+    ashPlume.mesh.instanceMatrix.needsUpdate = true;
+
+    lavaBombs.mat.opacity = 0.95 * eruptEnv;
+    lavaBombs.mesh.visible = eruptEnv > 0.04;
+    if (lavaBombs.mesh.visible) {
+      for (let i = 0; i < lavaBombs.count; i++) {
+        const s = bombSeeds[i];
+        const u = (s.phase + elapsed * 0.55) % 1;
+        const r = u * s.rad;
+        const x = -67 + Math.cos(s.ang) * r;
+        const z = 57 + Math.sin(s.ang) * r;
+        const y = 38.5 + 4 * s.peak * u * (1 - u);
+        dummy.position.set(x, y, z);
+        dummy.scale.set(0.55, 0.55, 0.55);
+        dummy.rotation.set(elapsed * 3, elapsed * 2, 0);
+        dummy.updateMatrix();
+        lavaBombs.mesh.setMatrixAt(i, dummy.matrix);
+      }
+      lavaBombs.mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Waterfall plunging cubes & coastal obsidian quench steam
+    for (let i = 0; i < spray.count; i++) {
+      const s = spraySeeds[i];
+      if (s.isQuench) {
+        const u = (s.phase + elapsed * 0.35) % 1;
+        dummy.position.set(-45 + s.jx * 1.5, 1.0 + u * 7.5, 52 + s.jz * 1.5);
+        const qSz = 0.55 + Math.sin(u * Math.PI) * 0.9;
+        dummy.scale.set(qSz, qSz, qSz);
+      } else {
+        const u = (s.phase + elapsed * (s.sp.voidFall ? 0.42 : 0.78)) % 1;
+        const y = lerp(s.sp.yTop, s.sp.yBot, u);
+        dummy.position.set(s.sp.x + s.jx * 0.45, y, s.sp.z + s.jz * 0.45);
+        const fSz = s.sp.voidFall ? (0.65 * (1 - u * 0.4)) : 0.52;
+        dummy.scale.set(fSz, fSz * 1.5, fSz);
+      }
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+      spray.mesh.setMatrixAt(i, dummy.matrix);
+    }
+    spray.mesh.instanceMatrix.needsUpdate = true;
+
+    return {
+      stormCover: Math.max(jRainEnv, snowEnv) * 0.55 + hRainEnv * 0.25,
+      eruptEnv
+    };
+  }
+
+  return { update };
+}
+
+/* ============================================================================
+  9. SCENE, SQUARE SUN, DAY/NIGHT + SEASONAL CYCLE, CAMERA & HUD
+
+   ============================================================================ */
+const canvas = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 1);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.8, 1100);
+camera.position.set(16, 128, 178);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 16;
+controls.maxDistance = 380;
+controls.target.set(0, 8, -4);
+
+// Build World!
+buildTerrainAndHydrology();
+populateFlora();
+const { emissiveMat, waterMat } = buildVoxelMeshes(scene);
+const fauna = createFaunaSystem(scene);
+const weather = createWeatherSystems(scene);
+
+// Lighting & Visible Square Voxel Sun
+const hemiLight = new THREE.HemisphereLight(0xdceeff, 0x232a36, 0.55);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xfff6e5, 1.45);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 40;
+sunLight.shadow.camera.far = 480;
+sunLight.shadow.camera.left = -120;
+sunLight.shadow.camera.right = 120;
+sunLight.shadow.camera.top = 120;
+sunLight.shadow.camera.bottom = -120;
+sunLight.shadow.bias = -0.0008;
+scene.add(sunLight);
+
+// Volcano local ember point light
+const volcanoGlow = new THREE.PointLight(0xff5a14, 3.2, 62, 1.5);
+volcanoGlow.position.set(-67, 43, 57);
+scene.add(volcanoGlow);
+
+// Visible Square Sun (blocky core + warm outer square halo)
+const squareSun = new THREE.Group();
+const sunCoreMat = new THREE.MeshBasicMaterial({ color: 0xfff5c0 });
+const sunRimMat = new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.42 });
+squareSun.add(new THREE.Mesh(new THREE.BoxGeometry(13, 13, 13), sunCoreMat));
+squareSun.add(new THREE.Mesh(new THREE.BoxGeometry(17.5, 17.5, 17.5), sunRimMat));
+scene.add(squareSun);
+
+// Seasons Configuration
+const SEASONS = [
+  { name: 'Spring', hex: '#8ee58f', tint: [0.98, 1.00, 0.95], rainMod: 1.15, snowMod: 0.85, blizzardMod: 0.85, sandMod: 0.80,
+evapMod: 1.05 },
+  { name: 'Summer', hex: '#ffd45c', tint: [1.00, 0.95, 0.84], rainMod: 0.95, snowMod: 0.55, blizzardMod: 0.65, sandMod: 1.30,
+evapMod: 1.35 },
+  { name: 'Autumn', hex: '#f2954e', tint: [1.00, 0.89, 0.76], rainMod: 1.10, snowMod: 0.95, blizzardMod: 1.05, sandMod: 0.95,
+evapMod: 0.85 },
+  { name: 'Winter', hex: '#8ec8ff', tint: [0.88, 0.94, 1.00], rainMod: 0.80, snowMod: 1.35, blizzardMod: 1.35, sandMod: 0.65,
+evapMod: 0.60 }
+];
+
+// Biome Legend & Camera Presets
+const BIOME_STOPS = [
+  { id: 'overview',  name: 'Whole Island',      weather: 'Orbit overview', swatch: '#59c9e8', pos: [16, 128, 178],  target:
+[0, 8, -4] },
+  { id: 'mountain',  name: 'Snow Mountains',    weather: 'Rear blizzard',  swatch: '#eef5fc', pos: [-12, 82, -138], target:
+[-12, 34, -70] },
+  { id: 'conifer',   name: 'Snowy Conifers',    weather: 'Snowfall deck',  swatch: '#235943', pos: [-22, 48, -4],   target:
+[-20, 17, -40] },
+  { id: 'highland',  name: 'Highlands',         weather: 'Mist & drizzle', swatch: '#728f63', pos: [88, 48, -68],   target:
+[44, 16, -34] },
+  { id: 'jungle',    name: 'Dense Jungle',      weather: 'Rain & mist',    swatch: '#1c8439', pos: [-6, 42, 32],    target:
+[-38, 10, -4] },
+  { id: 'swamp',     name: 'Backwater Swamp',   weather: 'Low marsh mist', swatch: '#4a5a30', pos: [-106, 28, -4],  target:
+[-70, 3, -24] },
+  { id: 'grassland', name: 'Central Grasslands',weather: 'Clear / breeze', swatch: '#6dab45', pos: [18, 38, 54],    target:
+[4, 4, 12] },
+  { id: 'grove',     name: 'Flowering Grove',   weather: 'Moist showers',  swatch: '#ff9ec4', pos: [94, 34, 24],    target:
+[54, 6, 0] },
+  { id: 'desert',    name: 'Arid Desert',       weather: 'Sandstorm',      swatch: '#dfa857', pos: [98, 48, 96],    target:
+[56, 10, 48] },
+  { id: 'volcano',   name: 'Volcanic Wasteland',weather: 'Ash & lava',     swatch: '#ff5218', pos: [-108, 62, 104], target:
+[-65, 22, 56] },
+  { id: 'coast',     name: 'Coast & Delta',     weather: 'Sea spray',      swatch: '#1ebbd1', pos: [-10, 40, 114],  target:
+[-8, 1, 54] }
+];
+
+const legendList = document.getElementById('legend-list');
+let activeStopBtn = null;
+const camAnim = {
+  active: false,
+  t: 0,
+  dur: 1.35,
+  fromPos: new THREE.Vector3(),
+  toPos: new THREE.Vector3(),
+  fromTarget: new THREE.Vector3(),
+  toTarget: new THREE.Vector3()
+};
+
+for (let i = 0; i < BIOME_STOPS.length; i++) {
+  const stop = BIOME_STOPS[i];
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'biome-btn' + (i === 0 ? ' active' : '');
+  if (i === 0) activeStopBtn = btn;
+
+  const sw = document.createElement('span');
+  sw.className = 'swatch';
+  sw.style.background = stop.swatch;
+
+  const nm = document.createElement('span');
+  nm.className = 'biome-name';
+  nm.textContent = stop.name;
+
+  const wt = document.createElement('span');
+  wt.className = 'biome-weather';
+  wt.textContent = stop.weather;
+
+  btn.append(sw, nm, wt);
+  btn.addEventListener('click', () => {
+    if (activeStopBtn) activeStopBtn.classList.remove('active');
+    btn.classList.add('active');
+    activeStopBtn = btn;
+    camAnim.fromPos.copy(camera.position);
+    camAnim.toPos.set(stop.pos[0], stop.pos[1], stop.pos[2]);
+    camAnim.fromTarget.copy(controls.target);
+    camAnim.toTarget.set(stop.target[0], stop.target[1], stop.target[2]);
+    camAnim.t = 0;
+    camAnim.active = true;
+  });
+  legendList.appendChild(btn);
+}
+
+// Cancel fly-to smoothly if visitor grabs manual orbit controls
+controls.addEventListener('start', () => { camAnim.active = false; });
+
+const seasonNameEl = document.getElementById('season-name');
+const seasonBarEl = document.getElementById('season-bar');
+const dayPhaseEl = document.getElementById('day-phase');
+
+/* ============================================================================
+  10. ANIMATION LOOP
+
+   ============================================================================ */
+const clock = new THREE.Clock();
+const DAY_PERIOD = 52.0;    // Full day -> dusk -> night -> dawn cycle in seconds
+const SEASON_PERIOD = 96.0; // Full 4-season cycle in seconds
+const sunColorTmp = new THREE.Color();
+const skyHemiTmp = new THREE.Color();
+const groundHemiTmp = new THREE.Color();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const elapsed = clock.elapsedTime;
+
+  // Camera fly-to interpolation
+  if (camAnim.active) {
+    camAnim.t = Math.min(1, camAnim.t + dt / camAnim.dur);
+    const e = camAnim.t < 0.5
+      ? 4 * camAnim.t * camAnim.t * camAnim.t
+      : 1 - Math.pow(-2 * camAnim.t + 2, 3) / 2;
+    camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
+    controls.target.lerpVectors(camAnim.fromTarget, camAnim.toTarget, e);
+    if (camAnim.t >= 1) camAnim.active = false;
+  }
+  controls.update();
+
+  // Seasonal progression (Spring -> Summer -> Autumn -> Winter)
+  const seasonU = ((elapsed / SEASON_PERIOD) % 1) * 4;
+  const sIdx = Math.floor(seasonU) % 4;
+  const sNext = (sIdx + 1) % 4;
+  const sFrac = seasonU - Math.floor(seasonU);
+  const curS = SEASONS[sIdx];
+  const nxtS = SEASONS[sNext];
+
+  const blendedSeason = {
+    rainMod: lerp(curS.rainMod, nxtS.rainMod, sFrac),
+    snowMod: lerp(curS.snowMod, nxtS.snowMod, sFrac),
+    blizzardMod: lerp(curS.blizzardMod, nxtS.blizzardMod, sFrac),
+    sandMod: lerp(curS.sandMod, nxtS.sandMod, sFrac),
+    evapMod: lerp(curS.evapMod, nxtS.evapMod, sFrac),
+    tint: [
+      lerp(curS.tint[0], nxtS.tint[0], sFrac),
+      lerp(curS.tint[1], nxtS.tint[1], sFrac),
+      lerp(curS.tint[2], nxtS.tint[2], sFrac)
+    ]
+  };
+
+  if (seasonNameEl.textContent !== curS.name) {
+    seasonNameEl.textContent = curS.name;
+    seasonNameEl.style.color = curS.hex;
+    seasonBarEl.style.backgroundColor = curS.hex;
+  }
+  seasonBarEl.style.width = `${(sFrac * 100).toFixed(1)}%`;
+
+  // Update Weather & Fauna
+  const { stormCover, eruptEnv } = weather.update(elapsed, blendedSeason);
+  fauna.update(dt, elapsed);
+
+  // Square Sun Orbit & Day/Night Lighting (Void remains pure #000000)
+  // Start near high noon so initial orbital view is crisp and bright
+  const sunAngle = ((elapsed / DAY_PERIOD) * Math.PI * 2) + 1.15;
+  const orbitR = 235;
+  const sx = Math.cos(sunAngle) * orbitR;
+  const sy = Math.sin(sunAngle) * orbitR;
+  const sz = 58 * Math.sin(sunAngle * 0.5 + 0.4);
+  squareSun.position.set(sx, sy, sz);
+  squareSun.lookAt(0, 0, 0);
+
+  const elev = sy / orbitR; // -1 midnight .. +1 noon
+  const dayFactor = smoothstep(-0.14, 0.32, elev);
+  const duskFactor = smoothstep(-0.18, 0.06, elev) * (1.0 - smoothstep(0.06, 0.42, elev));
+
+  let phaseLabel = 'Night';
+  if (elev > 0.45) phaseLabel = 'Noon';
+  else if (elev > 0.0) phaseLabel = Math.cos(sunAngle) > 0 ? 'Morning' : 'Dusk';
+  else if (elev > -0.22) phaseLabel = Math.cos(sunAngle) > 0 ? 'Dawn' : 'Twilight';
+  if (dayPhaseEl.textContent !== phaseLabel) dayPhaseEl.textContent = phaseLabel;
+
+  // Sun color warms at dawn/dusk, cools slightly in storms, modulated by season tint
+  const rSun = lerp(1.0, 1.0, dayFactor) * blendedSeason.tint[0] * (1 - stormCover * 0.12);
+  const gSun = lerp(0.58, 0.97, dayFactor) * blendedSeason.tint[1] * (1 - stormCover * 0.05);
+  const bSun = lerp(0.36, 0.90, dayFactor) * blendedSeason.tint[2] * (1 + stormCover * 0.06);
+  sunColorTmp.setRGB(clamp(rSun, 0, 1), clamp(gSun, 0, 1), clamp(bSun, 0, 1));
+  sunLight.color.copy(sunColorTmp);
+  sunCoreMat.color.setRGB(
+    lerp(1.0, 1.0, dayFactor),
+    lerp(0.55, 0.96, dayFactor),
+    lerp(0.28, 0.78, dayFactor)
+  );
+  sunRimMat.opacity = 0.25 + 0.35 * duskFactor + 0.18 * dayFactor;
+
+  if (sy > -18) {
+    sunLight.position.set(sx, Math.max(18, sy), sz);
+    sunLight.intensity = (0.06 + 1.52 * dayFactor) * (1.0 - stormCover * 0.26);
+  } else {
+    // Subtle cool moonlight from above so voxel silhouettes remain faintly readable at midnight
+    sunLight.position.set(-sx * 0.5, 130, -sz * 0.5);
+    sunLight.color.setHex(0x4c6699);
+    sunLight.intensity = 0.14;
+  }
+
+  skyHemiTmp.setRGB(
+    lerp(0.09, 0.78, dayFactor) * blendedSeason.tint[0],
+    lerp(0.12, 0.86, dayFactor) * blendedSeason.tint[1],
+    lerp(0.22, 0.96, dayFactor) * blendedSeason.tint[2]
+  );
+  groundHemiTmp.setRGB(
+    lerp(0.04, 0.19, dayFactor),
+    lerp(0.05, 0.21, dayFactor),
+    lerp(0.08, 0.26, dayFactor)
+  );
+  hemiLight.color.copy(skyHemiTmp);
+  hemiLight.groundColor.copy(groundHemiTmp);
+  hemiLight.intensity = lerp(0.22, 0.68, dayFactor);
+
+  // Subtle pulse on volcano ember glow & lava/mineral emissives
+  const pulse = 0.90 + Math.sin(elapsed * 4.3) * 0.10;
+  volcanoGlow.intensity = (2.6 + eruptEnv * 3.4) * pulse;
+  emissiveMat.color.setScalar(0.92 + eruptEnv * 0.08 * pulse);
+  waterMat.opacity = lerp(0.76, 0.84, dayFactor);
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

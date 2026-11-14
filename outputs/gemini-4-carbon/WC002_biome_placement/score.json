@@ -1,0 +1,600 @@
+{
+  "score": 14,
+  "max_score": 20,
+  "points_per_biome": 2,
+  "passed": false,
+  "reason": "Scored 14/20; not covered: none; misplaced: forest, highlands, jungle, swamp, desert, volcano",
+  "elevation_order": [
+    "mountains",
+    "volcano",
+    "highlands",
+    "forest",
+    "jungle",
+    "grove",
+    "grassland",
+    "desert",
+    "swamp",
+    "delta"
+  ],
+  "biomes": {
+    "mountains": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "forest",
+        "highlands"
+      ],
+      "elevation_rank": 0,
+      "evidence": "LOBES[0] (mountains) is at [-8, -68], LOBES[1] (forest) is at [-20, -40], LOBES[2] (highlands) is at [45, -38]. The mountain range is adjacent to the conifer shelf and highland edge.",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "forest",
+            "highlands"
+          ]
+        },
+        {
+          "id": "higher_than.forest",
+          "kind": "higher_than",
+          "expected": "mountains before forest in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "forest_rank": 3
+          }
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "mountains before highlands in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "highlands_rank": 2
+          }
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "mountains before jungle in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "mountains before grassland in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "mountains before delta in elevation_order",
+          "actual": {
+            "mountains_rank": 0,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "forest": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "grassland",
+        "jungle",
+        "mountains"
+      ],
+      "elevation_rank": 3,
+      "evidence": "LOBES[1] (forest) at [-20, -40] sits between LOBES[0] (mountains), LOBES[5] (jungle) at [-40, -1], and LOBES[6] (grassland) at [6, 10].",
+      "summary": "not connected to highlands; not at a higher elevation than highlands",
+      "earned": [
+        {
+          "id": "must_connect.mountains",
+          "kind": "must_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "grassland",
+            "jungle",
+            "mountains"
+          ]
+        },
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "forest before jungle in elevation_order",
+          "actual": {
+            "forest_rank": 3,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "forest before grassland in elevation_order",
+          "actual": {
+            "forest_rank": 3,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "forest before delta in elevation_order",
+          "actual": {
+            "forest_rank": 3,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "grassland",
+            "jungle",
+            "mountains"
+          ],
+          "why": "not_connected"
+        },
+        {
+          "id": "higher_than.highlands",
+          "kind": "higher_than",
+          "expected": "forest before highlands in elevation_order",
+          "actual": {
+            "forest_rank": 3,
+            "highlands_rank": 2
+          },
+          "why": "not_higher"
+        }
+      ]
+    },
+    "highlands": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "desert",
+        "grassland",
+        "grove",
+        "mountains"
+      ],
+      "elevation_rank": 2,
+      "evidence": "LOBES[2] (highlands) at [45, -38] borders LOBES[0] (mountains), LOBES[3] (grove) at [58, -1], LOBES[6] (grassland) at [6, 10], and LOBES[10] (desert) at [56, 50].",
+      "summary": "not connected to forest; not connected to jungle",
+      "earned": [
+        {
+          "id": "higher_than.jungle",
+          "kind": "higher_than",
+          "expected": "highlands before jungle in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "jungle_rank": 4
+          }
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "highlands before grassland in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "highlands before delta in elevation_order",
+          "actual": {
+            "highlands_rank": 2,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.forest",
+          "kind": "must_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "desert",
+            "grassland",
+            "grove",
+            "mountains"
+          ],
+          "why": "not_connected"
+        },
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "desert",
+            "grassland",
+            "grove",
+            "mountains"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "jungle": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "forest",
+        "grassland",
+        "swamp"
+      ],
+      "elevation_rank": 4,
+      "evidence": "LOBES[5] (jungle) at [-40, -1] borders LOBES[1] (forest), LOBES[4] (swamp) at [-68, -26], and LOBES[6] (grassland) at [6, 10].",
+      "summary": "not connected to highlands",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "forest",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "must_connect.swamp",
+          "kind": "must_connect",
+          "expected": "swamp",
+          "actual_neighbors": [
+            "forest",
+            "grassland",
+            "swamp"
+          ]
+        },
+        {
+          "id": "higher_than.grassland",
+          "kind": "higher_than",
+          "expected": "jungle before grassland in elevation_order",
+          "actual": {
+            "jungle_rank": 4,
+            "grassland_rank": 6
+          }
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "jungle before delta in elevation_order",
+          "actual": {
+            "jungle_rank": 4,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_connect.highlands",
+          "kind": "must_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "forest",
+            "grassland",
+            "swamp"
+          ],
+          "why": "not_connected"
+        }
+      ]
+    },
+    "swamp": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "jungle"
+      ],
+      "elevation_rank": 8,
+      "evidence": "LOBES[4] (swamp) at [-68, -26] borders LOBES[5] (jungle) and LOBES[7] (delta) at [-66, 25].",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "jungle"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "grove": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "desert",
+        "grassland",
+        "highlands"
+      ],
+      "elevation_rank": 5,
+      "evidence": "LOBES[3] (grove) at [58, -1] borders LOBES[2] (highlands), LOBES[6] (grassland) at [6, 10], and LOBES[10] (desert) at [56, 50].",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect_any",
+          "kind": "must_connect_any",
+          "expected": [
+            "highlands",
+            "grassland"
+          ],
+          "actual_neighbors": [
+            "desert",
+            "grassland",
+            "highlands"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "grassland": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "forest",
+        "grove",
+        "highlands",
+        "jungle"
+      ],
+      "elevation_rank": 6,
+      "evidence": "LOBES[6] (grassland) at [6, 10] is central, bordering LOBES[1], LOBES[5], LOBES[2], LOBES[3], and LOBES[9] (delta) at [-10, 60].",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.jungle",
+          "kind": "must_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grove",
+            "highlands",
+            "jungle"
+          ]
+        },
+        {
+          "id": "must_connect.delta",
+          "kind": "must_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "forest",
+            "grove",
+            "highlands",
+            "jungle"
+          ]
+        },
+        {
+          "id": "higher_than.delta",
+          "kind": "higher_than",
+          "expected": "grassland before delta in elevation_order",
+          "actual": {
+            "grassland_rank": 6,
+            "delta_rank": 9
+          }
+        }
+      ],
+      "lost": []
+    },
+    "delta": {
+      "score": 2,
+      "max_score": 2,
+      "passed": true,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "desert",
+        "grassland",
+        "swamp",
+        "volcano"
+      ],
+      "elevation_rank": 9,
+      "evidence": "LOBES[9] (delta) at [-10, 60] borders LOBES[7] (coastal bay) at [-66, 25], LOBES[6] (grassland), LOBES[8] (volcano) at [-66, 58], and LOBES[10] (desert).",
+      "summary": "ok",
+      "earned": [
+        {
+          "id": "must_connect.grassland",
+          "kind": "must_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "desert",
+            "grassland",
+            "swamp",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": []
+    },
+    "desert": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "grove",
+        "highlands",
+        "volcano"
+      ],
+      "elevation_rank": 7,
+      "evidence": "LOBES[10] (desert) at [56, 50] borders LOBES[2], LOBES[3], LOBES[9], and LOBES[8] (volcano).",
+      "summary": "incorrectly connected to highlands; incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "highlands",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "highlands",
+            "volcano"
+          ]
+        },
+        {
+          "id": "must_not_connect.jungle",
+          "kind": "must_not_connect",
+          "expected": "jungle",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "highlands",
+            "volcano"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "highlands",
+            "volcano"
+          ],
+          "why": "incorrectly_connected"
+        },
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "grove",
+            "highlands",
+            "volcano"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    },
+    "volcano": {
+      "score": 1,
+      "max_score": 2,
+      "passed": false,
+      "covered": true,
+      "skipped": [],
+      "neighbors": [
+        "delta",
+        "desert"
+      ],
+      "elevation_rank": 1,
+      "evidence": "LOBES[8] (volcano) at [-66, 58] borders LOBES[9] (delta) and LOBES[10] (desert).",
+      "summary": "incorrectly connected to delta",
+      "earned": [
+        {
+          "id": "must_not_connect.mountains",
+          "kind": "must_not_connect",
+          "expected": "mountains",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.forest",
+          "kind": "must_not_connect",
+          "expected": "forest",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.highlands",
+          "kind": "must_not_connect",
+          "expected": "highlands",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        },
+        {
+          "id": "must_not_connect.grassland",
+          "kind": "must_not_connect",
+          "expected": "grassland",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ]
+        }
+      ],
+      "lost": [
+        {
+          "id": "must_not_connect.delta",
+          "kind": "must_not_connect",
+          "expected": "delta",
+          "actual_neighbors": [
+            "delta",
+            "desert"
+          ],
+          "why": "incorrectly_connected"
+        }
+      ]
+    }
+  }
+}

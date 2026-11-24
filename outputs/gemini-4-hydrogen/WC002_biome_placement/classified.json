@@ -1,0 +1,85 @@
+{
+  "biomes": {
+    "mountains": {
+      "present": true,
+      "aliases": [
+        "BIOMES.MOUNTAINS"
+      ],
+      "placement_code": "if (z < -28 + n1 * 0.7 && x > -40 && x < 34) { return BIOMES.MOUNTAINS; }",
+      "elevation_code": "const ridge = 1.0 - Math.abs(noise2(x * 0.075 + 3, z * 0.075 - 1) * 2 - 1); const backBoost = smoothstep(-28, -46, z); h = Math.round(16 + backBoost * 11 + ridge * 13 + nDetail * 4);"
+    },
+    "forest": {
+      "present": true,
+      "aliases": [
+        "BIOMES.SNOW_FOREST"
+      ],
+      "placement_code": "if (z >= -28 + n1 * 0.7 && z < -13 + n2 * 0.6 && x > -34 && x < 10) { return BIOMES.SNOW_FOREST; }",
+      "elevation_code": "h = Math.round(12 + nLarge * 5 + nDetail * 2);"
+    },
+    "highlands": {
+      "present": true,
+      "aliases": [
+        "BIOMES.HIGHLANDS"
+      ],
+      "placement_code": "if (z >= -29 + n1 * 0.5 && z < -5 + n2 * 0.5 && x >= 10 && x < 38) { return BIOMES.HIGHLANDS; }",
+      "elevation_code": "const slopeToGrove = smoothstep(-24, -4, z); h = Math.round(18 - slopeToGrove * 6 + nLarge * 4 + nDetail * 2);"
+    },
+    "jungle": {
+      "present": true,
+      "aliases": [
+        "BIOMES.JUNGLE"
+      ],
+      "placement_code": "if (x <= -7 + n1 * 0.6 && z >= -15 + n2 * 0.5 && z <= 18 + n1 * 0.5) { return BIOMES.JUNGLE; }",
+      "elevation_code": "h = Math.round(7 + nLarge * 4 + nDetail * 2);"
+    },
+    "swamp": {
+      "present": true,
+      "aliases": [
+        "BIOMES.SWAMP"
+      ],
+      "placement_code": "if (Math.sqrt(sx * sx + sz * sz) + n2 * 0.05 < 1.0 && x < -26) { return BIOMES.SWAMP; }",
+      "elevation_code": "h = Math.round(SEA_LEVEL + 0.4 + nDetail * 2.2); if (h <= SEA_LEVEL) { h = SEA_LEVEL - 1; waterGrid[i] = 3; }"
+    },
+    "grove": {
+      "present": true,
+      "aliases": [
+        "BIOMES.GROVE"
+      ],
+      "placement_code": "if (Math.sqrt(gx * gx + gz * gz) + n1 * 0.04 < 1.0 && z >= -6 + n2 * 0.4) { return BIOMES.GROVE; }",
+      "elevation_code": "h = Math.round(7 + nLarge * 2.5 + smoothstep(0, -8, z) * 2);"
+    },
+    "grassland": {
+      "present": true,
+      "aliases": [
+        "BIOMES.PLAINS"
+      ],
+      "placement_code": "return BIOMES.PLAINS;",
+      "elevation_code": "h = Math.round(5 + nLarge * 2.2);"
+    },
+    "delta": {
+      "present": true,
+      "aliases": [
+        "BIOMES.OCEAN",
+        "BIOMES.BEACH"
+      ],
+      "placement_code": "if (isSouthOrWest && shelfDist <= 1.02) return BIOMES.OCEAN; ... if (h <= SEA_LEVEL + 2 && b !== BIOMES.SWAMP) { biomeGrid[i] = BIOMES.BEACH; }",
+      "elevation_code": "const shelfEdge = smoothstep(0.86, 1.02, landDist); h = Math.round(SEA_LEVEL - 1 - shelfEdge * 3 - nDetail * 1.5); waterGrid[i] = 1;"
+    },
+    "desert": {
+      "present": true,
+      "aliases": [
+        "BIOMES.DESERT"
+      ],
+      "placement_code": "if (x >= 10 + n1 * 0.6 && z >= 15 + n2 * 0.5) { return BIOMES.DESERT; }",
+      "elevation_code": "const m1 = Math.hypot(x - 24, z - 28); const m2 = Math.hypot(x - 36, z - 23); const m3 = Math.hypot(x - 18, z - 36); const peak1 = Math.max(0, 1 - m1 / 8.5); const peak2 = Math.max(0, 1 - m2 / 7.5); const peak3 = Math.max(0, 1 - m3 / 6.0); const sandPeak = Math.max(peak1, peak2, peak3); const mesa = Math.floor(sandPeak * 15); h = Math.round(5 + nLarge * 2.0 + mesa);"
+    },
+    "volcano": {
+      "present": true,
+      "aliases": [
+        "BIOMES.VOLCANO"
+      ],
+      "placement_code": "if (vDist < 0.96 && x > 28 + n2 * 0.4) { return BIOMES.VOLCANO; }",
+      "elevation_code": "const distV = Math.hypot(x - 45, z + 2); if (distV < 3.6) { h = 28; lavaGrid[i] = 1; } else if (distV < 14) { const cone = (1 - (distV - 3.6) / 10.4); h = Math.round(8 + Math.pow(cone, 1.15) * 22 + nDetail * 2); } else { h = Math.round(6 + nLarge * 2.5); }"
+    }
+  }
+}
